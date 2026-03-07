@@ -1,0 +1,17 @@
+{
+  "name": "gestion-del-fin-api",
+  "version": "1.0.0",
+  "description": "Backend API for 'Gestión del fin': A multi-camp zombie survival management system featuring AI-driven ingress decisions, resource tracking, and secure role-based access.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "api",
+    "typescript",
+    "survival",
+    "management"
+  ],
+  "author": "Matteo Quesada",
+  "license": "ISC"
+}
