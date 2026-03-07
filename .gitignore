@@ -1,1 +1,3 @@
 .direnv/
+.env/
+node_modules/
