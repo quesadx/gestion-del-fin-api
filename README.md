@@ -10,7 +10,6 @@ You can set up the project using **Nix** or **manually** with Node.js 20+.
 1. Enter the development shell:
    ```bash
    nix develop
-```
 
 2. If using direnv, allow it:
 
