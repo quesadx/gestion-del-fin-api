@@ -11,7 +11,7 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "spell": "cspell \"src/**/*.ts\"",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:e2e": "playwright test"
   },
   "keywords": [
