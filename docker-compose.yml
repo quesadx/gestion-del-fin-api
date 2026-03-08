@@ -1,0 +1,22 @@
+# The "what"
+# This file defines the services that make up the application, so they can be run together in an isolated environment.
+# 'volumes', 'ports', 'environment' are some of the options that can be used to configure the services.
+# They are all inside 'db' because we only have one service, which is the database.
+services:
+  # 'db' refers to the database itself
+  # it works as a DNS name, so we can use it to connect to the database from other services (if we had any)
+  # example: db:3306 would be the address to connect to the database from another service
+  db:
+    # Should I lock the image version?
+    image: mariadb:latest
+    container_name:  gestion-del-fin-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=gestion-del-fin-db
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=admin
+    ports:
+      - "3306:3306"
+    volumes:
+      # Allows to run the migrations when the container starts
+      - ./src/database/migrations:/docker-entrypoint-initdb.d
