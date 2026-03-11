@@ -1,3 +1,7 @@
 .direnv/
 .env/
 node_modules/
+dist/
+.DS_Store
+*.js
+*.js.map
