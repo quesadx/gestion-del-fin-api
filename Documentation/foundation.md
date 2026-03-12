@@ -347,3 +347,122 @@ The TypeScript configuration used in this project provides a solid foundation fo
 - supporting scalable project architecture
 
 This configuration will serve as the base for implementing the API of the **Gestión del Fin** system, including routes, controllers, services, and automated tests.
+
+**Code Quality and Linting Setup**
+
+This part of document explains the setup of ESLint, Prettier, and CSpell in the Gestión del fin API project, describing what each tool does, how it works, and how it is configured.
+
+1. ESLint
+
+Purpose:
+ESLint is used to enforce coding standards, detect potential errors, and ensure TypeScript code quality.
+
+Configuration:
+
+File: eslint.config.js (ES Module syntax)
+
+Ignores: dist/** and node_modules/**
+
+Plugins used:
+
+@typescript-eslint → for TypeScript-specific rules
+
+prettier → integrates Prettier formatting rules into ESLint
+
+Rules:
+
+"prettier/prettier": "error" → ensures code formatting complies with Prettier
+
+Usage:
+
+npm run lint # checks for code issues
+npm run lint:fix # automatically fixes some problems
+
+Notes:
+
+ESLint v10 requires the configuration file to be eslint.config.js instead of .eslintrc.json.
+
+The project uses ESM modules, so "type": "module" is set in package.json to avoid Node warnings.
+
+2. Prettier
+
+Purpose:
+Prettier is a code formatter that automatically applies consistent code style rules across the project.
+
+Configuration:
+
+File: .prettierrc (or defaults if not present)
+
+Integrated with ESLint using eslint-plugin-prettier and eslint-config-prettier
+
+Usage:
+
+npm run format # formats all source files
+
+Notes:
+
+Prettier ensures all .ts and .js files follow consistent indentation, spacing, and semicolons.
+
+Files in dist/ and node_modules/ are ignored.
+
+3. CSpell
+
+Purpose:
+CSpell is a spell checker for source code, comments, and strings. It helps maintain correct spelling in variable names, comments, and documentation.
+
+Configuration:
+
+File: cspell.json
+
+Custom dictionary can include project-specific terms (e.g., gestion, campamento, zombie)
+
+Usage:
+
+npm run spell # checks for spelling errors in source files
+
+Example output:
+
+src/index.ts:19:24 - Unknown word (gestion)
+
+Add unknown words to cspell.json to avoid false positives.
+
+4. Project Integration
+
+Scripts in package.json:
+
+{
+"lint": "eslint src --ext .ts",
+"lint:fix": "eslint src --ext .ts --fix",
+"format": "prettier --write .",
+"spell": "cspell \"src/\*_/_.ts\""
+}
+
+Workflow for developers:
+
+Write or update TypeScript code.
+
+Run ESLint to check for coding issues:
+
+npm run lint
+
+Apply Prettier formatting automatically:
+
+npm run format
+
+Check spelling in code and comments:
+
+npm run spell
+
+Commit and push only clean, formatted, and spell-checked code.
+
+5. Summary
+
+ESLint ensures code quality and correctness.
+
+Prettier enforces consistent style and formatting.
+
+CSpell checks spelling in code and documentation.
+
+"type": "module" in package.json ensures Node interprets ESM correctly, avoiding warnings with ESLint.
+
+With this setup, the project maintains high code quality, readable formatting, and accurate spelling across all TypeScript files.
