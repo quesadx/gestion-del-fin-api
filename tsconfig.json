@@ -1,29 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-
     "module": "Node16",
     "moduleResolution": "node16",
-
-    "rootDir": ".",
-    "outDir": "./dist",
-
+    "rootDir": "src",
+    "outDir": "dist",
     "strict": true,
-
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-
     "resolveJsonModule": true,
-
     "types": ["node", "jest"],
-
     "sourceMap": true,
-
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-
   "include": ["src"],
-
   "exclude": ["node_modules", "dist"]
 }
