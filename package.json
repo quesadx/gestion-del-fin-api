@@ -1,6 +1,7 @@
 {
   "name": "gestion-del-fin-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend API for 'Gestión del fin': A multi-camp zombie survival management system featuring AI-driven ingress decisions, resource tracking, and secure role-based access.",
   "main": "dist/index.js",
   "scripts": {
@@ -9,7 +10,7 @@
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "format": "prettier --write .",
     "spell": "cspell \"src/**/*.ts\"",
     "test": "jest --passWithNoTests",
     "test:e2e": "playwright test"
@@ -43,10 +44,12 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.4.0",
     "@types/node-cron": "^3.0.11",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@typescript-eslint/parser": "^8.56.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
     "cspell": "^9.7.0",
     "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.2.0",
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",

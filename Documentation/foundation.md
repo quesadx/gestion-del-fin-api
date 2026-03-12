@@ -44,9 +44,9 @@ This option specifies the version of JavaScript that will be generated after com
 
 In this project **ES2022** is used, which allows modern JavaScript features such as:
 
-* modern classes
-* `async / await`
-* improved array and object utilities
+- modern classes
+- `async / await`
+- improved array and object utilities
 
 Since modern versions of Node.js support ES2022, there is no need to transpile to older JavaScript versions.
 
@@ -150,9 +150,9 @@ This option enables **TypeScript's strict type-checking mode**, which activates 
 
 Strict mode helps:
 
-* prevent common programming errors
-* improve code quality
-* enforce better type safety
+- prevent common programming errors
+- improve code quality
+- enforce better type safety
 
 For example, it requires variables and function parameters to have properly defined types.
 
@@ -220,8 +220,8 @@ This option defines which global type definitions are available in the project.
 
 In this configuration the following types are included:
 
-* **node** → type definitions for Node.js
-* **jest** → type definitions for automated tests
+- **node** → type definitions for Node.js
+- **jest** → type definitions for automated tests
 
 This allows the editor and compiler to recognize testing functions such as:
 
@@ -305,9 +305,9 @@ This option defines which directories should be excluded from the compilation pr
 
 The following directories are excluded:
 
-* `node_modules` → external dependencies
-* `dist` → already compiled files
-* `tests` → automated test files
+- `node_modules` → external dependencies
+- `dist` → already compiled files
+- `tests` → automated test files
 
 Tests are executed using testing tools and do not need to be compiled as part of the main build.
 
@@ -341,9 +341,9 @@ This command starts the backend server using the compiled JavaScript code.
 
 The TypeScript configuration used in this project provides a solid foundation for backend development by:
 
-* enabling static typing
-* improving early error detection
-* maintaining a clear separation between source and compiled code
-* supporting scalable project architecture
+- enabling static typing
+- improving early error detection
+- maintaining a clear separation between source and compiled code
+- supporting scalable project architecture
 
 This configuration will serve as the base for implementing the API of the **Gestión del Fin** system, including routes, controllers, services, and automated tests.
