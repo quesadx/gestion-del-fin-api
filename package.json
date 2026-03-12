@@ -32,6 +32,7 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "mariadb": "^3.5.2",
     "node-cron": "^4.2.1",
     "uuid": "^13.0.0",
     "winston": "^3.19.0",

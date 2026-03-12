@@ -434,7 +434,7 @@ Scripts in package.json:
 "lint": "eslint src --ext .ts",
 "lint:fix": "eslint src --ext .ts --fix",
 "format": "prettier --write .",
-"spell": "cspell \"src/\*_/_.ts\""
+"spell": "cspell \"src/_/_.ts\""
 }
 
 Workflow for developers:
@@ -466,3 +466,195 @@ CSpell checks spelling in code and documentation.
 "type": "module" in package.json ensures Node interprets ESM correctly, avoiding warnings with ESLint.
 
 With this setup, the project maintains high code quality, readable formatting, and accurate spelling across all TypeScript files.
+
+**Database Configuration and Connection**
+
+This project connects to a MariaDB database using the official Node.js driver mariadb.
+The configuration is managed through environment variables to ensure flexibility between development and production environments.
+
+The application uses dotenv to load environment variables from a .env file during local development.
+
+Environment Variables
+
+Database configuration is defined using environment variables.
+
+These variables are automatically loaded into process.env when the application starts.
+
+Example:
+
+process.env.DB_HOST
+process.env.DB_USER
+
+This approach ensures that sensitive information such as database credentials is not hardcoded into the source code.
+
+Database Configuration (db.config.ts)
+
+The file:
+
+src/config/db.config.ts
+
+is responsible for reading the environment variables and exporting a configuration object used by the database connection.
+
+Example:
+
+import dotenv from "dotenv";
+
+dotenv.config();
+
+export const dbConfig = {
+host: process.env.DB_HOST,
+port: Number(process.env.DB_PORT),
+user: process.env.DB_USER,
+password: process.env.DB_PASSWORD,
+database: process.env.DB_NAME,
+connectionLimit: 5
+};
+Purpose
+
+This file centralizes database configuration so that connection details are defined in one place.
+
+Database Connection (connection.ts)
+
+The file:
+
+src/database/connection.ts
+
+creates a connection pool using the MariaDB driver.
+
+Example:
+
+import \* as mariadb from "mariadb";
+import { dbConfig } from "../config/db.config.js";
+
+export const pool = mariadb.createPool(dbConfig);
+Connection Pool
+
+A connection pool allows the application to reuse existing database connections instead of opening a new one for every query.
+
+Benefits:
+
+improved performance
+
+reduced connection overhead
+
+better scalability
+
+Query Utility
+
+A helper function is implemented to simplify database queries.
+
+Example:
+
+export const query = async (sql: string, params?: unknown[]) => {
+let conn;
+
+try {
+conn = await pool.getConnection();
+const result = await conn.query(sql, params);
+return result;
+} finally {
+if (conn) conn.release();
+}
+};
+Purpose
+
+This utility function:
+
+retrieves a connection from the pool
+
+executes a SQL query
+
+returns the result
+
+releases the connection back to the pool
+
+This prevents connection leaks and centralizes database access logic.
+
+Database Connection Test
+
+A test function was added to verify that the application can connect to the database when the server starts.
+
+Example:
+
+export const testConnection = async () => {
+try {
+const conn = await pool.getConnection();
+console.log("Database connected successfully");
+conn.release();
+} catch (error) {
+console.error("Database connection failed:", error);
+}
+};
+
+Startup Flow
+Application starts
+↓
+Environment variables loaded
+↓
+Database connection tested
+↓
+Express server starts
+Docker Database Integration
+
+The database runs inside a container managed by Docker Compose.
+
+Example service:
+
+services:
+db:
+image: mariadb:latest
+container_name: gestion-del-fin-db
+environment:
+MYSQL_ROOT_PASSWORD: admin
+MYSQL_DATABASE: gestion-del-fin-db
+MYSQL_USER: admin
+MYSQL_PASSWORD: admin
+ports: - "3306:3306"
+
+This allows the API to connect to a local database instance during development.
+
+Development Workflow
+
+Typical development flow:
+
+1 Start database container
+docker compose up -d
+
+2 Start the backend
+npm run dev
+
+3 Application tests database connection
+
+4 API becomes available
+Production Considerations
+
+In production environments:
+
+.env files are usually not used
+
+environment variables are provided by the hosting platform
+
+database credentials should be managed securely
+
+The application code remains unchanged because it reads configuration from process.env.
+
+Architecture Summary
+.env
+↓
+dotenv
+↓
+process.env
+↓
+db.config.ts
+↓
+connection.ts
+↓
+MariaDB
+
+This structure ensures a clean separation between:
+
+configuration
+
+database connection
+
+application logic.
