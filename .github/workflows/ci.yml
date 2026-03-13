@@ -26,7 +26,7 @@ jobs:
         run: npm run lint
 
       - name: Run Prettier check
-        run: npm prettier --check .
+        run: npx prettier --check .
 
       - name: Run spell check
         run: npm run spell
