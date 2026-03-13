@@ -658,3 +658,110 @@ configuration
 database connection
 
 application logic.
+
+# Gestión del Fin API – Seed Script Documentation
+
+## 1. Purpose
+
+The seed script is used to **populate the database with test data** for development and functional testing. This includes users, roles, camps, professions, and other essential data for the application's workflow.
+
+## 2. Location
+
+Main file:
+
+```
+src/database/seeds/seed.ts
+```
+
+- Located inside `src/database/seeds/`.
+- Executed **after compiling TypeScript** (compiled file in `dist/database/seeds/seed.js`).
+
+## 3. Usage
+
+1. **Compile TypeScript**:
+
+```bash
+npm run build
+```
+
+2. **Run the seed script**:
+
+```bash
+npm run seed
+```
+
+- The script uses a **MariaDB connection pool**.
+- Inserts initial data into tables like `roles`, `camps`, `users`, `professions`, etc.
+- Designed to **respect referential integrity** (foreign keys).
+
+## 4. Seed Script Structure
+
+- `src/database/seeds/seed.ts` imports the database pool:
+
+```ts
+import { pool, query } from '../db.js';
+```
+
+- Contains functions to insert data into each table:
+
+```ts
+async function seedRoles() { ... }
+async function seedCamps() { ... }
+async function seedUsers() { ... }
+```
+
+- `main()` executes all functions sequentially and handles errors:
+
+```ts
+async function main() {
+  try {
+    await seedRoles();
+    await seedCamps();
+    await seedUsers();
+    console.log('Seed data inserted successfully');
+  } catch (err) {
+    console.error('Error seeding data:', err);
+  } finally {
+    pool.end();
+  }
+}
+
+main();
+```
+
+## 5. Considerations
+
+- The script **uses `await`** to ensure each insertion completes before the next.
+- Relationship IDs (`role_id`, `camp_id`) are obtained dynamically or hardcoded as needed.
+- For development testing, it is safe to run the seed multiple times, although tables may need to be cleared first to avoid duplicate entries.
+
+## 6. Testing
+
+1.0
+
+```bash
+docker exec -it gestion-del-fin-db mariadb -u admin -p
+```
+
+1. Run the seed script:
+
+```bash
+npm run seed
+```
+
+2. use terminal, dbeaver or your're db manager to verify, in terminal is:
+
+```bash
+docker ps
+```
+
+3. write the password
+
+4. Show all DB in mariadb
+
+```bash
+ SHOW DATABASES;
+ USE gestion_del_fin;
+```
+
+5. Do some query

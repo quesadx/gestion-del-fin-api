@@ -1,7 +1,7 @@
 {
   "version": "0.2",
   "language": "en",
-  "ignorePaths": ["node_modules", "dist"],
+  "ignorePaths": ["node_modules", "dist", "database/seeds", "Documentation"],
   "words": [
     "tsconfig",
     "eslint",
@@ -11,6 +11,7 @@
     "gestion",
     "gestión",
     "campamento",
-    "initdb"
+    "initdb",
+    "Matteo"
   ]
 }
