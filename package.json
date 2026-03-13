@@ -53,6 +53,7 @@
     "cspell": "^9.7.0",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-define-config": "^2.1.0",
     "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.2.0",
     "prettier": "^3.8.1",
