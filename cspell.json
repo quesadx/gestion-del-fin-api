@@ -1,7 +1,7 @@
 {
   "version": "0.2",
   "language": "en",
-  "ignorePaths": ["node_modules", "dist", "database/seeds", "Documentation"],
+  "ignorePaths": ["node_modules", "dist", "database/seeds", "Documentation", ".gitignore"],
   "words": [
     "tsconfig",
     "eslint",
@@ -12,6 +12,7 @@
     "gestión",
     "campamento",
     "initdb",
-    "Matteo"
+    "Matteo",
+    "Rica"
   ]
 }

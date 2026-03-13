@@ -4,7 +4,6 @@ import prettierPlugin from 'eslint-plugin-prettier';
 
 export default [
   {
-    // Configuración global
     languageOptions: {
       parser: tsParser,
       parserOptions: {
