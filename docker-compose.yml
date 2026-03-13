@@ -12,7 +12,7 @@ services:
     container_name: gestion-del-fin-db
     environment:
       - MYSQL_ROOT_PASSWORD=admin
-      - MYSQL_DATABASE=gestion-del-fin-db
+      - MYSQL_DATABASE=gestion_del_fin
       - MYSQL_USER=admin
       - MYSQL_PASSWORD=admin
     ports:
