@@ -2,14 +2,23 @@
 -- jue 05 mar 2026 04:09:15 CST
 -- Model: Sakila Full    Version: 2.0
 -- MySQL Workbench Forward Engineering
+--
+-- ============================================================
+-- CHANGELOG (parche v1.1 – mar 2026)
+-- ============================================================
+-- [1] persons           → ADD COLUMN `identification_code` VARCHAR(20) UNIQUE NULL
+--                         (req. gestión humana #3: identificación auto-asignada por IA)
+-- [2] admission_requests → ADD COLUMN `id_card_url` VARCHAR(500) NULL
+--                         (req. gestión humana #2: imagen de tarjeta de identificación)
+-- [3] camp_transfers    → ADD COLUMN `leader_person_id` INT UNSIGNED NULL
+--                         (req. otros campamentos #2/#3: líder físico del traslado)
+--                         ADD COLUMN `scheduled_delivery_date` DATETIME NULL
+--                         (req. otros campamentos #3: agendar entrega/devolución de recursos)
+-- ============================================================
 
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
-
--- -----------------------------------------------------
--- Schema gestion_del_fin
--- -----------------------------------------------------
 
 -- -----------------------------------------------------
 -- Schema gestion_del_fin
@@ -22,7 +31,7 @@ USE `gestion_del_fin` ;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`system_config` (
   `id` TINYINT NOT NULL DEFAULT 1 COMMENT 'Always one, singleton row',
-  `version` VARCHAR(20) NULL COMMENT 'e.g. \"1.0.0\"',
+  `version` VARCHAR(20) NULL COMMENT 'e.g. "1.0.0"',
   `server_time` DATETIME NOT NULL COMMENT 'Central clock for all camps',
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
@@ -100,11 +109,17 @@ ENGINE = InnoDB;
 
 -- -----------------------------------------------------
 -- Table `gestion_del_fin`.`persons`
+-- [CAMBIO #1] Se agrega `identification_code`:
+--   El req. gestión humana #3 indica que al ingresar una persona
+--   se le debe asignar automáticamente una identificación única.
+--   Campo nullable porque se asigna DESPUÉS de la aprobación,
+--   no al momento de crear el registro.
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`persons` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `camp_id` INT UNSIGNED NOT NULL,
   `profession_id` INT UNSIGNED NOT NULL,
+  `identification_code` VARCHAR(20) NULL COMMENT 'Auto-assigned unique ID after admission approval (e.g. SRV-00042)',
   `full_name` VARCHAR(150) NOT NULL,
   `age` TINYINT UNSIGNED NULL,
   `blood_type` VARCHAR(5) NULL COMMENT 'e.g., A+ | B+ | O+ | ...',
@@ -113,6 +128,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`persons` (
   `status` ENUM('SICK', 'HEALTHY', 'INJURED', 'AWAY', 'DEAD') NOT NULL DEFAULT 'HEALTHY' COMMENT 'Default \'HEALTHY\'',
   `admitted_at` DATETIME NOT NULL DEFAULT NOW(),
   PRIMARY KEY (`id`),
+  UNIQUE INDEX `identification_code_UNIQUE` (`identification_code` ASC),
   INDEX `fk_person_camp__id_idx` (`camp_id` ASC),
   INDEX `fk_persons_profession_id_idx` (`profession_id` ASC),
   CONSTRAINT `fk_camp_id`
@@ -131,6 +147,10 @@ COMMENT = 'Also known as survivors';
 
 -- -----------------------------------------------------
 -- Table `gestion_del_fin`.`admission_requests`
+-- [CAMBIO #2] Se agrega `id_card_url`:
+--   El req. gestión humana #2 indica que al registrar un nuevo
+--   solicitante se debe poder adjuntar una imagen de tarjeta
+--   de identificación, adicional a la foto del solicitante.
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`admission_requests` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
@@ -141,6 +161,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`admission_requests` (
   `health_notes` TEXT NULL,
   `background_notes` TEXT NULL,
   `photo_url` VARCHAR(255) NULL,
+  `id_card_url` VARCHAR(500) NULL COMMENT 'Optional image of applicant identification card (req. gestión humana #2)',
   `ai_decision` ENUM('ACCEPTED', 'PENDING', 'REJECTED') NOT NULL DEFAULT 'PENDING' COMMENT 'Output decision from AI',
   `ai_reasoning` TEXT NULL COMMENT 'Readable AI explaination based on the request\'s information',
   `ai_suggested_profession` VARCHAR(80) NULL COMMENT 'Profession name suggested by AI',
@@ -458,15 +479,30 @@ ENGINE = InnoDB;
 
 -- -----------------------------------------------------
 -- Table `gestion_del_fin`.`camp_transfers`
+-- [CAMBIO #3a] Se agrega `leader_person_id`:
+--   El enunciado (otros campamentos #2 y #3) establece que cuando
+--   se aprueba un traslado se debe designar a una persona que
+--   físicamente lidere y transporte los recursos/personas hasta
+--   el campamento destino. Es nullable porque se asigna al momento
+--   de aprobar, no al crear la solicitud.
+--   Referencia `persons` (no `users`) porque es el sobreviviente
+--   físico que hace el viaje, no la cuenta del sistema.
+--
+-- [CAMBIO #3b] Se agrega `scheduled_delivery_date`:
+--   El enunciado (otros campamentos #3) indica que el préstamo de
+--   recursos entre campamentos debe agendarse para su entrega y
+--   devolución. Este campo almacena la fecha/hora pactada.
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfers` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK\n',
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `requesting_camp` INT UNSIGNED NOT NULL,
   `target_camp` INT UNSIGNED NOT NULL,
   `status` ENUM('PENDING', 'APPROVED_SOURCE', 'APPROVED_TARGET', 'COMPLETED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
   `type` ENUM('RESOURCE', 'PERSON', 'MIXED') NOT NULL,
   `notes` TEXT NULL,
   `requested_by` INT UNSIGNED NOT NULL,
+  `leader_person_id` INT UNSIGNED NULL COMMENT 'Physical leader who carries resources/people to destination camp (assigned on approval)',
+  `scheduled_delivery_date` DATETIME NULL COMMENT 'Agreed date for resource delivery or return between camps (req. otros campamentos #3)',
   `approved_by_source` INT UNSIGNED NULL,
   `approved_by_target` INT UNSIGNED NULL,
   `approved_source_at` DATETIME NULL,
@@ -476,6 +512,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfers` (
   INDEX `fk_requesting_camp_idx` (`requesting_camp` ASC),
   INDEX `fk_target_camp_idx` (`target_camp` ASC),
   INDEX `fk_requested_by_idx` (`requested_by` ASC),
+  INDEX `fk_transfer_leader_person_idx` (`leader_person_id` ASC),
   INDEX `fk_approved_by_source_idx` (`approved_by_source` ASC),
   INDEX `fk_approved_by_target_idx` (`approved_by_target` ASC),
   CONSTRAINT `fk_requesting_camp`
@@ -491,6 +528,11 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfers` (
   CONSTRAINT `fk_requested_by`
     FOREIGN KEY (`requested_by`)
     REFERENCES `gestion_del_fin`.`users` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_transfer_leader_person`
+    FOREIGN KEY (`leader_person_id`)
+    REFERENCES `gestion_del_fin`.`persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_approved_by_source`
@@ -514,7 +556,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfer_item` (
   `camp_transfer_id` INT UNSIGNED NOT NULL,
   `item_type` ENUM('RESOURCE', 'PERSON') NOT NULL,
   `resource_type_id` INT UNSIGNED NULL COMMENT 'If NULL then its person item type',
-  `person_id` INT UNSIGNED NULL COMMENT 'If null then its resource item type\n',
+  `person_id` INT UNSIGNED NULL COMMENT 'If null then its resource item type',
   `quantity` DECIMAL(10,2) UNSIGNED NULL COMMENT 'If NULL then is person item type',
   PRIMARY KEY (`id`),
   INDEX `fk_camp_transfer_id_idx` (`camp_transfer_id` ASC),
