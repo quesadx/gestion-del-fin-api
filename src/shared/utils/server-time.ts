@@ -3,8 +3,8 @@ import { toZonedTime } from 'date-fns-tz';
 
 const crTimeZone = 'America/Costa_Rica';
 
-export const getCRTime = (date: Date = new Date()): Date => {
-  return toZonedTime(date, crTimeZone);
+export const getCRTime = (date?: Date): Date => {
+  return toZonedTime(date ?? new Date(), crTimeZone);
 };
 
 export const formatFullDateTime = (date?: Date): string => {
