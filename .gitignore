@@ -9,4 +9,4 @@ dist/
 !eslint.config.js
 # Prisma
 prisma/migrations.lock/
-generated/prisma/
+src/generated/prisma/
