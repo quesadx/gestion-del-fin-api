@@ -78,9 +78,10 @@ async function seed() {
   } catch (err) {
     await conn.rollback();
     console.error(' Seed failed:', err);
+    process.exitCode = 1;
   } finally {
     conn.release();
-    process.exit();
+    await pool.end();
   }
 }
 
