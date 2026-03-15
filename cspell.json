@@ -1,7 +1,7 @@
 {
   "version": "0.2",
   "language": "en",
-  "ignorePaths": ["node_modules", "dist", "database/seeds", "Documentation", ".gitignore"],
+  "ignorePaths": ["node_modules", "dist", "database/seeds", "docs", ".gitignore"],
   "words": [
     "tsconfig",
     "eslint",

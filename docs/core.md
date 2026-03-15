@@ -11,30 +11,36 @@ Think of it as a **management system for coordinating survival camps**: tracking
 ## Technology Stack (The Tools We Use)
 
 ### Core Framework
+
 - **Node.js 20+** - The JavaScript runtime that lets us run server code
 - **Express.js 5.2.1** - The web framework that handles HTTP requests (when someone visits an endpoint)
 - **TypeScript** - JavaScript with type safety (catches errors before they happen)
 
 ### Database
+
 - **MariaDB** (MySQL-compatible) - Stores all persistent data
 - **Docker Compose** - Runs the database in a containerized environment (isolated sandbox)
 
 ### Security & Auth
+
 - **JWT (jsonwebtoken)** - Creates secure tokens so users don't have to log in every request
 - **bcryptjs** - Hashes passwords securely (never stores plain passwords)
 - **Helmet** - Adds security headers to HTTP responses
 - **CORS** - Controls which domains can access our API
 
 ### Validation & Logging
+
 - **Zod** - Validates that incoming data has the correct shape and types
 - **Winston** - Logs application events and errors to console/files
 - **node-cron** - Schedules tasks to run at specific times (like "every day at 6 AM")
 
 ### Testing
+
 - **Jest** - Unit tests (testing individual functions)
 - **Playwright** - End-to-end tests (testing full workflows)
 
 ### Development Tools
+
 - **tsx** - Runs TypeScript directly without compilation (during development)
 - **ESLint** - Checks code for style/logic errors
 - **Prettier** - Auto-formats code to be consistent
@@ -137,6 +143,7 @@ When someone calls an API endpoint, here's what happens:
 ```
 
 **Example**: Creating a new resource
+
 ```
 POST /resources
 {
@@ -161,7 +168,9 @@ Response: { id: 42, name: "Canned Food", ... }
 ## Core Concepts
 
 ### Camps
+
 A physical location where survivors gather. Each camp has:
+
 - Name and location
 - Status (ACTIVE or ABANDONED)
 - Members (people)
@@ -169,7 +178,9 @@ A physical location where survivors gather. Each camp has:
 - Camp-specific rules
 
 ### People/Users
+
 Survivors in the system. Each person has:
+
 - Username and password (hashed)
 - Assigned camp
 - Role (defines permissions)
@@ -178,26 +189,33 @@ Survivors in the system. Each person has:
 - Last activity timestamp (for timeout)
 
 ### Roles
+
 Define what users can do:
+
 - `system_admin` - Full system control
 - `resource_manager` - Manage inventory
 - `travel_coordinator` - Organize expeditions
 - `worker` - Regular survivor with limited permissions
 
 ### Resources
+
 Physical items camps need to survive:
+
 - Source (found, crafted, transferred)
 - Quantity and type
 - Which camp owns them
 - Transfer history
 
 ### Transfers
+
 Moving resources between camps (trade/aid)
 
 ### Explorations
+
 Sending teams out from the camp (dangerous missions)
 
 ### AI Features
+
 - **Ingress Evaluator**: Should we accept this refugee? (evaluate risk/benefit)
 - **Role Assigner**: What profession suits this person? (based on skills/background)
 
@@ -253,6 +271,7 @@ system_config (singleton)
 ## Development Workflow
 
 ### Run Local Development
+
 ```bash
 # Option 1: Using Nix (reproducible environment)
 nix develop
@@ -265,12 +284,14 @@ npm run dev
 ```
 
 ### Build for Production
+
 ```bash
 npm run build  # Compiles TypeScript → JavaScript
 npm start      # Runs compiled version
 ```
 
 ### Check Code Quality
+
 ```bash
 npm run lint       # Find style issues
 npm run lint:fix   # Auto-fix them
@@ -279,12 +300,14 @@ npm run spell      # Check spelling
 ```
 
 ### Run Tests
+
 ```bash
 npm test       # Unit tests
 npm test:e2e   # End-to-end tests
 ```
 
 ### Database Setup
+
 ```bash
 docker-compose up  # Starts MariaDB container
                    # Automatically runs migrations from src/database/migrations/
@@ -307,6 +330,7 @@ docker-compose up  # Starts MariaDB container
 ## Current Status
 
 ⚠️ **This is an early-stage project** - many files are still TODO placeholders:
+
 - Database connection logic
 - Config file implementations
 - Most module implementations (controllers, services, routes)
@@ -327,4 +351,3 @@ The SQL schema and project structure are defined, but core business logic needs 
 5. **Database**: MariaDB stores everything; migrations define the schema
 6. **Schedule**: Background jobs run automatically (e.g., feed people every day)
 7. **AI**: Future feature that makes smart decisions (who to accept, what job people do)
-

@@ -3,30 +3,30 @@
 Quick reference for agents working on this codebase.
 
 **Project**: Gestión del Fin API | **Domain**: Survival camp management system | **Tech Stack**: Node.js + TypeScript + Express + MariaDB  
-**Course**: EIF209, Universidad Nacional (2026)  
+**Course**: EIF209, Universidad Nacional (2026)
 
 ---
 
 ## 📋 Quick Navigation
 
-| Section | Purpose |
-|---------|---------|
-| [⚡ Quick Start](#-quick-start) | Essential paths & commands |
-| [Architecture](#architecture-layer) | Request flow & layers |
-| [Module Structure](#module-structure) | Feature organization |
-| [Implementation Patterns](#implementation-patterns) | How to add features |
-| [Security Checklist](#security-checklist) | Auth & data protection |
-| [Task Finder](#database-schema) | Where to find what |
-| [Database Schema](#database-schema) | Tables & relationships |
-| [Testing](#testing) | Unit & E2E tests |
-| [Environment Variables](#environment-variables) | Config values |
+| Section                                                  | Purpose                    |
+| -------------------------------------------------------- | -------------------------- |
+| [⚡ Quick Start](#-quick-start)                          | Essential paths & commands |
+| [Architecture](#architecture-layer)                      | Request flow & layers      |
+| [Module Structure](#module-structure)                    | Feature organization       |
+| [Implementation Patterns](#implementation-patterns)      | How to add features        |
+| [Security Checklist](#security-checklist)                | Auth & data protection     |
+| [Task Finder](#database-schema)                          | Where to find what         |
+| [Database Schema](#database-schema)                      | Tables & relationships     |
+| [Testing](#testing)                                      | Unit & E2E tests           |
+| [Environment Variables](#environment-variables)          | Config values              |
 | [Performance & Optimization](#performance--optimization) | Indexing, caching, queries |
-| [Error Handling](#error-handling) | Standard error format |
-| [Code Quality Standards](#code-quality-standards) | Linting & style |
-| [Common Issues](#common-issues--solutions) | Quick troubleshooting |
-| [Development Commands](#development-commands) | npm scripts |
-| [Learning Path](#learning-path) | How to onboard |
-| [Project Status](#project-status) | Completion checklist |
+| [Error Handling](#error-handling)                        | Standard error format      |
+| [Code Quality Standards](#code-quality-standards)        | Linting & style            |
+| [Common Issues](#common-issues--solutions)               | Quick troubleshooting      |
+| [Development Commands](#development-commands)            | npm scripts                |
+| [Learning Path](#learning-path)                          | How to onboard             |
+| [Project Status](#project-status)                        | Completion checklist       |
 
 ---
 
@@ -37,7 +37,7 @@ Quick reference for agents working on this codebase.
 - **Middleware**: `src/middlewares/{auth,role,camp,session,error}.middleware.ts`
 - **Database**: MariaDB + Docker Compose (schema: `src/database/migrations/01-gestion-del-fin-seed.sql`)
 - **Build**: `npm run build` | **Dev**: `npm run dev` | **Test**: `npm test`
-- **Key Pattern**: Routes → Controllers → Services → Database  
+- **Key Pattern**: Routes → Controllers → Services → Database
 
 ---
 
@@ -48,8 +48,9 @@ Request → Routes (express) → Middleware → Controllers → Services → Dat
 ```
 
 Each request flows through middleware for validation, then to handlers:
+
 - Auth middleware: verify JWT
-- Role middleware: check permissions  
+- Role middleware: check permissions
 - Camp middleware: verify camp access
 - Session middleware: enforce 20-min timeout
 - Error middleware: catch & format errors (runs last)
@@ -59,6 +60,7 @@ Each request flows through middleware for validation, then to handlers:
 ## Module Structure
 
 All feature domains follow identical structure:
+
 ```
 modules/{feature}/
 ├── {feature}.routes.ts    # Route definitions
@@ -94,6 +96,7 @@ modules/{feature}/
 ### 1. Adding an Endpoint (Standard Flow)
 
 **Step 1: Define validation** (`{module}.schema.ts`)
+
 ```typescript
 export const createResourceSchema = z.object({
   name: z.string().min(1),
@@ -104,6 +107,7 @@ export type CreateResourceInput = z.infer<typeof createResourceSchema>;
 ```
 
 **Step 2: Service logic** (`{module}.service.ts`)
+
 ```typescript
 export class ResourceService {
   async createResource(data: CreateResourceInput): Promise<Resource> {
@@ -115,6 +119,7 @@ export class ResourceService {
 ```
 
 **Step 3: Controller handler** (`{module}.controller.ts`)
+
 ```typescript
 export function createResourceHandler(req: Request, res: Response) {
   const validated = createResourceSchema.parse(req.body);
@@ -124,6 +129,7 @@ export function createResourceHandler(req: Request, res: Response) {
 ```
 
 **Step 4: Register route** (`{module}.routes.ts`)
+
 ```typescript
 export const resourceRoutes = express.Router();
 resourceRoutes.post('/', createResourceHandler);
@@ -131,35 +137,40 @@ resourceRoutes.get('/:id', getResourceHandler);
 ```
 
 **Step 5: Mount in app** (`src/index.ts`)
+
 ```typescript
-app.use('/resources', 
+app.use(
+  '/resources',
   express.json(),
   authMiddleware,
   roleMiddleware(['resource_manager']),
-  resourceRoutes
+  resourceRoutes,
 );
 ```
 
 ### 2. Securing an Endpoint
 
 Apply middleware in order (most restrictive first):
+
 ```typescript
-app.get('/protected',
-  authMiddleware,      // JWT valid?
-  roleMiddleware(['admin']),  // Has role?
-  campMiddleware,      // Camp access?
-  sessionMiddleware,   // Not timed out?
-  handlerFunction
+app.get(
+  '/protected',
+  authMiddleware, // JWT valid?
+  roleMiddleware(['admin']), // Has role?
+  campMiddleware, // Camp access?
+  sessionMiddleware, // Not timed out?
+  handlerFunction,
 );
 ```
 
 ### 3. Database Queries (When Implemented)
 
 Pattern: Use prepared statements to prevent SQL injection
+
 ```typescript
 const [rows] = await pool.query(
   'SELECT * FROM resources WHERE id = ? AND camp_id = ?',
-  [resourceId, req.user.campId]  // Parameters prevent injection
+  [resourceId, req.user.campId], // Parameters prevent injection
 );
 ```
 
@@ -168,6 +179,7 @@ const [rows] = await pool.query(
 ## Security Checklist
 
 **Authentication & Authorization**:
+
 - ✅ JWT in Authorization header
 - ✅ Token payload: `userId`, `campId`, `role`, `expiresAt`
 - ✅ Roles: `system_admin`, `resource_manager`, `travel_coordinator`, `worker`
@@ -176,6 +188,7 @@ const [rows] = await pool.query(
 - ✅ Prevent cross-camp access in `camp.middleware.ts`
 
 **Password & Data**:
+
 - ✅ Never store plain passwords
 - ✅ Hash with bcryptjs v3.0.3+ before storage
 - ✅ Use prepared statements (parameterized queries)
@@ -184,6 +197,7 @@ const [rows] = await pool.query(
 - ✅ Never log passwords or hashes
 
 **Session Management**:
+
 - ✅ 20-minute inactivity timeout in `session.middleware.ts`
 - ✅ Update `users.last_activity` on each request
 - ✅ Implement refresh tokens for long operations
@@ -196,6 +210,7 @@ const [rows] = await pool.query(
 **Location**: `src/database/migrations/01-gestion-del-fin-seed.sql`
 
 Tables & relationships:
+
 ```
 camps ─── users ─── roles
        ├── resources
@@ -217,6 +232,7 @@ system_config (singleton: id=1)
 | `system_config` | id (=1), version, server_time | Game clock |
 
 **Connection Implementation** (when needed):
+
 ```typescript
 // src/database/connection.ts
 import mysql from 'mysql2/promise';
@@ -231,6 +247,7 @@ export const pool = mysql.createPool({
 ```
 
 **Index Priorities**:
+
 - `users.username` (UNIQUE)
 - `users.camp_id` (FK + frequently filtered)
 - `camps.name` (UNIQUE)
@@ -241,6 +258,7 @@ export const pool = mysql.createPool({
 ## Testing
 
 **Unit Tests** (`tests/unit/`):
+
 - Test service logic in isolation
 - Mock database
 - Framework: Jest
@@ -248,20 +266,22 @@ export const pool = mysql.createPool({
 - Command: `npm test`
 
 **End-to-End Tests** (`tests/e2e/`):
+
 - Test complete workflows
-- Framework: Playwright  
+- Framework: Playwright
 - Hit real endpoints
 - Pattern: `{feature}.spec.ts`
 - Command: `npm test:e2e`
 
 **Example Test**:
+
 ```typescript
 describe('ResourceService', () => {
   it('should create resource', async () => {
     const result = await resourceService.createResource({
       name: 'Food',
       quantity: 100,
-      camp_id: 1
+      camp_id: 1,
     });
     expect(result.id).toBeDefined();
     expect(result.quantity).toBe(100);
@@ -276,12 +296,14 @@ describe('ResourceService', () => {
 Required in `.env`:
 
 **Server**:
+
 ```
 PORT=3000
 NODE_ENV=development|production
 ```
 
 **Database**:
+
 ```
 DB_HOST=localhost
 DB_PORT=3306
@@ -291,18 +313,21 @@ DB_NAME=gestion_del_fin
 ```
 
 **JWT**:
+
 ```
 JWT_SECRET=your-secret-key
 JWT_EXPIRY=1h
 ```
 
 **Logging**:
+
 ```
 LOG_LEVEL=info|debug|error
 LOG_FILE=./logs/app.log
 ```
 
 **AI Models** (future):
+
 ```
 AI_INGRESS_MODEL=path/to/model
 AI_ROLE_MODEL=path/to/model
@@ -315,17 +340,20 @@ AI_ROLE_MODEL=path/to/model
 ## Performance & Optimization
 
 **Database Indexing** (create in migrations):
+
 - `users.username` (UNIQUE)
 - `users.camp_id` (FK, frequently filtered)
 - `camps.name` (UNIQUE)
 - `resources.camp_id` (FK, frequently filtered)
 
 **Query Patterns**:
+
 - Use JOINs, not N+1 queries
 - Use pagination for large result sets (default: 20 items, max: 100)
 - Use `utils/pagination.ts` helper
 
 **Caching Strategy** (future consideration):
+
 - Cache role definitions (rarely change)
 - Cache camp rules
 - Invalidate on update
@@ -335,6 +363,7 @@ AI_ROLE_MODEL=path/to/model
 ## Error Handling
 
 **Standard error format** (from `error.middleware.ts`):
+
 ```json
 {
   "error": {
@@ -347,6 +376,7 @@ AI_ROLE_MODEL=path/to/model
 ```
 
 **Codes**:
+
 - `VALIDATION_ERROR` (400) - Zod schema failed
 - `UNAUTHORIZED` (401) - Missing/invalid JWT
 - `FORBIDDEN` (403) - Insufficient role/camp access
@@ -359,12 +389,14 @@ AI_ROLE_MODEL=path/to/model
 ## Code Quality Standards
 
 **Linting**:
+
 - `npm run lint` - Find issues
 - `npm run lint:fix` - Auto-fix
 - `npm run format` - Prettier formatting
 - `npm run spell` - Spell check
 
 **Style Guide**:
+
 - Variables/functions: camelCase
 - Classes/types: PascalCase
 - Constants: UPPER_SNAKE_CASE
@@ -372,6 +404,7 @@ AI_ROLE_MODEL=path/to/model
 - JSDoc for public functions
 
 **TypeScript**:
+
 - Strict mode enabled
 - No `any` types without justification
 - Explicit return types on functions
@@ -380,54 +413,57 @@ AI_ROLE_MODEL=path/to/model
 
 ## Common Issues & Solutions
 
-| Issue | Solution |
-|-------|----------|
-| Type errors | Check `shared/types/index.ts`, add missing interfaces |
-| Route not found (404) | Verify route mounted in `index.ts` with correct prefix |
-| Middleware not running | Check order - some must run before others (e.g., auth before role) |
-| DB connection fails | Verify `docker-compose up`, env vars set, port 3306 available |
-| Zod validation fails | Schema mismatch - check request body structure matches schema |
-| JWT expired | Implement refresh tokens or ask user to re-login |
-| 20-min timeout fires unexpectedly | Update `users.last_activity` on every request in middleware |
-| `Cannot find module` | Check import path, verify file exists, run `npm install` |
-| Tests fail | Ensure test database exists, migrations ran, seed data present |
-| Prettier conflicts ESLint | Run `npm run lint:fix` then `npm run format` (that order) |
+| Issue                             | Solution                                                           |
+| --------------------------------- | ------------------------------------------------------------------ |
+| Type errors                       | Check `shared/types/index.ts`, add missing interfaces              |
+| Route not found (404)             | Verify route mounted in `index.ts` with correct prefix             |
+| Middleware not running            | Check order - some must run before others (e.g., auth before role) |
+| DB connection fails               | Verify `docker-compose up`, env vars set, port 3306 available      |
+| Zod validation fails              | Schema mismatch - check request body structure matches schema      |
+| JWT expired                       | Implement refresh tokens or ask user to re-login                   |
+| 20-min timeout fires unexpectedly | Update `users.last_activity` on every request in middleware        |
+| `Cannot find module`              | Check import path, verify file exists, run `npm install`           |
+| Tests fail                        | Ensure test database exists, migrations ran, seed data present     |
+| Prettier conflicts ESLint         | Run `npm run lint:fix` then `npm run format` (that order)          |
 
 ---
 
 ## Development Commands
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start dev server with hot reload |
-| `npm run build` | Compile TypeScript to JavaScript |
-| `npm start` | Run compiled production build |
-| `npm test` | Run unit tests (Jest) |
-| `npm test:e2e` | Run end-to-end tests (Playwright) |
-| `npm run lint` | Check code style |
-| `npm run lint:fix` | Auto-fix style issues |
-| `npm run format` | Auto-format with Prettier |
-| `npm run spell` | Check spelling |
-| `docker-compose up` | Start database container |
-| `docker-compose down` | Stop database container |
+| Command               | Purpose                           |
+| --------------------- | --------------------------------- |
+| `npm run dev`         | Start dev server with hot reload  |
+| `npm run build`       | Compile TypeScript to JavaScript  |
+| `npm start`           | Run compiled production build     |
+| `npm test`            | Run unit tests (Jest)             |
+| `npm test:e2e`        | Run end-to-end tests (Playwright) |
+| `npm run lint`        | Check code style                  |
+| `npm run lint:fix`    | Auto-fix style issues             |
+| `npm run format`      | Auto-format with Prettier         |
+| `npm run spell`       | Check spelling                    |
+| `docker-compose up`   | Start database container          |
+| `docker-compose down` | Stop database container           |
 
 ---
 
 ## Learning Path
 
 **Before coding**:
+
 1. Read [core.md](./core.md) - understand project scope
 2. Review this file - architecture & patterns
 3. Skim database schema: `src/database/migrations/01-gestion-del-fin-seed.sql`
 4. Look at `package.json` - dependencies
 
 **Starting implementation**:
+
 1. `src/modules/auth/` - foundational auth layer
 2. `src/middlewares/` - understand request flow
 3. Pick a module: `src/modules/{feature}/`
 4. Follow module structure: routes → controller → service → schema
 
 **Before committing**:
+
 1. Write tests (unit + e2e)
 2. Update types if needed: `shared/types/index.ts`
 3. Run `npm run lint:fix && npm run format`
@@ -441,6 +477,7 @@ AI_ROLE_MODEL=path/to/model
 **Current State**: Early-stage implementation (architecture defined, many TODO files)
 
 **Complete**:
+
 - ✅ Project structure & naming conventions
 - ✅ Database schema (SQL)
 - ✅ Middleware stack defined
@@ -448,6 +485,7 @@ AI_ROLE_MODEL=path/to/model
 - ✅ Dependencies configured
 
 **TODO**:
+
 - ⏳ Database connection layer
 - ⏳ Configuration files
 - ⏳ All module implementations (auth, camps, people, resources, transfers, explorations)
@@ -471,22 +509,22 @@ AI_ROLE_MODEL=path/to/model
 
 ## Reference Table: All Files
 
-| Path | Status | Purpose |
-|------|--------|---------|
-| `src/index.ts` | Partial | Server entry point |
-| `src/config/` | TODO | Configuration files |
-| `src/database/connection.ts` | TODO | DB connection pool |
-| `src/database/seed.ts` | TODO | DB seed data |
-| `src/modules/*/` | TODO | Feature modules |
-| `src/middlewares/` | TODO | Express middleware |
-| `src/logger/` | TODO | Logging utilities |
-| `src/ai/` | TODO | AI decision makers |
-| `src/jobs/` | TODO | Background tasks |
-| `src/shared/` | Partial | Constants, types, utils |
-| `tests/` | TODO | Test files |
-| `docker-compose.yml` | ✅ | Database setup |
-| `jest.config.ts` | ✅ | Test config |
-| `package.json` | ✅ | Dependencies |
+| Path                         | Status  | Purpose                 |
+| ---------------------------- | ------- | ----------------------- |
+| `src/index.ts`               | Partial | Server entry point      |
+| `src/config/`                | TODO    | Configuration files     |
+| `src/database/connection.ts` | TODO    | DB connection pool      |
+| `src/database/seed.ts`       | TODO    | DB seed data            |
+| `src/modules/*/`             | TODO    | Feature modules         |
+| `src/middlewares/`           | TODO    | Express middleware      |
+| `src/logger/`                | TODO    | Logging utilities       |
+| `src/ai/`                    | TODO    | AI decision makers      |
+| `src/jobs/`                  | TODO    | Background tasks        |
+| `src/shared/`                | Partial | Constants, types, utils |
+| `tests/`                     | TODO    | Test files              |
+| `docker-compose.yml`         | ✅      | Database setup          |
+| `jest.config.ts`             | ✅      | Test config             |
+| `package.json`               | ✅      | Dependencies            |
 
 ---
 
