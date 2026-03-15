@@ -28,7 +28,13 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    npx prisma generate
    ```
 
-5. Start the dev server:
+5. Apply migrations to keep the database schema in sync:
+
+   ```bash
+   npx prisma migrate dev
+   ```
+
+6. Start the dev server:
 
    ```bash
    npm run dev
