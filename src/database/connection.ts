@@ -4,7 +4,7 @@ import { dbConfig } from '../config/db.config.js';
 export const pool = mariadb.createPool(dbConfig);
 
 export const query = async (sql: string, params?: unknown[]) => {
-  let conn;
+  let conn: mariadb.PoolConnection | undefined;
 
   try {
     conn = await pool.getConnection();
