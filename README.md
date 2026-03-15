@@ -6,6 +6,12 @@ Secure API for **Gestión del fin** (EIF209). Handles multi-camp management, res
 
 This project can be run using either **manual Node setup** (recommended) or **Nix**.
 
+> **Before committing:** format all files with Prettier:
+>
+> ```bash
+> npm run format
+> ```
+
 ### Option 1: Manual (Node.js)
 
 1. Ensure Node 20+ is installed:
@@ -89,3 +95,9 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    ```bash
    npm run dev
    ```
+
+> **Before committing:** format all files with Prettier:
+>
+> ```bash
+> npm run format
+> ```
