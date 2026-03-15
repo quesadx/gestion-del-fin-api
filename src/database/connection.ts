@@ -19,11 +19,14 @@ export const query = async (sql: string, params?: unknown[]) => {
 };
 
 export const testConnection = async () => {
+  let conn;
   try {
-    const conn = await pool.getConnection();
+    conn = await pool.getConnection();
     console.log('Database connected');
-    conn.release();
   } catch (error) {
     console.error('Database connection failed:', error);
+    throw error;
+  } finally {
+    if (conn) conn.release();
   }
 };
