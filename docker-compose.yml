@@ -23,7 +23,7 @@ services:
       - ./src/database/migrations:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
       interval: 10s
       timeout: 5s
       retries: 5

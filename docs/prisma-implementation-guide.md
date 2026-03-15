@@ -30,6 +30,7 @@
 ### **For Development (Your Laptop)**
 
 #### **Initial Setup (first time)**
+
 ```bash
 # 1. Start database
 docker-compose up
@@ -45,6 +46,7 @@ npm run dev
 ```
 
 #### **When You Change Schema**
+
 ```bash
 # 1. Edit prisma/schema.prisma
 # (e.g., add a new table or column)
@@ -63,6 +65,7 @@ git commit -m "Add xyz column to users table"
 ```
 
 #### **When You Need to Add Reference Data**
+
 ```bash
 # 1. Edit prisma/seed.ts
 # Add your INSERT logic (via Prisma Client)
@@ -122,9 +125,11 @@ prisma/
 ## ✏️ How to Edit Each File
 
 ### **1. Schema Changes** (`prisma/schema.prisma`)
+
 You edit this to define what tables and columns you want.
 
 **Example: Add an email column to users**
+
 ```prisma
 model users {
   id       Int     @id @default(autoincrement())
@@ -134,6 +139,7 @@ model users {
 ```
 
 Then run:
+
 ```bash
 npx prisma migrate dev --name add_email_to_users
 ```
@@ -143,9 +149,11 @@ npx prisma migrate dev --name add_email_to_users
 ---
 
 ### **2. Reference Data** (`prisma/seed.ts`)
+
 You edit this to populate initial data (roles, professions, resource types, etc).
 
 **Example: Add a new profession type**
+
 ```typescript
 // In seed.ts, inside the main() function:
 const chefProfession = await prisma.professions.upsert({
@@ -159,6 +167,7 @@ const chefProfession = await prisma.professions.upsert({
 ```
 
 Then run:
+
 ```bash
 npm run db:seed
 ```
@@ -170,6 +179,7 @@ npm run db:seed
 ## ⚠️ Important Rules
 
 ### **✅ DO**
+
 - Edit `prisma/schema.prisma` for schema changes
 - Edit `prisma/seed.ts` for reference data
 - Run `npx prisma migrate dev` to create migrations
@@ -177,6 +187,7 @@ npm run db:seed
 - Use `npm run db:seed` to populate data manually
 
 ### **❌ DON'T**
+
 - Edit `prisma/migrations/*/migration.sql` manually
 - Run raw SQL files directly (use migrations)
 - Edit files in `prisma/generated/` (they're auto-generated)
@@ -187,15 +198,15 @@ npm run db:seed
 
 ## 🔑 Commands Cheat Sheet
 
-| Command | Purpose |
-|---------|---------|
-| `npx prisma migrate dev --name "description"` | Create & run migration (dev) |
-| `npx prisma migrate deploy` | Run pending migrations (production) |
-| `npx prisma migrate status` | Show migration status |
-| `npm run db:seed` | Populate reference data |
-| `npx prisma generate` | Regenerate TypeScript types |
-| `npx prisma studio` | Visual database browser |
-| `npx prisma validate` | Check schema.prisma syntax |
+| Command                                       | Purpose                             |
+| --------------------------------------------- | ----------------------------------- |
+| `npx prisma migrate dev --name "description"` | Create & run migration (dev)        |
+| `npx prisma migrate deploy`                   | Run pending migrations (production) |
+| `npx prisma migrate status`                   | Show migration status               |
+| `npm run db:seed`                             | Populate reference data             |
+| `npx prisma generate`                         | Regenerate TypeScript types         |
+| `npx prisma studio`                           | Visual database browser             |
+| `npx prisma validate`                         | Check schema.prisma syntax          |
 
 ---
 
@@ -204,9 +215,11 @@ npm run db:seed
 ### **Scenario: Add a new "medic" profession and seed it**
 
 #### Step 1: Edit schema (if needed)
+
 Schema already supports professions, so skip this.
 
 #### Step 2: Edit seed file
+
 ```typescript
 // In prisma/seed.ts, add this:
 const medicProfession = await prisma.professions.upsert({
@@ -221,17 +234,20 @@ console.log('✅ Medic profession created');
 ```
 
 #### Step 3: Run seed
+
 ```bash
 npm run db:seed
 ```
 
 #### Step 4: Commit
+
 ```bash
 git add prisma/seed.ts
 git commit -m "Add medic profession to seed"
 ```
 
 #### Step 5: Team pulls and runs
+
 ```bash
 git pull
 npm run db:seed
@@ -244,18 +260,21 @@ npm run db:seed
 ## 🧪 Testing Your Setup
 
 ### **Verify migration works**
+
 ```bash
 npx prisma migrate status
 # Should show: "Database schema is up to date"
 ```
 
 ### **Verify seed works**
+
 ```bash
 npm run db:seed
 # Should show: "Seed completed successfully!"
 ```
 
 ### **Browse database visually**
+
 ```bash
 npx prisma studio
 # Opens browser UI to see all tables + data
@@ -265,13 +284,13 @@ npx prisma studio
 
 ## 🐛 Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| "Database is not managed by Prisma" | Run `npx prisma migrate deploy` first |
-| "Seed failed" | Check Prisma Client import path in seed.ts |
-| Migration never runs | Verify `docker-compose up` started database |
-| TypeScript errors in seed.ts | Run `npm run db:seed` (should auto-compile) |
-| Want to reset database completely | `docker-compose down` then `docker-compose up` |
+| Issue                               | Solution                                       |
+| ----------------------------------- | ---------------------------------------------- |
+| "Database is not managed by Prisma" | Run `npx prisma migrate deploy` first          |
+| "Seed failed"                       | Check Prisma Client import path in seed.ts     |
+| Migration never runs                | Verify `docker-compose up` started database    |
+| TypeScript errors in seed.ts        | Run `npm run db:seed` (should auto-compile)    |
+| Want to reset database completely   | `docker-compose down` then `docker-compose up` |
 
 ---
 

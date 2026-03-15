@@ -7,6 +7,7 @@
 ## 📁 The 3 Key Files
 
 ### 1. **`prisma/schema.prisma`** ← Your Source of Truth
+
 ```prisma
 model users {
   id    Int     @id @default(autoincrement())
@@ -14,11 +15,13 @@ model users {
   email String  @unique
 }
 ```
+
 - You write this in a **Prisma-friendly language** (not SQL)
 - Defines what tables you want and their structure
 - Not automatic SQL — human friendly
 
 ### 2. **`prisma/migrations/`** ← Your History Book
+
 ```
 prisma/migrations/
 ├── 20260314_init/
@@ -28,23 +31,26 @@ prisma/migrations/
 │   ├── migration.sql
 │   └── migration.lock
 ```
+
 - Each migration = one change to the database
 - **Timestamped** so you know the order
 - Stored in Git so your team sees the history
 - **You don't write these** — Prisma creates them
 
 ### 3. **`prisma.config.ts`** ← Your Instruction Manual
+
 ```typescript
 export default defineConfig({
-  schema: "prisma/schema.prisma",              // Where to find your schema
+  schema: 'prisma/schema.prisma', // Where to find your schema
   migrations: {
-    path: "prisma/migrations",                 // Where to store migration files
+    path: 'prisma/migrations', // Where to store migration files
   },
   datasource: {
-    url: env("DATABASE_URL"),                  // How to connect to database
+    url: env('DATABASE_URL'), // How to connect to database
   },
 });
 ```
+
 - Setup once, never change (usually)
 - Tells Prisma where everything is
 
@@ -55,6 +61,7 @@ export default defineConfig({
 ### Scenario: You want to add an `email` column to `users` table
 
 #### **Step 1: Edit `prisma/schema.prisma`**
+
 ```prisma
 model users {
   id     Int    @id @default(autoincrement())
@@ -64,11 +71,13 @@ model users {
 ```
 
 #### **Step 2: Run the Command**
+
 ```bash
 npx prisma migrate dev --name add_email_to_users
 ```
 
-**What Prisma does*:
+\*_What Prisma does_:
+
 1. 🔍 Compares your schema file to the database
 2. 🤔 Realizes: "Oh, you added an `email` column"
 3. 🛠️ **Generates SQL automatically**:
@@ -81,6 +90,7 @@ npx prisma migrate dev --name add_email_to_users
 7. 📦 Regenerates TypeScript types in `prisma/generated/`
 
 #### **Result**:
+
 - ✅ Database has the new column
 - ✅ Migration saved in Git (teammates can see history)
 - ✅ Your TypeScript code has types for `email` field
@@ -89,10 +99,10 @@ npx prisma migrate dev --name add_email_to_users
 
 ## 📊 Two Commands You'll Use
 
-| Command | When to Use | What It Does |
-|---------|------------|--------------|
-| `npx prisma migrate dev` | **Development** — You're changing schema | Creates migration file + runs it + generates types |
-| `npx prisma migrate deploy` | **Production** — You're deploying | Runs pending migrations (no new migration files created) |
+| Command                     | When to Use                              | What It Does                                             |
+| --------------------------- | ---------------------------------------- | -------------------------------------------------------- |
+| `npx prisma migrate dev`    | **Development** — You're changing schema | Creates migration file + runs it + generates types       |
+| `npx prisma migrate deploy` | **Production** — You're deploying        | Runs pending migrations (no new migration files created) |
 
 ### Real Example:
 
@@ -131,24 +141,30 @@ _prisma_migrations (in your database)
 ## ⚠️ Common Beginner Confusions
 
 ### ❌ **Confusion #1**: "Do I write SQL files?"
+
 **No!** You write `.prisma` schema. Prisma generates the SQL.
 
 ### ❌ **Confusion #2**: "What's the `generated/` folder?"
+
 ```
 prisma/generated/
 ├── client.ts       ← TypeScript interfaces for your database
 ├── models.ts       ← Your table definitions in TypeScript
 ```
+
 Prisma creates these automatically from your schema. **Don't edit manually.**
 
 ### ❌ **Confusion #3**: "Why do I need migrations if it syncs automatically?"
+
 **Version control + team collaboration**:
+
 - You push migration files to Git
 - Your teammates pull them
 - Everyone's database stays in sync
 - You can see the history of what changed when
 
 ### ❌ **Confusion #4**: "Can I delete old migrations?"
+
 **No!** They're like Git commits. If you delete `20260314_init`, Prisma won't know the table exists.
 
 ---
@@ -156,6 +172,7 @@ Prisma creates these automatically from your schema. **Don't edit manually.**
 ## 🚀 Quick Reference: Your Current Setup
 
 **What you have**:
+
 ```
 prisma/
 ├── schema.prisma              ✅ File you edit
@@ -168,6 +185,7 @@ prisma/
 ```
 
 **What Prisma is tracking**:
+
 - If database already has these tables (from `0_init/migration.sql`)
 - When you change `.prisma` schema, Prisma creates new migrations
 
@@ -180,6 +198,7 @@ npx prisma migrate status
 ```
 
 **What it shows**:
+
 - ✅ Migrations that ran
 - ⏳ Migrations pending (haven't run yet)
 - ❌ Issues (if schema doesn't match database)
@@ -204,6 +223,7 @@ git push
 ```
 
 **New teammate joins project:**
+
 ```bash
 # They just run:
 npx prisma migrate deploy
