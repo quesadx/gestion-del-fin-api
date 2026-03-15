@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Backend API for 'Gestión del fin': A multi-camp zombie survival management system featuring AI-driven ingress decisions, resource tracking, and secure role-based access.",
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -14,8 +13,7 @@
     "format": "prettier --write .",
     "spell": "cspell \"src/**/*.ts\"",
     "test": "jest --passWithNoTests",
-    "test:e2e": "playwright test",
-    "seed": "npm run build && node dist/database/seeds/seed.js"
+    "test:e2e": "playwright test"
   },
   "keywords": [
     "api",
