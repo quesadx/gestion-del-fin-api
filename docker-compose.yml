@@ -8,7 +8,7 @@ services:
   # example: db:3306 would be the address to connect to the database from another service
   db:
     # Should I lock the image version?
-    image: mariadb:latest
+    image: mariadb:11.4
     container_name: gestion-del-fin-db
     environment:
       - MYSQL_ROOT_PASSWORD=admin
@@ -21,7 +21,15 @@ services:
       # Allows to run the migrations when the container starts
       # 'docker-entrypoint-initdb.d' is a special directory in the MariaDB image that runs any .sql or .sh files it contains when the container is initialized.
       - ./src/database/migrations:/docker-entrypoint-initdb.d
-# volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      
+volumes:
   # This is a named volume that can be used to persist data across container restarts.
   # It is not used in this configuration, but it can be useful for storing database data or other persistent data.
-  # db_data:
+  db_data:

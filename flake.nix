@@ -15,10 +15,16 @@
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           nodejs_20
+          openssl
+          pkg-config
+          prisma-engines_7
+          python3
         ];
 
         shellHook = ''
           echo "--- gestion-del-fin dev-shell initialized! ---"
+          export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [ pkgs.openssl ]}:$LD_LIBRARY_PATH
+          export PATH="${pkgs.openssl}/bin:$PATH"
         '';
       };
     };

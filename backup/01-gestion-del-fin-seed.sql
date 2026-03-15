@@ -131,12 +131,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`persons` (
   UNIQUE INDEX `identification_code_UNIQUE` (`identification_code` ASC),
   INDEX `fk_person_camp__id_idx` (`camp_id` ASC),
   INDEX `fk_persons_profession_id_idx` (`profession_id` ASC),
-  CONSTRAINT `fk_camp_id`
+  CONSTRAINT `fk_persons_camp_id`
     FOREIGN KEY (`camp_id`)
     REFERENCES `gestion_del_fin`.`camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_profession_id`
+  CONSTRAINT `fk_persons_profession_id`
     FOREIGN KEY (`profession_id`)
     REFERENCES `gestion_del_fin`.`professions` (`id`)
     ON DELETE NO ACTION
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`admission_requests` (
   PRIMARY KEY (`id`),
   INDEX `fk_admission_request_camp_idx` (`camp_id` ASC),
   INDEX `fk_user_reviewd_by_idx` (`reviewed_by` ASC),
-  CONSTRAINT `fk_camp_id`
+  CONSTRAINT `fk_admission_requests_camp_id`
     FOREIGN KEY (`camp_id`)
     REFERENCES `gestion_del_fin`.`camps` (`id`)
     ON DELETE NO ACTION
@@ -199,7 +199,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`person_status_log` (
   PRIMARY KEY (`id`),
   INDEX `fk_person_id_idx` (`person_id` ASC),
   INDEX `fk_changed_by_idx` (`changed_by` ASC),
-  CONSTRAINT `fk_person_id`
+  CONSTRAINT `fk_person_status_log_person_id`
     FOREIGN KEY (`person_id`)
     REFERENCES `gestion_del_fin`.`persons` (`id`)
     ON DELETE NO ACTION
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`profession_reassignment_log` (
   INDEX `fk_person_id_idx` (`person_id` ASC),
   INDEX `fk_from_profession_id_idx` (`from_profession_id` ASC),
   INDEX `fk_to_profession_id_idx` (`to_profession_id` ASC),
-  CONSTRAINT `fk_person_id`
+  CONSTRAINT `fk_reassignment_log_person_id`
     FOREIGN KEY (`person_id`)
     REFERENCES `gestion_del_fin`.`persons` (`id`)
     ON DELETE NO ACTION
@@ -273,12 +273,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`inventory` (
   INDEX `fk_camp_idx` (`camp_id` ASC),
   INDEX `fk_resource_type_idx` (`resource_type_id` ASC),
   UNIQUE INDEX `uq_camp_resource` (`camp_id` ASC, `resource_type_id` ASC),
-  CONSTRAINT `fk_camp_id`
+  CONSTRAINT `fk_inventory_camp_id`
     FOREIGN KEY (`camp_id`)
     REFERENCES `gestion_del_fin`.`camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_inventory_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
@@ -302,12 +302,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`inventory_log` (
   INDEX `fk_camp__id_idx` (`camp_id` ASC),
   INDEX `fk_resource_id_idx` (`resource_type_id` ASC),
   INDEX `fk_logged_by_idx` (`logged_by` ASC),
-  CONSTRAINT `fk_camp_id`
+  CONSTRAINT `fk_inventory_log_camp_id`
     FOREIGN KEY (`camp_id`)
     REFERENCES `gestion_del_fin`.`camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_inventory_log_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
@@ -336,12 +336,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`contribution_overrides` (
   INDEX `fk_person_id_idx` (`person_id` ASC),
   INDEX `fk_resource_type__id_idx` (`resource_type_id` ASC),
   INDEX `fk_created_by_idx` (`created_by` ASC),
-  CONSTRAINT `fk_person_id`
+  CONSTRAINT `fk_contribution_overrides_person_id`
     FOREIGN KEY (`person_id`)
     REFERENCES `gestion_del_fin`.`persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_contribution_overrides_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
@@ -373,12 +373,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expeditions` (
   PRIMARY KEY (`id`),
   INDEX `fk_camp_id_idx` (`camp_id` ASC),
   INDEX `fk_created_by_idx` (`created_by` ASC),
-  CONSTRAINT `fk_camp_id`
+  CONSTRAINT `fk_expeditions_camp_id`
     FOREIGN KEY (`camp_id`)
     REFERENCES `gestion_del_fin`.`camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_created_by`
+  CONSTRAINT `fk_expeditions_created_by`
     FOREIGN KEY (`created_by`)
     REFERENCES `gestion_del_fin`.`users` (`id`)
     ON DELETE NO ACTION
@@ -396,12 +396,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`professions_resources_amounts` (
   PRIMARY KEY (`professions_id`, `resource_type_id`),
   INDEX `fk_resource_type_id_idx` (`resource_type_id` ASC),
   INDEX `fk_profession_type_id_idx` (`professions_id` ASC),
-  CONSTRAINT `fk_profession_id`
+  CONSTRAINT `fk_prof_res_amounts_profession_id`
     FOREIGN KEY (`professions_id`)
     REFERENCES `gestion_del_fin`.`professions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_prof_res_amounts_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
@@ -419,12 +419,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_allocated_resources` (
   PRIMARY KEY (`expedition_id`, `resource_type_id`),
   INDEX `fk_resource_type_id_idx` (`resource_type_id` ASC),
   INDEX `fk_expedition_id_idx` (`expedition_id` ASC),
-  CONSTRAINT `fk_expedition_id`
+  CONSTRAINT `fk_exp_allocated_expedition_id`
     FOREIGN KEY (`expedition_id`)
     REFERENCES `gestion_del_fin`.`expeditions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_exp_allocated_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
@@ -442,12 +442,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_found_resources` (
   PRIMARY KEY (`expedition_id`, `resource_type_id`),
   INDEX `fk_resource_type_id_idx` (`resource_type_id` ASC),
   INDEX `fk_expedition_id_idx` (`expedition_id` ASC),
-  CONSTRAINT `fk_expedition_id`
+  CONSTRAINT `fk_exp_found_expedition_id`
     FOREIGN KEY (`expedition_id`)
     REFERENCES `gestion_del_fin`.`expeditions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_exp_found_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
@@ -464,12 +464,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_members` (
   INDEX `fk_expedition_id_idx` (`expedition_id` ASC),
   INDEX `fk_person_id_idx` (`person_id` ASC),
   PRIMARY KEY (`person_id`, `expedition_id`),
-  CONSTRAINT `fk_expedition_id`
+  CONSTRAINT `fk_exp_members_expedition_id`
     FOREIGN KEY (`expedition_id`)
     REFERENCES `gestion_del_fin`.`expeditions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_person_id`
+  CONSTRAINT `fk_exp_members_person_id`
     FOREIGN KEY (`person_id`)
     REFERENCES `gestion_del_fin`.`persons` (`id`)
     ON DELETE NO ACTION
@@ -567,12 +567,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfer_item` (
     REFERENCES `gestion_del_fin`.`camp_transfers` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_resource_type_id`
+  CONSTRAINT `fk_transfer_item_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
     REFERENCES `gestion_del_fin`.`resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_person_id`
+  CONSTRAINT `fk_transfer_item_person_id`
     FOREIGN KEY (`person_id`)
     REFERENCES `gestion_del_fin`.`persons` (`id`)
     ON DELETE NO ACTION
