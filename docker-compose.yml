@@ -20,7 +20,7 @@ services:
     volumes:
       # Allows to run the migrations when the container starts
       # 'docker-entrypoint-initdb.d' is a special directory in the MariaDB image that runs any .sql or .sh files it contains when the container is initialized.
-      - ./src/database/migrations:/docker-entrypoint-initdb.d
+      # - ./src/database/migrations:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
     healthcheck:
       test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
