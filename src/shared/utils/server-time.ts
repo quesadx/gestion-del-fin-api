@@ -1,23 +1,7 @@
-import { format } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+// src/utils/server-time.ts
 
-const crTimeZone = 'America/Costa_Rica';
-
-export const getCRTime = (date?: Date): Date => {
-  return toZonedTime(date ?? new Date(), crTimeZone);
-};
-
-export const formatFullDateTime = (date?: Date): string => {
-  const zonedDate = getCRTime(date);
-  return format(zonedDate, 'yyyy-MM-dd HH:mm:ss');
-};
-
-export const formatDate = (date?: Date): string => {
-  const zonedDate = getCRTime(date);
-  return format(zonedDate, 'yyyy-MM-dd');
-};
-
-export const formatTime = (date?: Date): string => {
-  const zonedDate = getCRTime(date);
-  return format(zonedDate, 'HH:mm:ss');
+export const serverTime = {
+  now: (): Date => new Date(),
+  nowISO: (): string => new Date().toISOString(),
+  today: (): string => new Date().toISOString().split('T')[0], // "2026-03-15"
 };
