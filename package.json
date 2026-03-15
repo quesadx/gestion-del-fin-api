@@ -1,6 +1,7 @@
 {
   "name": "gestion-del-fin-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend API for 'Gestión del fin': A multi-camp zombie survival management system featuring AI-driven ingress decisions, resource tracking, and secure role-based access.",
   "type": "module",
   "main": "dist/index.js",
@@ -10,10 +11,11 @@
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "format": "prettier --write .",
     "spell": "cspell \"src/**/*.ts\"",
     "test": "jest --passWithNoTests",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "seed": "npm run build && node dist/database/seeds/seed.js"
   },
   "keywords": [
     "api",
@@ -28,6 +30,8 @@
     "@prisma/client": "^7.5.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
@@ -47,14 +51,18 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "@types/node-cron": "^3.0.11",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@typescript-eslint/parser": "^8.56.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
     "cspell": "^9.7.0",
     "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-define-config": "^2.1.0",
+    "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.2.0",
     "prettier": "^3.8.1",
     "prisma": "^7.5.0",
     "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
