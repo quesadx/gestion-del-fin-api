@@ -34,7 +34,13 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    npx prisma migrate dev
    ```
 
-6. Start the dev server:
+6. (Optional) Seed the database (recommended after migrations):
+
+   ```bash
+   npx prisma db seed
+   ```
+
+7. Start the dev server:
 
    ```bash
    npm run dev
@@ -54,9 +60,32 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    direnv allow
    ```
 
-3. Install dependencies (if needed) and run:
+3. Install dependencies (if needed):
 
    ```bash
    npm install
+   ```
+
+4. Generate the Prisma client:
+
+   ```bash
+   npx prisma generate
+   ```
+
+5. Apply migrations to keep the database schema in sync:
+
+   ```bash
+   npx prisma migrate dev
+   ```
+
+6. (Optional) Seed the database (recommended after migrations):
+
+   ```bash
+   npx prisma db seed
+   ```
+
+7. Start the dev server:
+
+   ```bash
    npm run dev
    ```
