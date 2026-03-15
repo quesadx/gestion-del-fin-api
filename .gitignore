@@ -8,6 +8,5 @@ dist/
 *.js.map
 !eslint.config.js
 # Prisma
-prisma/generated/
 prisma/migrations.lock/
-/generated/prisma
+generated/prisma/
