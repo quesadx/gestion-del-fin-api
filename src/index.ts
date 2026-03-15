@@ -1,4 +1,5 @@
 import express from 'express';
+// import { prisma } from './lib/prisma';
 
 const app = express();
 const DEFAULT_PORT = 3000;
