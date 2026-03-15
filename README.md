@@ -4,33 +4,11 @@ Secure API for **Gestión del fin** (EIF209). Handles multi-camp management, res
 
 ## Development Setup
 
-You can set up the project using **Nix** or **manually** with Node.js 20+.
+This project can be run using either **manual Node setup** (recommended) or **Nix**.
 
-### Option 1: Nix
+### Option 1: Manual (Node.js)
 
-1. Enter the development shell:
-
-   ```bash
-   nix develop
-
-   ```
-
-2. If using direnv, allow it:
-
-   ```bash
-   direnv allow
-   ```
-
-3. Install dependencies and start the server:
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-### Option 2: Manual Setup
-
-1. Check your Node version:
+1. Ensure Node 20+ is installed:
 
    ```bash
    node --version
@@ -42,8 +20,37 @@ You can set up the project using **Nix** or **manually** with Node.js 20+.
    npm install
    ```
 
-3. Start the server:
+3. Create a `.env` file (use `.env.example` if available) and configure your database connection.
+
+4. Generate the Prisma client:
 
    ```bash
+   npx prisma generate
+   ```
+
+5. Start the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+### Option 2: Nix
+
+1. Enter the development shell:
+
+   ```bash
+   nix develop
+   ```
+
+2. If using direnv, allow it:
+
+   ```bash
+   direnv allow
+   ```
+
+3. Install dependencies (if needed) and run:
+
+   ```bash
+   npm install
    npm run dev
    ```
