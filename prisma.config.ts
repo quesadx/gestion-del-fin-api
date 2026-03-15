@@ -2,13 +2,15 @@
 // npm install --save-dev prisma dotenv
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
+import { env } from "process";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts", // tsx = TypeScript execution engine, allowing us to run TypeScript files directly without pre-compilation
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: env["DATABASE_URL"],
   },
 });

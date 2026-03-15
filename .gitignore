@@ -6,6 +6,4 @@ node_modules/
 # Prisma
 prisma/generated/
 prisma/migrations.lock/
-
-
 /generated/prisma
