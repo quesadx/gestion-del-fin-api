@@ -13,8 +13,7 @@
     "format": "prettier --write .",
     "spell": "cspell \"src/**/*.ts\"",
     "test": "jest --passWithNoTests",
-    "test:e2e": "playwright test",
-    "seed": "npm run build && node dist/database/seeds/seed.js"
+    "test:e2e": "playwright test"
   },
   "keywords": [
     "api",
