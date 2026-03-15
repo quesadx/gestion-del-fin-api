@@ -2,7 +2,11 @@
 .env/
 .env
 node_modules/
-
+dist/
+.DS_Store # Kendal Badilla's favorite
+*.js
+*.js.map
+!eslint.config.js
 # Prisma
 prisma/generated/
 prisma/migrations.lock/
