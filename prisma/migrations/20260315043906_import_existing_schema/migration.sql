@@ -23,13 +23,12 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 -- -----------------------------------------------------
 -- Schema gestion_del_fin
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `gestion_del_fin` ;
-USE `gestion_del_fin` ;
+
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`system_config`
+-- Table `system_config`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`system_config` (
+CREATE TABLE IF NOT EXISTS `system_config` (
   `id` TINYINT NOT NULL DEFAULT 1 COMMENT 'Always one, singleton row',
   `version` VARCHAR(20) NULL COMMENT 'e.g. "1.0.0"',
   `server_time` DATETIME NOT NULL COMMENT 'Central clock for all camps',
@@ -39,9 +38,9 @@ COMMENT = 'General system parameters\n';
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`camps`
+-- Table `camps`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camps` (
+CREATE TABLE IF NOT EXISTS `camps` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `name` VARCHAR(100) NOT NULL COMMENT 'Unique camp name',
   `location` VARCHAR(100) NULL,
@@ -53,9 +52,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`roles`
+-- Table `roles`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`roles` (
+CREATE TABLE IF NOT EXISTS `roles` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `name` VARCHAR(60) NOT NULL COMMENT 'e.g., system_admin | worker | resource_manager | travel_coordinator',
   `description` VARCHAR(255) NULL,
@@ -66,9 +65,9 @@ COMMENT = 'Roles that can be assigned to users';
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`users`
+-- Table `users`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `camp_id` INT UNSIGNED NOT NULL COMMENT 'FK to user\'s camp',
   `role_id` INT UNSIGNED NOT NULL,
@@ -83,12 +82,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`users` (
   UNIQUE INDEX `username_UNIQUE` (`username` ASC),
   CONSTRAINT `fk_camp_id`
     FOREIGN KEY (`camp_id`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_role_id`
     FOREIGN KEY (`role_id`)
-    REFERENCES `gestion_del_fin`.`roles` (`id`)
+    REFERENCES `roles` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -96,9 +95,9 @@ COMMENT = 'Survivors';
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`professions`
+-- Table `professions`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`professions` (
+CREATE TABLE IF NOT EXISTS `professions` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `name` VARCHAR(80) NOT NULL COMMENT 'e.g., scout | farmer | guard | engineer | ...',
   `description` TEXT NULL,
@@ -108,14 +107,14 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`persons`
+-- Table `persons`
 -- [CAMBIO #1] Se agrega `identification_code`:
 --   El req. gestión humana #3 indica que al ingresar una persona
 --   se le debe asignar automáticamente una identificación única.
 --   Campo nullable porque se asigna DESPUÉS de la aprobación,
 --   no al momento de crear el registro.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`persons` (
+CREATE TABLE IF NOT EXISTS `persons` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `camp_id` INT UNSIGNED NOT NULL,
   `profession_id` INT UNSIGNED NOT NULL,
@@ -133,12 +132,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`persons` (
   INDEX `fk_persons_profession_id_idx` (`profession_id` ASC),
   CONSTRAINT `fk_persons_camp_id`
     FOREIGN KEY (`camp_id`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_persons_profession_id`
     FOREIGN KEY (`profession_id`)
-    REFERENCES `gestion_del_fin`.`professions` (`id`)
+    REFERENCES `professions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -146,13 +145,13 @@ COMMENT = 'Also known as survivors';
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`admission_requests`
+-- Table `admission_requests`
 -- [CAMBIO #2] Se agrega `id_card_url`:
 --   El req. gestión humana #2 indica que al registrar un nuevo
 --   solicitante se debe poder adjuntar una imagen de tarjeta
 --   de identificación, adicional a la foto del solicitante.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`admission_requests` (
+CREATE TABLE IF NOT EXISTS `admission_requests` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `camp_id` INT UNSIGNED NOT NULL,
   `applicant_name` VARCHAR(150) NOT NULL,
@@ -174,21 +173,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`admission_requests` (
   INDEX `fk_user_reviewd_by_idx` (`reviewed_by` ASC),
   CONSTRAINT `fk_admission_requests_camp_id`
     FOREIGN KEY (`camp_id`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_reviewed_by`
     FOREIGN KEY (`reviewed_by`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`person_status_log`
+-- Table `person_status_log`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`person_status_log` (
+CREATE TABLE IF NOT EXISTS `person_status_log` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `person_id` INT UNSIGNED NOT NULL COMMENT 'FK to the person related to the logged status',
   `old_status` VARCHAR(20) NOT NULL,
@@ -201,21 +200,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`person_status_log` (
   INDEX `fk_changed_by_idx` (`changed_by` ASC),
   CONSTRAINT `fk_person_status_log_person_id`
     FOREIGN KEY (`person_id`)
-    REFERENCES `gestion_del_fin`.`persons` (`id`)
+    REFERENCES `persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_changed_by`
     FOREIGN KEY (`changed_by`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`profession_reassignment_log`
+-- Table `profession_reassignment_log`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`profession_reassignment_log` (
+CREATE TABLE IF NOT EXISTS `profession_reassignment_log` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `person_id` INT UNSIGNED NOT NULL,
   `from_profession_id` INT UNSIGNED NOT NULL,
@@ -229,26 +228,26 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`profession_reassignment_log` (
   INDEX `fk_to_profession_id_idx` (`to_profession_id` ASC),
   CONSTRAINT `fk_reassignment_log_person_id`
     FOREIGN KEY (`person_id`)
-    REFERENCES `gestion_del_fin`.`persons` (`id`)
+    REFERENCES `persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_from_profession_id`
     FOREIGN KEY (`from_profession_id`)
-    REFERENCES `gestion_del_fin`.`professions` (`id`)
+    REFERENCES `professions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_to_profession_id`
     FOREIGN KEY (`to_profession_id`)
-    REFERENCES `gestion_del_fin`.`professions` (`id`)
+    REFERENCES `professions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`resource_type`
+-- Table `resource_type`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`resource_type` (
+CREATE TABLE IF NOT EXISTS `resource_type` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `name` VARCHAR(80) NOT NULL COMMENT 'e.g., meat loaf | food | water | hygiene | medicine | ...',
   `unit` VARCHAR(20) NOT NULL COMMENT 'e.g., kg | liters | lb',
@@ -261,9 +260,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`inventory`
+-- Table `inventory`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`inventory` (
+CREATE TABLE IF NOT EXISTS `inventory` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `camp_id` INT UNSIGNED NOT NULL,
   `resource_type_id` INT UNSIGNED NOT NULL,
@@ -275,21 +274,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`inventory` (
   UNIQUE INDEX `uq_camp_resource` (`camp_id` ASC, `resource_type_id` ASC),
   CONSTRAINT `fk_inventory_camp_id`
     FOREIGN KEY (`camp_id`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_inventory_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`inventory_log`
+-- Table `inventory_log`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`inventory_log` (
+CREATE TABLE IF NOT EXISTS `inventory_log` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK\n',
   `camp_id` INT UNSIGNED NOT NULL COMMENT 'Camp related to the log',
   `resource_type_id` INT UNSIGNED NOT NULL,
@@ -304,26 +303,26 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`inventory_log` (
   INDEX `fk_logged_by_idx` (`logged_by` ASC),
   CONSTRAINT `fk_inventory_log_camp_id`
     FOREIGN KEY (`camp_id`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_inventory_log_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_logged_by`
     FOREIGN KEY (`logged_by`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`contribution_overrides`
+-- Table `contribution_overrides`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`contribution_overrides` (
+CREATE TABLE IF NOT EXISTS `contribution_overrides` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `person_id` INT UNSIGNED NOT NULL,
   `resource_type_id` INT UNSIGNED NOT NULL,
@@ -338,17 +337,17 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`contribution_overrides` (
   INDEX `fk_created_by_idx` (`created_by` ASC),
   CONSTRAINT `fk_contribution_overrides_person_id`
     FOREIGN KEY (`person_id`)
-    REFERENCES `gestion_del_fin`.`persons` (`id`)
+    REFERENCES `persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_contribution_overrides_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_created_by`
     FOREIGN KEY (`created_by`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -356,9 +355,9 @@ COMMENT = 'Overrides profession-defined contribution amounts';
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`expeditions`
+-- Table `expeditions`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expeditions` (
+CREATE TABLE IF NOT EXISTS `expeditions` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `camp_id` INT UNSIGNED NOT NULL,
   `destination` VARCHAR(255) NOT NULL,
@@ -375,21 +374,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expeditions` (
   INDEX `fk_created_by_idx` (`created_by` ASC),
   CONSTRAINT `fk_expeditions_camp_id`
     FOREIGN KEY (`camp_id`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_expeditions_created_by`
     FOREIGN KEY (`created_by`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`professions_resources_amounts`
+-- Table `professions_resources_amounts`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`professions_resources_amounts` (
+CREATE TABLE IF NOT EXISTS `professions_resources_amounts` (
   `professions_id` INT UNSIGNED NOT NULL,
   `resource_type_id` INT UNSIGNED NOT NULL,
   `amount` DECIMAL(12,2) UNSIGNED NOT NULL,
@@ -398,21 +397,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`professions_resources_amounts` (
   INDEX `fk_profession_type_id_idx` (`professions_id` ASC),
   CONSTRAINT `fk_prof_res_amounts_profession_id`
     FOREIGN KEY (`professions_id`)
-    REFERENCES `gestion_del_fin`.`professions` (`id`)
+    REFERENCES `professions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_prof_res_amounts_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`expedition_allocated_resources`
+-- Table `expedition_allocated_resources`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_allocated_resources` (
+CREATE TABLE IF NOT EXISTS `expedition_allocated_resources` (
   `expedition_id` INT UNSIGNED NOT NULL,
   `resource_type_id` INT UNSIGNED NOT NULL,
   `amount` DECIMAL(12,2) UNSIGNED NOT NULL,
@@ -421,21 +420,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_allocated_resources` (
   INDEX `fk_expedition_id_idx` (`expedition_id` ASC),
   CONSTRAINT `fk_exp_allocated_expedition_id`
     FOREIGN KEY (`expedition_id`)
-    REFERENCES `gestion_del_fin`.`expeditions` (`id`)
+    REFERENCES `expeditions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_exp_allocated_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`expedition_found_resources`
+-- Table `expedition_found_resources`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_found_resources` (
+CREATE TABLE IF NOT EXISTS `expedition_found_resources` (
   `expedition_id` INT UNSIGNED NOT NULL,
   `resource_type_id` INT UNSIGNED NOT NULL,
   `amount` DECIMAL(12,2) UNSIGNED NOT NULL,
@@ -444,21 +443,21 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_found_resources` (
   INDEX `fk_expedition_id_idx` (`expedition_id` ASC),
   CONSTRAINT `fk_exp_found_expedition_id`
     FOREIGN KEY (`expedition_id`)
-    REFERENCES `gestion_del_fin`.`expeditions` (`id`)
+    REFERENCES `expeditions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_exp_found_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`expedition_members`
+-- Table `expedition_members`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_members` (
+CREATE TABLE IF NOT EXISTS `expedition_members` (
   `expedition_id` INT UNSIGNED NOT NULL,
   `person_id` INT UNSIGNED NOT NULL,
   INDEX `fk_expedition_id_idx` (`expedition_id` ASC),
@@ -466,19 +465,19 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`expedition_members` (
   PRIMARY KEY (`person_id`, `expedition_id`),
   CONSTRAINT `fk_exp_members_expedition_id`
     FOREIGN KEY (`expedition_id`)
-    REFERENCES `gestion_del_fin`.`expeditions` (`id`)
+    REFERENCES `expeditions` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_exp_members_person_id`
     FOREIGN KEY (`person_id`)
-    REFERENCES `gestion_del_fin`.`persons` (`id`)
+    REFERENCES `persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`camp_transfers`
+-- Table `camp_transfers`
 -- [CAMBIO #3a] Se agrega `leader_person_id`:
 --   El enunciado (otros campamentos #2 y #3) establece que cuando
 --   se aprueba un traslado se debe designar a una persona que
@@ -493,7 +492,7 @@ ENGINE = InnoDB;
 --   recursos entre campamentos debe agendarse para su entrega y
 --   devolución. Este campo almacena la fecha/hora pactada.
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfers` (
+CREATE TABLE IF NOT EXISTS `camp_transfers` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK',
   `requesting_camp` INT UNSIGNED NOT NULL,
   `target_camp` INT UNSIGNED NOT NULL,
@@ -517,41 +516,41 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfers` (
   INDEX `fk_approved_by_target_idx` (`approved_by_target` ASC),
   CONSTRAINT `fk_requesting_camp`
     FOREIGN KEY (`requesting_camp`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_target_camp`
     FOREIGN KEY (`target_camp`)
-    REFERENCES `gestion_del_fin`.`camps` (`id`)
+    REFERENCES `camps` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_requested_by`
     FOREIGN KEY (`requested_by`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_transfer_leader_person`
     FOREIGN KEY (`leader_person_id`)
-    REFERENCES `gestion_del_fin`.`persons` (`id`)
+    REFERENCES `persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_approved_by_source`
     FOREIGN KEY (`approved_by_source`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_approved_by_target`
     FOREIGN KEY (`approved_by_target`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`camp_transfer_item`
+-- Table `camp_transfer_item`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfer_item` (
+CREATE TABLE IF NOT EXISTS `camp_transfer_item` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `camp_transfer_id` INT UNSIGNED NOT NULL,
   `item_type` ENUM('RESOURCE', 'PERSON') NOT NULL,
@@ -564,26 +563,26 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`camp_transfer_item` (
   INDEX `fk_person_id_idx` (`person_id` ASC),
   CONSTRAINT `fk_camp_transfer_id`
     FOREIGN KEY (`camp_transfer_id`)
-    REFERENCES `gestion_del_fin`.`camp_transfers` (`id`)
+    REFERENCES `camp_transfers` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_transfer_item_resource_type_id`
     FOREIGN KEY (`resource_type_id`)
-    REFERENCES `gestion_del_fin`.`resource_type` (`id`)
+    REFERENCES `resource_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_transfer_item_person_id`
     FOREIGN KEY (`person_id`)
-    REFERENCES `gestion_del_fin`.`persons` (`id`)
+    REFERENCES `persons` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`achievements`
+-- Table `achievements`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`achievements` (
+CREATE TABLE IF NOT EXISTS `achievements` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Auto-increment PK.',
   `name` VARCHAR(100) NOT NULL,
   `description` VARCHAR(255) NULL,
@@ -595,9 +594,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `gestion_del_fin`.`user_achievements`
+-- Table `user_achievements`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`user_achievements` (
+CREATE TABLE IF NOT EXISTS `user_achievements` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` INT UNSIGNED NOT NULL,
   `achievement_id` INT UNSIGNED NOT NULL,
@@ -607,12 +606,12 @@ CREATE TABLE IF NOT EXISTS `gestion_del_fin`.`user_achievements` (
   INDEX `fk_achivement_id_idx` (`achievement_id` ASC),
   CONSTRAINT `fk_user_id`
     FOREIGN KEY (`user_id`)
-    REFERENCES `gestion_del_fin`.`users` (`id`)
+    REFERENCES `users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_achivement_id`
     FOREIGN KEY (`achievement_id`)
-    REFERENCES `gestion_del_fin`.`achievements` (`id`)
+    REFERENCES `achievements` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
