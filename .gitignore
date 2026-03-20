@@ -11,6 +11,10 @@ dist/
 *.js
 *.js.map
 
+# Logs
+logs/
+*.log
+
 # Keep config JS checked in
 !eslint.config.js
 
