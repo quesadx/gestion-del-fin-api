@@ -1,6 +1,7 @@
 {
   "version": "0.2",
   "language": "en",
+  "spell": "cspell \"src/**/*.ts\"",
   "ignorePaths": ["node_modules", "dist", "database/seeds", "docs", ".gitignore"],
   "words": [
     "tsconfig",
