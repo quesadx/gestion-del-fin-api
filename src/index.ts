@@ -12,7 +12,7 @@ app.get('/', (req, res) => {
 });
 app.use('/api/system', systemRoutes);
 
-// Graceful shutdown hahaha
+// Graceful shutdown
 process.on('SIGINT', async () => {
   await prisma.$disconnect();
   logger.info('DB connection closed. Shutting down gracefully...');
