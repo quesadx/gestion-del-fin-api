@@ -1,7 +1,15 @@
 {
   "version": "0.2",
   "language": "en",
-  "ignorePaths": ["node_modules", "dist", "database/seeds", "docs", ".gitignore"],
+  "spell": "cspell \"src/**/*.ts\"",
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    "database/seeds",
+    "docs",
+    ".gitignore",
+    "src/generated/**"
+  ],
   "words": [
     "tsconfig",
     "eslint",
@@ -13,6 +21,14 @@
     "campamento",
     "initdb",
     "Matteo",
-    "Rica"
+    "Rica",
+    "Kendal",
+    "Nigue",
+    "TODO",
+    "nowISO",
+    "serverTime",
+    "treeify",
+    "TODO",
+    "Intentionally"
   ]
 }

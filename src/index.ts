@@ -1,29 +1,24 @@
+import { config } from './config/index.js';
+import { logger } from './logger/index.js';
+import { prisma } from './lib/prisma.js';
 import express from 'express';
 import { systemRoutes } from './modules/system/system.routes.js';
-import { prisma } from './lib/prisma.js';
 
 const app = express();
-const DEFAULT_PORT = 3000;
 
-// Prefer a valid positive integer from env; otherwise fall back to the default
-const PORT = (() => {
-  const parsed = Number(process.env.PORT);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    if (process.env.PORT) {
-      console.warn(`Invalid PORT "${process.env.PORT}", falling back to ${DEFAULT_PORT}`);
-    }
-    return DEFAULT_PORT;
-  }
-  return parsed;
-})();
-
+// Routes always go before listening
 app.get('/', (req, res) => {
   res.json({ message: 'gestion-del-fin-api is alive!' });
 });
+app.use('/api/system', systemRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  logger.info('DB connection closed. Shutting down gracefully...');
+  process.exit(0);
 });
 
-// Gotta do this for each module, or else the routes won't be registered
-app.use('/api/system', systemRoutes);
+app.listen(config.PORT, () => {
+  logger.info(`Server listening on port ${config.PORT} [${config.NODE_ENV}]`);
+});
