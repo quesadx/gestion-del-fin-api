@@ -55,6 +55,8 @@ async function main() {
       name: 'Alpha Outpost',
       location: 'Grid Sector 7',
       status: 'ACTIVE',
+      ai_context_prompt:
+        'Prioritize technical survival value, practical skills, and reliable health stability for long-term infrastructure resilience.',
     },
   });
 
@@ -63,6 +65,8 @@ async function main() {
       name: 'Beta Sanctuary',
       location: 'Grid Sector 9',
       status: 'ACTIVE',
+      ai_context_prompt:
+        'Prioritize adaptability, team compatibility, and field mobility for scouting and rapid-response missions.',
     },
   });
 

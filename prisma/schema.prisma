@@ -115,6 +115,7 @@ model camps {
   name                                                 String               @unique(map: "name_UNIQUE") @db.VarChar(100)
   location                                             String?              @db.VarChar(100)
   status                                               camps_status         @default(ACTIVE)
+  ai_context_prompt                                    String?              @db.Text
   created_at                                           DateTime             @default(now()) @db.DateTime(0)
   admission_requests                                   admission_requests[]
   camp_transfers_camp_transfers_requesting_campTocamps camp_transfers[]     @relation("camp_transfers_requesting_campTocamps")
