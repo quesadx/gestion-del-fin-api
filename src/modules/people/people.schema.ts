@@ -1,4 +1,3 @@
-// people.schema.ts
 import { z } from 'zod';
 
 export const personStatusEnum = z.enum(['SICK', 'HEALTHY', 'INJURED', 'AWAY', 'DEAD']);
