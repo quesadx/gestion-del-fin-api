@@ -11,24 +11,28 @@
     "src/generated/**"
   ],
   "words": [
-    "tsconfig",
-    "eslint",
-    "prettier",
-    "typeorm",
+    "campamento",
     "dotenv",
+    "duplicado",
+    "eslint",
+    "existe",
     "gestion",
     "gestión",
-    "campamento",
     "initdb",
-    "Matteo",
-    "Rica",
+    "Intentionally",
     "Kendal",
+    "Matteo",
     "Nigue",
-    "TODO",
     "nowISO",
+    "prettier",
+    "Profesión",
+    "registro",
+    "Rica",
     "serverTime",
-    "treeify",
     "TODO",
-    "Intentionally"
+    "treeify",
+    "tsconfig",
+    "typeorm",
+    "único"
   ]
 }
