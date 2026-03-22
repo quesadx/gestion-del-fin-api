@@ -1,69 +1,77 @@
 import { prisma } from '../../lib/prisma.js';
 import { CreatePersonDto, UpdatePersonDto } from './people.schema.js';
+import { AppError } from '../../shared/utils/appError.js';
+
+// Helper to secure date parsing and validation
+function parseDate(dateStr?: string) {
+  if (!dateStr) return undefined;
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) {
+    throw new AppError(`admitted_at inválido: ${dateStr}`, 400);
+  }
+  return date;
+}
+
 export async function createPerson(data: CreatePersonDto) {
   try {
-    // Validate camp and profession existence
-    const campExists = await prisma.camps.findUnique({ where: { id: data.camp_id } });
-    if (!campExists) throw new Error(`Campamento con id ${data.camp_id} no existe`);
+    // Validate camp
+    const camp = await prisma.camps.findUnique({ where: { id: data.camp_id } });
+    if (!camp) throw new AppError(`camp_id no existe: ${data.camp_id}`, 404);
 
-    const professionExists = await prisma.professions.findUnique({
+    // Validate profession
+    const profession = await prisma.professions.findUnique({
       where: { id: data.profession_id },
     });
-    if (!professionExists) throw new Error(`Profesión con id ${data.profession_id} no existe`);
-
-    return await prisma.persons.create({
-      data: {
-        full_name: data.full_name,
-        age: data.age,
-        identification_code: data.identification_code,
-        blood_type: data.blood_type,
-        skills_summary: data.skills_summary,
-        photo_url: data.photo_url,
-        status: data.status ?? 'HEALTHY',
-        admitted_at: new Date(data.admitted_at),
-        camps: { connect: { id: data.camp_id } },
-        professions: { connect: { id: data.profession_id } },
-      },
-      include: { camps: true, professions: true },
-    });
+    if (profession)
+      return await prisma.persons.create({
+        data: {
+          full_name: data.full_name.trim(),
+          age: data.age,
+          identification_code: data.identification_code,
+          blood_type: data.blood_type,
+          skills_summary: data.skills_summary?.trim(),
+          photo_url: data.photo_url,
+          status: data.status ?? 'HEALTHY',
+          admitted_at: parseDate(data.admitted_at)!,
+          camps: { connect: { id: data.camp_id } },
+          professions: { connect: { id: data.profession_id } },
+        },
+        include: { camps: true, professions: true },
+      });
   } catch (error: any) {
-    // Prisma Unique Constraint
+    // Unique constraint
     if (error.code === 'P2002') {
-      const target = (error.meta?.target as string[])?.join(', ') ?? 'campo único';
-      throw new Error(`Ya existe un registro con ${target} duplicado.`);
+      const field = error.meta?.target?.join(', ') ?? 'campo único';
+      throw new AppError(`Ya existe un valor duplicado en: ${field}`, 409);
     }
     throw error;
   }
 }
 
 export async function updatePerson(id: number, data: Partial<UpdatePersonDto>) {
-  // Verify if person exists
-  const personExists = await prisma.persons.findUnique({ where: { id } });
-  if (!personExists) {
-    throw new Error(`Persona con id ${id} no existe`);
-  }
+  const person = await prisma.persons.findUnique({ where: { id } });
+  if (!person) throw new AppError(`Persona no encontrada: ${id}`, 404);
 
   const { camp_id, profession_id, admitted_at, ...rest } = data;
 
-  // Validate camp and profession existence if they are being updated
   if (camp_id) {
-    const campExists = await prisma.camps.findUnique({ where: { id: camp_id } });
-    if (!campExists) throw new Error(`Campamento con id ${camp_id} no existe`);
+    const camp = await prisma.camps.findUnique({ where: { id: camp_id } });
+    if (!camp) throw new AppError(`camp_id no existe: ${camp_id}`, 404);
   }
 
   if (profession_id) {
-    const professionExists = await prisma.professions.findUnique({ where: { id: profession_id } });
-    if (!professionExists) throw new Error(`Profesión con id ${profession_id} no existe`);
+    const prof = await prisma.professions.findUnique({ where: { id: profession_id } });
+    if (!prof) throw new AppError(`profession_id no existe: ${profession_id}`, 404);
   }
-
-  const admittedAtDate = admitted_at ? new Date(admitted_at) : undefined;
 
   try {
     return await prisma.persons.update({
       where: { id },
       data: {
         ...rest,
-        admitted_at: admittedAtDate,
+        full_name: rest.full_name?.trim(),
+        skills_summary: rest.skills_summary?.trim(),
+        admitted_at: admitted_at ? parseDate(admitted_at) : undefined,
         camps: camp_id ? { connect: { id: camp_id } } : undefined,
         professions: profession_id ? { connect: { id: profession_id } } : undefined,
       },
@@ -71,8 +79,8 @@ export async function updatePerson(id: number, data: Partial<UpdatePersonDto>) {
     });
   } catch (error: any) {
     if (error.code === 'P2002') {
-      const target = (error.meta?.target as string[])?.join(', ') ?? 'campo único';
-      throw new Error(`Ya existe un registro con ${target} duplicado.`);
+      const field = error.meta?.target?.join(', ') ?? 'campo único';
+      throw new AppError(`Ya existe un valor duplicado en: ${field}`, 409);
     }
     throw error;
   }
@@ -83,21 +91,22 @@ export async function getPerson(id: number) {
     where: { id },
     include: { camps: true, professions: true },
   });
-  if (!person) throw new Error(`Persona con id ${id} no existe`);
+
+  if (!person) throw new AppError(`Persona no encontrada: ${id}`, 404);
+
   return person;
 }
-
-export async function getPeople() {
+export async function getPeople(page = 1, limit = 10) {
   return await prisma.persons.findMany({
+    skip: (page - 1) * limit,
+    take: limit,
     include: { camps: true, professions: true },
   });
 }
 
 export async function deletePerson(id: number) {
   const person = await prisma.persons.findUnique({ where: { id } });
-  if (!person) throw new Error(`Persona con id ${id} no existe`);
+  if (!person) throw new AppError(`Persona no encontrada: ${id}`, 404);
 
-  return await prisma.persons.delete({
-    where: { id },
-  });
+  return await prisma.persons.delete({ where: { id } });
 }
