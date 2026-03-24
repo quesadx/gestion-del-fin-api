@@ -3,6 +3,7 @@ import { logger } from './logger/index.js';
 import { prisma } from './lib/prisma.js';
 import express from 'express';
 import { systemRoutes } from './modules/system/system.routes.js';
+import peopleRoutes from './modules/people/people.routes.js';
 
 const app = express();
 
@@ -10,7 +11,9 @@ const app = express();
 app.get('/', (req, res) => {
   res.json({ message: 'gestion-del-fin-api is alive!' });
 });
+app.use(express.json());
 app.use('/api/system', systemRoutes);
+app.use('/api/people', peopleRoutes);
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
