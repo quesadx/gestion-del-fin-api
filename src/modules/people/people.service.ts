@@ -7,7 +7,7 @@ function parseDate(dateStr?: string) {
   if (!dateStr) return undefined;
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) {
-    throw new AppError(`admitted_at inválido: ${dateStr}`, 400);
+    throw new AppError(`Invalid admitted_at date: ${dateStr}`, 400);
   }
   return date;
 }
@@ -16,7 +16,7 @@ export async function createPerson(data: CreatePersonDto) {
   try {
     // Validate camp
     const camp = await prisma.camps.findUnique({ where: { id: data.camp_id } });
-    if (!camp) throw new AppError(`camp_id no existe: ${data.camp_id}`, 404);
+    if (!camp) throw new AppError(`camp_id does not exist: ${data.camp_id}`, 404);
 
     // Validate profession
     const profession = await prisma.professions.findUnique({
@@ -41,8 +41,8 @@ export async function createPerson(data: CreatePersonDto) {
   } catch (error: any) {
     // Unique constraint
     if (error.code === 'P2002') {
-      const field = error.meta?.target?.join(', ') ?? 'campo único';
-      throw new AppError(`Ya existe un valor duplicado en: ${field}`, 409);
+      const field = error.meta?.target?.join(', ') ?? 'unique field';
+      throw new AppError(`Duplicate value already exists for: ${field}`, 409);
     }
     throw error;
   }
@@ -50,18 +50,18 @@ export async function createPerson(data: CreatePersonDto) {
 
 export async function updatePerson(id: number, data: Partial<UpdatePersonDto>) {
   const person = await prisma.persons.findUnique({ where: { id } });
-  if (!person) throw new AppError(`Persona no encontrada: ${id}`, 404);
+  if (!person) throw new AppError(`Person not found: ${id}`, 404);
 
   const { camp_id, profession_id, admitted_at, ...rest } = data;
 
   if (camp_id) {
     const camp = await prisma.camps.findUnique({ where: { id: camp_id } });
-    if (!camp) throw new AppError(`camp_id no existe: ${camp_id}`, 404);
+    if (!camp) throw new AppError(`camp_id does not exist: ${camp_id}`, 404);
   }
 
   if (profession_id) {
     const prof = await prisma.professions.findUnique({ where: { id: profession_id } });
-    if (!prof) throw new AppError(`profession_id no existe: ${profession_id}`, 404);
+    if (!prof) throw new AppError(`profession_id does not exist: ${profession_id}`, 404);
   }
 
   try {
@@ -79,8 +79,8 @@ export async function updatePerson(id: number, data: Partial<UpdatePersonDto>) {
     });
   } catch (error: any) {
     if (error.code === 'P2002') {
-      const field = error.meta?.target?.join(', ') ?? 'campo único';
-      throw new AppError(`Ya existe un valor duplicado en: ${field}`, 409);
+      const field = error.meta?.target?.join(', ') ?? 'unique field';
+      throw new AppError(`Duplicate value already exists for: ${field}`, 409);
     }
     throw error;
   }
@@ -92,7 +92,7 @@ export async function getPerson(id: number) {
     include: { camps: true, professions: true },
   });
 
-  if (!person) throw new AppError(`Persona no encontrada: ${id}`, 404);
+  if (!person) throw new AppError(`Person not found: ${id}`, 404);
 
   return person;
 }
@@ -106,7 +106,7 @@ export async function getPeople(page = 1, limit = 10) {
 
 export async function deletePerson(id: number) {
   const person = await prisma.persons.findUnique({ where: { id } });
-  if (!person) throw new AppError(`Persona no encontrada: ${id}`, 404);
+  if (!person) throw new AppError(`Person not found: ${id}`, 404);
 
   return await prisma.persons.delete({ where: { id } });
 }
