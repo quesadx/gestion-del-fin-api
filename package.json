@@ -24,6 +24,7 @@
   "author": "Matteo Quesada",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^1.46.0",
     "@prisma/adapter-mariadb": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "bcryptjs": "^3.0.3",
