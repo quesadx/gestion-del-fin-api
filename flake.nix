@@ -22,7 +22,6 @@
         ];
 
         shellHook = ''
-          echo "--- gestion-del-fin dev-shell initialized! ---"
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [ pkgs.openssl ]}:$LD_LIBRARY_PATH
           export PATH="${pkgs.openssl}/bin:$PATH"
         '';
