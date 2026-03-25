@@ -3,8 +3,11 @@ import { z } from 'zod';
 export const campStatusEnum = z.enum(['ACTIVE', 'ABANDONED']);
 
 export const createCampSchema = z.object({
-  name: z.string({ message: 'name is required' }).min(1, 'name cannot be empty'),
-  location: z.string({ message: 'location is required' }).optional(),
+  name: z
+    .string({ message: 'name is required' })
+    .min(1, 'name cannot be empty')
+    .max(100, 'name cannot exceed 100 characters'),
+  location: z.string().max(100, 'location cannot exceed 100 characters').optional(),
   status: campStatusEnum.optional(),
   ai_context_prompt: z.string().optional(),
 });
