@@ -5,6 +5,7 @@ import { prisma } from './lib/prisma.js';
 import express from 'express';
 import systemRoutes from './modules/system/system.routes.js';
 import peopleRoutes from './modules/people/people.routes.js';
+import campsRoutes from './modules/camps/camps.routes.js';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.get('/', (req, res) => {
 app.use(express.json());
 app.use('/api/system', systemRoutes);
 app.use('/api/people', peopleRoutes);
+app.use('/api/camps', campsRoutes);
 
 app.listen(config.PORT, () => {
   logger.info(`Server listening on port ${config.PORT} [${config.NODE_ENV}]`);

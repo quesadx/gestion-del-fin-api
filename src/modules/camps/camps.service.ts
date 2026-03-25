@@ -22,7 +22,7 @@ export async function createCamp(data: CreateCampDto) {
   }
 }
 
-export async function updateCamp(id: number, data: Partial<UpdateCampDto>) {
+export async function updateCamp(id: number, data: UpdateCampDto) {
   const camp = await prisma.camps.findUnique({ where: { id } });
   if (!camp) throw new AppError(`Camp not found: ${id}`, 404);
 
@@ -60,6 +60,13 @@ export async function getAllCamps() {
 export async function deleteCamp(id: number) {
   const camp = await prisma.camps.findUnique({ where: { id } });
   if (!camp) throw new AppError(`Camp not found: ${id}`, 404);
-  await prisma.camps.delete({ where: { id } });
+  try {
+    await prisma.camps.delete({ where: { id } });
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      throw new AppError('Cannot delete camp with related records', 409);
+    }
+    throw error;
+  }
   return { message: `Camp with id ${id} has been deleted` };
 }

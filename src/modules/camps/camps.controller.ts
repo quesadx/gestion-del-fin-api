@@ -1,14 +1,19 @@
 import { Request, Response } from 'express';
-import { createCampSchema, updateCampSchema } from './camps.schema.js';
 import { createCamp, updateCamp, deleteCamp, getCamp, getAllCamps } from './camps.service.js';
+import { AppError } from '../../shared/utils/appError.js';
+
+function parseIdParam(rawId: string | string[] | undefined): number {
+  const value = Array.isArray(rawId) ? rawId[0] : rawId;
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new AppError('id must be a positive integer', 400);
+  }
+  return id;
+}
 
 export async function createCampHandler(req: Request, res: Response) {
-  const parsed = createCampSchema.parse(req.body);
-  if (!parsed) {
-    return res.status(400).json({ error: 'Invalid request body' });
-  }
   try {
-    const result = await createCamp(parsed);
+    const result = await createCamp(req.body);
     return res.status(201).json(result);
   } catch (error: any) {
     return res.status(error.statusCode || 500).json({
@@ -18,13 +23,9 @@ export async function createCampHandler(req: Request, res: Response) {
 }
 
 export async function updateCampHandler(req: Request, res: Response) {
-  const parsed = updateCampSchema.parse(req.body);
-  if (!parsed) {
-    return res.status(400).json({ error: 'Invalid request body' });
-  }
-  const id = Number(req.params.id);
   try {
-    const result = await updateCamp(id, parsed);
+    const id = parseIdParam(req.params.id);
+    const result = await updateCamp(id, req.body);
     return res.json(result);
   } catch (error: any) {
     return res.status(error.statusCode || 500).json({
@@ -34,9 +35,9 @@ export async function updateCampHandler(req: Request, res: Response) {
 }
 
 export async function deleteCampHandler(req: Request, res: Response) {
-  const id = Number(req.params.id);
   try {
-    const result = await deleteCamp(id);
+    const id = parseIdParam(req.params.id);
+    await deleteCamp(id);
     return res.status(204).send();
   } catch (error: any) {
     return res.status(error.statusCode || 500).json({
@@ -46,10 +47,9 @@ export async function deleteCampHandler(req: Request, res: Response) {
 }
 
 export async function getCampHandler(req: Request, res: Response) {
-  const id = Number(req.params.id);
   try {
+    const id = parseIdParam(req.params.id);
     const result = await getCamp(id);
-    if (!result) return res.status(404).json({ error: 'Camp not found' });
     return res.json(result);
   } catch (error: any) {
     return res.status(error.statusCode || 500).json({
