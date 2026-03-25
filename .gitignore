@@ -24,3 +24,5 @@ logs/
 # Prisma client (generated)
 src/generated/prisma/
 prisma/migrations.lock/
+/generated/prisma
+src/generated/prisma
