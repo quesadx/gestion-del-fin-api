@@ -1,7 +1,7 @@
-.direnv/
-
 # Environment
 .env
+
+.direnv/
 
 # Dependencies
 node_modules/
