@@ -3,8 +3,8 @@ import { logger } from './logger/index.js';
 import { prisma } from './lib/prisma.js';
 
 import express from 'express';
-import { systemRoutes } from './modules/system/system.routes.js';
-import { peopleRoutes } from './modules/people/people.routes.js';
+import systemRoutes from './modules/system/system.routes.js';
+import peopleRoutes from './modules/people/people.routes.js';
 
 const app = express();
 

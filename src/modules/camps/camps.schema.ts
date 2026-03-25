@@ -1,3 +1,4 @@
+import { create } from 'node:domain';
 import { z } from 'zod';
 
 export const campStatusEnum = z.enum(['ACTIVE', 'ABANDONED']);

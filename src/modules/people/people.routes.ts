@@ -17,4 +17,4 @@ router.get('/:id', getPersonHandler);
 router.put('/:id', validate(updatePersonSchema), updatePersonHandler);
 router.delete('/:id', deletePersonHandler);
 
-export const peopleRoutes = router;
+export default router;
