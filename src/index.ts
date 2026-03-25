@@ -9,7 +9,7 @@ import peopleRoutes from './modules/people/people.routes.js';
 const app = express();
 
 app.get('/', (req, res) => {
-  res.json({ message: 'gestion-del-fin-api is alive!' });
+  res.json({ message: 'gestion-del-fin-api is alive and kicking!' });
 });
 
 app.use(express.json());
