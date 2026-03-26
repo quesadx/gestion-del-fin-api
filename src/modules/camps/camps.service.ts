@@ -1,24 +1,36 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
+import {
+  handleUniqueConstraintError,
+  handleForeignKeyError,
+} from '../../shared/utils/handlePrismaError.js';
 import { CreateCampDto, UpdateCampDto } from './camps.schema.js';
+
+function prepareCampCreateData(data: CreateCampDto) {
+  return {
+    name: data.name.trim(),
+    location: data.location?.trim(),
+    status: data.status ?? 'ACTIVE',
+    ai_context_prompt: data.ai_context_prompt?.trim(),
+  };
+}
+
+function prepareCampUpdateData(data: UpdateCampDto) {
+  return {
+    name: data.name?.trim(),
+    location: data.location?.trim(),
+    status: data.status,
+    ai_context_prompt: data.ai_context_prompt?.trim(),
+  };
+}
 
 export async function createCamp(data: CreateCampDto) {
   try {
     return await prisma.camps.create({
-      data: {
-        name: data.name.trim(),
-        location: data.location?.trim(),
-        status: data.status ?? 'ACTIVE',
-        ai_context_prompt: data.ai_context_prompt?.trim(),
-      },
+      data: prepareCampCreateData(data),
     });
   } catch (error: any) {
-    // Unique constraint (Prisma error code P2002)
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0] ?? 'unique field';
-      throw new AppError(`${field} already exists`, 409);
-    }
-    throw error;
+    handleUniqueConstraintError(error);
   }
 }
 
@@ -26,24 +38,13 @@ export async function updateCamp(id: number, data: UpdateCampDto) {
   const camp = await prisma.camps.findUnique({ where: { id } });
   if (!camp) throw new AppError(`Camp not found: ${id}`, 404);
 
-  const { name, location, status, ai_context_prompt } = data;
-
   try {
     return await prisma.camps.update({
       where: { id },
-      data: {
-        name: name?.trim(),
-        location: location?.trim(),
-        status,
-        ai_context_prompt: ai_context_prompt?.trim(),
-      },
+      data: prepareCampUpdateData(data),
     });
   } catch (error: any) {
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0] ?? 'unique field';
-      throw new AppError(`${field} already exists`, 409);
-    }
-    throw error;
+    handleUniqueConstraintError(error);
   }
 }
 
@@ -63,9 +64,6 @@ export async function deleteCamp(id: number) {
   try {
     await prisma.camps.delete({ where: { id } });
   } catch (error: any) {
-    if (error.code === 'P2003') {
-      throw new AppError('Cannot delete camp with related records', 409);
-    }
-    throw error;
+    handleForeignKeyError(error);
   }
 }
