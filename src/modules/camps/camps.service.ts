@@ -68,5 +68,4 @@ export async function deleteCamp(id: number) {
     }
     throw error;
   }
-  return { message: `Camp with id ${id} has been deleted` };
 }
