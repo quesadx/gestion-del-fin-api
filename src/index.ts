@@ -19,7 +19,6 @@ app.use('/api/system', systemRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/camps', campsRoutes);
 
-// Global error handler
 app.use(errorHandler);
 
 app.listen(config.PORT, () => {
