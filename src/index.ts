@@ -7,6 +7,7 @@ import express from 'express';
 import systemRoutes from './modules/system/system.routes.js';
 import peopleRoutes from './modules/people/people.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
+import resourcesRoutes from './modules/resources/resources.routes.js';
 
 const app = express();
 
@@ -18,7 +19,7 @@ app.use(express.json());
 app.use('/api/system', systemRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/camps', campsRoutes);
-
+app.use('/api/resources', resourcesRoutes);
 app.use(errorHandler);
 
 app.listen(config.PORT, () => {
