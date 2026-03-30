@@ -208,14 +208,24 @@ export async function handleResourceOutflow(
   for (const resourceId of resourceIds) {
     const requested = aggregatedResources.get(resourceId)!;
 
-    await tx.inventory.updateMany({
-      where: { camp_id: input.campId, resource_type_id: resourceId },
+    const updateResult = await tx.inventory.updateMany({
+      where: {
+        camp_id: input.campId,
+        resource_type_id: resourceId,
+        quantity: { gte: requested },
+      },
       data: {
         quantity: { decrement: requested },
         last_updated: new Date(),
       },
     });
 
+    if (updateResult.count === 0) {
+      throw new AppError(
+        `Insufficient stock or concurrent update for resource_type_id ${resourceId} when processing expedition #${input.expeditionId}`,
+        400,
+      );
+    }
     await tx.inventory_log.create({
       data: {
         camp_id: input.campId,
