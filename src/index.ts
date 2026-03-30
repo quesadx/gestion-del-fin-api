@@ -8,6 +8,7 @@ import systemRoutes from './modules/system/system.routes.js';
 import peopleRoutes from './modules/people/people.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
 import resourcesRoutes from './modules/resources/resources.routes.js';
+import explorationsRoutes from './modules/explorations/explorations.routes.js';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/api/system', systemRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/camps', campsRoutes);
 app.use('/api/resources', resourcesRoutes);
+app.use('/api/expeditions', explorationsRoutes);
 app.use(errorHandler);
 
 app.listen(config.PORT, () => {
