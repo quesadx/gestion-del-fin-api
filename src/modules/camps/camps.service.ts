@@ -54,7 +54,7 @@ export async function getCamp(id: number) {
   return camp;
 }
 
-export async function getAllCamps() {
+export async function getCamps() {
   return await prisma.camps.findMany();
 }
 

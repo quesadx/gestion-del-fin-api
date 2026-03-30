@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createCamp, updateCamp, deleteCamp, getCamp, getAllCamps } from './camps.service.js';
+import { createCamp, updateCamp, deleteCamp, getCamp, getCamps } from './camps.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 
 export async function createCampHandler(req: Request, res: Response) {
@@ -25,7 +25,7 @@ export async function getCampHandler(req: Request, res: Response) {
   return res.json(result);
 }
 
-export async function listCampsHandler(req: Request, res: Response) {
-  const result = await getAllCamps();
+export async function getCampsHandler(req: Request, res: Response) {
+  const result = await getCamps();
   return res.json(result);
 }
