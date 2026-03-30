@@ -175,6 +175,45 @@ async function main() {
     },
   });
 
+  const tertiaryPerson = await prisma.persons.create({
+    data: {
+      camp_id: mainCamp.id,
+      profession_id: scoutProfession.id,
+      identification_code: 'SCT-002',
+      full_name: 'Maya Rivers',
+      age: 31,
+      blood_type: 'B+',
+      skills_summary: 'Field recon and route planning',
+      status: 'HEALTHY',
+    },
+  });
+
+  const quaternaryPerson = await prisma.persons.create({
+    data: {
+      camp_id: mainCamp.id,
+      profession_id: engineerProfession.id,
+      identification_code: 'ENG-002',
+      full_name: 'Elias Ward',
+      age: 40,
+      blood_type: 'AB+',
+      skills_summary: 'Power systems and diagnostics',
+      status: 'HEALTHY',
+    },
+  });
+
+  const quinaryPerson = await prisma.persons.create({
+    data: {
+      camp_id: mainCamp.id,
+      profession_id: scoutProfession.id,
+      identification_code: 'SCT-003',
+      full_name: 'Nora Pike',
+      age: 26,
+      blood_type: 'O+',
+      skills_summary: 'Trail tracking and stealth',
+      status: 'HEALTHY',
+    },
+  });
+
   // Seed inventories for main camp
   await prisma.inventory.createMany({
     data: [
@@ -208,6 +247,226 @@ async function main() {
         camp_id: secondaryCamp.id,
         resource_type_id: waterResource.id,
         quantity: '600.0',
+      },
+    ],
+  });
+
+  // Seed expeditions module data
+  console.log('Seeding expeditions data...');
+
+  const plannedExpedition = await prisma.expeditions.create({
+    data: {
+      camp_id: mainCamp.id,
+      destination: 'North Relay Ruins',
+      status: 'PLANNED',
+      created_by: adminUser.id,
+      departure_date: new Date('2026-04-05'),
+      expected_return_date: new Date('2026-04-07'),
+      max_return_date: new Date('2026-04-08'),
+      notes: 'Recon + light scavenging run',
+    },
+  });
+
+  const ongoingExpedition = await prisma.expeditions.create({
+    data: {
+      camp_id: mainCamp.id,
+      destination: 'Old Hospital Block',
+      status: 'ONGOING',
+      created_by: adminUser.id,
+      departure_date: new Date('2026-03-28'),
+      expected_return_date: new Date('2026-03-31'),
+      max_return_date: new Date('2026-04-01'),
+      notes: 'Medical supplies priority mission',
+    },
+  });
+
+  const returnedExpedition = await prisma.expeditions.create({
+    data: {
+      camp_id: mainCamp.id,
+      destination: 'East Service Tunnel',
+      status: 'RETURNED',
+      created_by: adminUser.id,
+      departure_date: new Date('2026-03-20'),
+      expected_return_date: new Date('2026-03-23'),
+      actual_return_date: new Date('2026-03-23'),
+      max_return_date: new Date('2026-03-24'),
+      notes: 'Returned with extra water filters and rations',
+    },
+  });
+
+  await prisma.expedition_members.createMany({
+    data: [
+      { expedition_id: plannedExpedition.id, person_id: primaryPerson.id },
+      { expedition_id: plannedExpedition.id, person_id: quaternaryPerson.id },
+      { expedition_id: ongoingExpedition.id, person_id: tertiaryPerson.id },
+      { expedition_id: ongoingExpedition.id, person_id: quinaryPerson.id },
+      { expedition_id: returnedExpedition.id, person_id: primaryPerson.id },
+      { expedition_id: returnedExpedition.id, person_id: quaternaryPerson.id },
+    ],
+  });
+
+  await prisma.expedition_allocated_resources.createMany({
+    data: [
+      { expedition_id: plannedExpedition.id, resource_type_id: rationsResource.id, amount: '12' },
+      { expedition_id: plannedExpedition.id, resource_type_id: waterResource.id, amount: '20' },
+      { expedition_id: ongoingExpedition.id, resource_type_id: rationsResource.id, amount: '18' },
+      { expedition_id: ongoingExpedition.id, resource_type_id: waterResource.id, amount: '30' },
+      { expedition_id: ongoingExpedition.id, resource_type_id: medsResource.id, amount: '5' },
+      { expedition_id: returnedExpedition.id, resource_type_id: rationsResource.id, amount: '15' },
+      { expedition_id: returnedExpedition.id, resource_type_id: waterResource.id, amount: '25' },
+      { expedition_id: returnedExpedition.id, resource_type_id: medsResource.id, amount: '2' },
+    ],
+  });
+
+  await prisma.expedition_found_resources.createMany({
+    data: [
+      { expedition_id: returnedExpedition.id, resource_type_id: rationsResource.id, amount: '5' },
+      { expedition_id: returnedExpedition.id, resource_type_id: waterResource.id, amount: '10' },
+    ],
+  });
+
+  // Make ONGOING expedition members consistent with business status.
+  await prisma.persons.update({
+    where: { id: tertiaryPerson.id },
+    data: { status: 'AWAY' },
+  });
+
+  await prisma.persons.update({
+    where: { id: quinaryPerson.id },
+    data: { status: 'AWAY' },
+  });
+
+  await prisma.person_status_log.createMany({
+    data: [
+      {
+        person_id: tertiaryPerson.id,
+        old_status: 'HEALTHY',
+        new_status: 'AWAY',
+        reason: `Seed: expedition #${ongoingExpedition.id} is ONGOING`,
+        changed_by: adminUser.id,
+      },
+      {
+        person_id: quinaryPerson.id,
+        old_status: 'HEALTHY',
+        new_status: 'AWAY',
+        reason: `Seed: expedition #${ongoingExpedition.id} is ONGOING`,
+        changed_by: adminUser.id,
+      },
+    ],
+  });
+
+  // Keep inventory values coherent with expedition outflow/inflow snapshots.
+  await prisma.inventory.update({
+    where: {
+      camp_id_resource_type_id: {
+        camp_id: mainCamp.id,
+        resource_type_id: rationsResource.id,
+      },
+    },
+    data: { quantity: '1160.0' },
+  });
+
+  await prisma.inventory.update({
+    where: {
+      camp_id_resource_type_id: {
+        camp_id: mainCamp.id,
+        resource_type_id: waterResource.id,
+      },
+    },
+    data: { quantity: '2435.0' },
+  });
+
+  await prisma.inventory.update({
+    where: {
+      camp_id_resource_type_id: {
+        camp_id: mainCamp.id,
+        resource_type_id: medsResource.id,
+      },
+    },
+    data: { quantity: '193.0' },
+  });
+
+  await prisma.inventory_log.createMany({
+    data: [
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: rationsResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-12',
+        description: `Seed: Expedition #${plannedExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: waterResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-20',
+        description: `Seed: Expedition #${plannedExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: rationsResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-18',
+        description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: waterResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-30',
+        description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: medsResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-5',
+        description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: rationsResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-15',
+        description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: waterResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-25',
+        description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: medsResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_OUT',
+        delta: '-2',
+        description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: rationsResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_IN',
+        delta: '5',
+        description: `Seed: Expedition #${returnedExpedition.id} resource return`,
+      },
+      {
+        camp_id: mainCamp.id,
+        resource_type_id: waterResource.id,
+        logged_by: adminUser.id,
+        log_type: 'EXPEDITION_IN',
+        delta: '10',
+        description: `Seed: Expedition #${returnedExpedition.id} resource return`,
       },
     ],
   });

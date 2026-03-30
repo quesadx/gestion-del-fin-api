@@ -17,6 +17,9 @@ export default [
     },
   },
   {
+    ignores: ['src/generated/prisma/**'],
+  },
+  {
     files: ['*.ts', '**/*.ts'],
     plugins: {
       '@typescript-eslint': tsPlugin,
