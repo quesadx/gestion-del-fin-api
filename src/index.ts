@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { logger } from './logger/index.js';
+import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 
