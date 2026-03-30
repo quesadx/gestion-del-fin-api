@@ -6,7 +6,7 @@ import { validate } from '../../middlewares/validate.middleware.js';
 const router = Router();
 
 router.post('/', validate(createCampSchema), campsController.createCampHandler);
-router.get('/', campsController.listCampsHandler);
+router.get('/', campsController.getCampsHandler);
 router.get('/:id', campsController.getCampHandler);
 router.put('/:id', validate(updateCampSchema), campsController.updateCampHandler);
 router.delete('/:id', campsController.deleteCampHandler);

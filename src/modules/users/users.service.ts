@@ -7,16 +7,6 @@ import {
 import { CreateUserDto, UpdateUserDto } from './users.schema.js';
 import bcrypt from 'bcryptjs';
 
-/* 
-  username: z.string().min(1).max(60),
-  password: z.string().min(1).max(255),
-  camp_id: z.number().int().positive(),
-  role_id: z.number().int().positive(),
-  is_active: z.boolean(),
-  last_activity: z.iso.datetime().optional(),
-  created_at: z.iso.datetime(),
-*/
-
 async function prepareUserCreateData(data: CreateUserDto) {
   const password_hash = await bcrypt.hash(data.password.trim(), 10);
 
@@ -75,7 +65,7 @@ export async function getUser(id: number) {
   return user;
 }
 
-export async function getAllUsers() {
+export async function getUsers() {
   return await prisma.users.findMany();
 }
 
