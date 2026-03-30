@@ -87,6 +87,12 @@ export const updateExplorationStatusSchema = z
     }
   });
 
+export const deleteExplorationSchema = z.object({
+  changed_by: z.number({ message: 'changed_by is required' }).int().positive(),
+  return_member_status: personStatusEnum.optional(),
+});
+
 export type CreateExplorationDto = z.infer<typeof createExplorationSchema>;
 export type UpdateExplorationDto = z.infer<typeof updateExplorationSchema>;
 export type UpdateExplorationStatusDto = z.infer<typeof updateExplorationStatusSchema>;
+export type DeleteExplorationDto = z.infer<typeof deleteExplorationSchema>;

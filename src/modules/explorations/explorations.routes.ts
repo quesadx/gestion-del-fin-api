@@ -4,6 +4,7 @@ import {
   createExplorationSchema,
   updateExplorationSchema,
   updateExplorationStatusSchema,
+  deleteExplorationSchema,
 } from './explorations.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 
@@ -26,6 +27,6 @@ router.patch(
   validate(updateExplorationStatusSchema),
   explorationsController.updateExplorationStatusHandler,
 );
-router.delete('/:id', explorationsController.deleteExplorationHandler);
+router.delete('/:id', validate(deleteExplorationSchema), explorationsController.deleteExplorationHandler);
 
 export default router;

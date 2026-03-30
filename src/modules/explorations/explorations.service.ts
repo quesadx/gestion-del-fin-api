@@ -5,6 +5,7 @@ import {
   CreateExplorationDto,
   UpdateExplorationDto,
   UpdateExplorationStatusDto,
+  DeleteExplorationDto,
 } from './explorations.schema.js';
 
 function parseDate(dateStr?: string) {
@@ -598,7 +599,7 @@ export async function getExplorations() {
   });
 }
 
-export async function deleteExploration(id: number) {
+export async function deleteExploration(id: number, data: DeleteExplorationDto) {
   const expedition = await prisma.expeditions.findUnique({ where: { id } });
   if (!expedition) throw new AppError(`Expedition not found: ${id}`, 404);
 
@@ -606,8 +607,28 @@ export async function deleteExploration(id: number) {
     throw new AppError('Returned expeditions cannot be cancelled', 400);
   }
 
-  await prisma.expeditions.update({
-    where: { id },
-    data: { status: 'CANCELLED' },
+  if (expedition.status === 'CANCELLED') {
+    throw new AppError('Expedition is already cancelled', 400);
+  }
+
+  await validateReferences(undefined, data.changed_by);
+
+  await prisma.$transaction(async (tx: any) => {
+    const memberIds = await getExpeditionMemberIds(tx, id);
+
+    if (memberIds.length > 0) {
+      await changeMemberStatus(
+        tx,
+        memberIds,
+        data.return_member_status ?? 'HEALTHY',
+        data.changed_by,
+        `Expedition #${id} cancelled`,
+      );
+    }
+
+    await tx.expeditions.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
   });
 }

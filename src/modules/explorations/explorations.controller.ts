@@ -28,7 +28,7 @@ export async function updateExplorationStatusHandler(req: Request, res: Response
 
 export async function deleteExplorationHandler(req: Request, res: Response) {
   const id = parseIdParam(req.params.id);
-  await deleteExploration(id);
+  await deleteExploration(id, req.body);
   return res.status(204).send();
 }
 
