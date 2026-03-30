@@ -39,11 +39,12 @@ export const createExplorationSchema = explorationBaseSchema.superRefine((data, 
   const expected = new Date(data.expected_return_date).getTime();
   const max = new Date(data.max_return_date).getTime();
 
-  if (!(departure < expected && expected < max)) {
+  // Allow equality to match service-side validateDateOrder(): departure_date <= expected_return_date <= max_return_date
+  if (departure > expected || expected > max) {
     ctx.addIssue({
       code: 'custom',
       path: ['expected_return_date'],
-      message: 'departure_date < expected_return_date < max_return_date is required',
+      message: 'departure_date <= expected_return_date <= max_return_date is required',
     });
   }
 
