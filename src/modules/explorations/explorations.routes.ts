@@ -27,6 +27,9 @@ router.patch(
   validate(updateExplorationStatusSchema),
   explorationsController.updateExplorationStatusHandler,
 );
-router.delete('/:id', validate(deleteExplorationSchema), explorationsController.deleteExplorationHandler);
-
+router.delete(
+  '/:id',
+  validate(deleteExplorationSchema),
+  explorationsController.deleteExplorationHandler,
+);
 export default router;
