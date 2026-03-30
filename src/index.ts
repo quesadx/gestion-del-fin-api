@@ -1,4 +1,4 @@
-import { config } from './config/index.js';
+import 'dotenv/config';
 import { logger } from './logger/index.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
@@ -7,6 +7,7 @@ import express from 'express';
 import systemRoutes from './modules/system/system.routes.js';
 import peopleRoutes from './modules/people/people.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
+import authRoutes from './modules/auth/auth.routes.js';
 
 const app = express();
 
@@ -18,11 +19,23 @@ app.use(express.json());
 app.use('/api/system', systemRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/camps', campsRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use(errorHandler);
 
-app.listen(config.PORT, () => {
-  logger.info(`Server listening on port ${config.PORT} [${config.NODE_ENV}]`);
+const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+if (
+  NODE_ENV === 'production' &&
+  process.env.JWT_SECRET === 'dev-only-insecure-jwt-secret-change-me-12345'
+) {
+  console.error('JWT_SECRET is required in production and must not be the default.');
+  process.exit(1);
+}
+
+app.listen(PORT, () => {
+  logger.info(`Server listening on port ${PORT} [${NODE_ENV}]`);
 });
 
 process.on('SIGINT', async () => {

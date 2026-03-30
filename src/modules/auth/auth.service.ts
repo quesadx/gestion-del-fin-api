@@ -1,9 +1,8 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
 import { LoginInput } from './auth.schema.js';
-import { config } from '../../config/index.js';
+import { generateToken } from '../../shared/utils/jwt.js';
 
 export const login = async (data: LoginInput) => {
   const user = await prisma.users.findUnique({
@@ -19,9 +18,7 @@ export const login = async (data: LoginInput) => {
     throw new AppError('Invalid credentials', 401);
   }
 
-  const token = jwt.sign({ userId: user.id }, config.JWT_SECRET, {
-    expiresIn: config.JWT_EXPIRY as SignOptions['expiresIn'],
-  });
+  const token = generateToken({ userId: user.id });
 
   return { user: { username: user.username }, token };
 };

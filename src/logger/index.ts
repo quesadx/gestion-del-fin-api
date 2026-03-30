@@ -1,6 +1,5 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { config } from '../config/index.js';
 import path from 'node:path';
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
@@ -16,12 +15,13 @@ const devFormat = combine(
 
 const prodFormat = combine(timestamp(), errors({ stack: true }), winston.format.json());
 
-const logDir = path.dirname(config.LOG_FILE);
-const logBaseName = path.basename(config.LOG_FILE, path.extname(config.LOG_FILE));
+const LOG_FILE = process.env.LOG_FILE || './logs/app.log';
+const logDir = path.dirname(LOG_FILE);
+const logBaseName = path.basename(LOG_FILE, path.extname(LOG_FILE));
 
 export const logger = winston.createLogger({
-  level: config.LOG_LEVEL,
-  format: config.NODE_ENV === 'production' ? prodFormat : devFormat,
+  level: process.env.LOG_LEVEL || 'info',
+  format: process.env.NODE_ENV === 'production' ? prodFormat : devFormat,
   transports: [
     new winston.transports.Console(),
     new DailyRotateFile({

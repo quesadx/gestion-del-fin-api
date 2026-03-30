@@ -3,23 +3,6 @@ import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 const resolveDbConfig = () => {
-  if (process.env.DATABASE_URL) {
-    try {
-      const parsed = new URL(process.env.DATABASE_URL);
-      return {
-        host: parsed.hostname,
-        port: Number(parsed.port) || 3306,
-        user: decodeURIComponent(parsed.username),
-        password: decodeURIComponent(parsed.password),
-        database: decodeURIComponent(parsed.pathname.replace(/^\//, '')),
-      };
-    } catch {
-      throw new Error(
-        'Invalid DATABASE_URL format. Expected mysql://user:password@host:port/database',
-      );
-    }
-  }
-
   const host = process.env.DB_HOST;
   const port = Number(process.env.DB_PORT) || 3306;
   const user = process.env.DB_USER;
@@ -28,7 +11,7 @@ const resolveDbConfig = () => {
 
   if (!host || !user || password === undefined || !database) {
     throw new Error(
-      'Missing DB config. Define DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME.',
+      'Missing DB config. Define DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME in the environment variables.',
     );
   }
 
