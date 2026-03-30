@@ -46,9 +46,24 @@ export const createExplorationSchema = explorationBaseSchema.superRefine((data, 
       message: 'departure_date < expected_return_date < max_return_date is required',
     });
   }
+
+  const seenResourceTypes = new Set<number>();
+  data.allocated_resources.forEach((resource, index) => {
+    if (seenResourceTypes.has(resource.resource_type_id)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['allocated_resources', index, 'resource_type_id'],
+        message: 'duplicate resource_type_id values are not allowed',
+      });
+    }
+    seenResourceTypes.add(resource.resource_type_id);
+  });
 });
 
-export const updateExplorationSchema = explorationBaseSchema.partial();
+export const updateExplorationSchema = explorationBaseSchema
+  .omit({ status: true })
+  .partial()
+  .strict();
 
 export const updateExplorationStatusSchema = z
   .object({

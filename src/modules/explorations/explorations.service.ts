@@ -319,7 +319,6 @@ function prepareUpdateData(data: UpdateExplorationDto) {
 
   return {
     destination: data.destination?.trim(),
-    status: data.status,
     departure_date: departureDate,
     expected_return_date: expectedReturnDate,
     max_return_date: maxReturnDate,
@@ -335,6 +334,10 @@ export async function createExploration(data: CreateExplorationDto) {
 
   const initialStatus = data.status ?? 'PLANNED';
   validateCreateStatus(initialStatus);
+
+  const allocatedResources = Array.from(aggregateResources(data.allocated_resources)).map(
+    ([resource_type_id, amount]) => ({ resource_type_id, amount }),
+  );
 
   const memberIds = data.members.map((member) => member.person_id);
 
@@ -356,9 +359,9 @@ export async function createExploration(data: CreateExplorationDto) {
         });
       }
 
-      if (data.allocated_resources.length > 0) {
+      if (allocatedResources.length > 0) {
         await tx.expedition_allocated_resources.createMany({
-          data: data.allocated_resources.map((resource) => ({
+          data: allocatedResources.map((resource) => ({
             expedition_id: expedition.id,
             resource_type_id: resource.resource_type_id,
             amount: resource.amount,
@@ -370,7 +373,7 @@ export async function createExploration(data: CreateExplorationDto) {
           campId: data.camp_id,
           loggedBy: data.created_by,
           expeditionId: expedition.id,
-          resources: data.allocated_resources,
+          resources: allocatedResources,
         });
       }
 
@@ -419,7 +422,6 @@ export async function updateExploration(id: number, data: UpdateExplorationDto) 
   });
 
   const updateData = prepareUpdateData(data);
-  delete (updateData as any).status;
 
   try {
     return await prisma.expeditions.update({
@@ -437,6 +439,11 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
   if (!expedition) throw new AppError(`Expedition not found: ${id}`, 404);
 
   await validateReferences(undefined, data.changed_by);
+
+  if (expedition.status === data.status) {
+    throw new AppError(`Expedition #${id} is already in status ${data.status}`, 400);
+  }
+
   validateStatusTransition(expedition.status, data.status);
 
   try {
@@ -457,8 +464,28 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
         );
       }
 
-      const memberIds =
-        data.members?.map((member) => member.person_id) ?? (await getExpeditionMemberIds(tx, id));
+      const normalizedResourcesToReturn = Array.from(aggregateResources(resourcesToReturn)).map(
+        ([resource_type_id, amount]) => ({ resource_type_id, amount }),
+      );
+
+      const expeditionMemberIds = await getExpeditionMemberIds(tx, id);
+
+      let memberIds = expeditionMemberIds;
+      if (data.members) {
+        const requestedMemberIds = Array.from(
+          new Set(data.members.map((member) => member.person_id)),
+        );
+        const expeditionMemberSet = new Set(expeditionMemberIds);
+
+        for (const memberId of requestedMemberIds) {
+          if (!expeditionMemberSet.has(memberId)) {
+            throw new AppError(`Person ${memberId} is not a member of expedition ${id}`, 400);
+          }
+        }
+
+        await validateMembers(tx, expedition.camp_id, requestedMemberIds);
+        memberIds = requestedMemberIds;
+      }
 
       if (data.status === 'ONGOING' && memberIds.length > 0) {
         await changeMemberStatus(
@@ -482,16 +509,16 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
         }
       }
 
-      if (data.status === 'RETURNED' && resourcesToReturn.length > 0) {
+      if (data.status === 'RETURNED' && normalizedResourcesToReturn.length > 0) {
         await handleResourceReturn(tx, {
           campId: expedition.camp_id,
           loggedBy: data.changed_by,
           expeditionId: id,
-          resources: resourcesToReturn,
+          resources: normalizedResourcesToReturn,
         });
 
         await tx.expedition_found_resources.createMany({
-          data: resourcesToReturn.map((resource) => ({
+          data: normalizedResourcesToReturn.map((resource) => ({
             expedition_id: id,
             resource_type_id: resource.resource_type_id,
             amount: resource.amount,

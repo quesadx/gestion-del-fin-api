@@ -14,7 +14,7 @@ router.post(
   validate(createExplorationSchema),
   explorationsController.createExplorationHandler,
 );
-router.get('/', explorationsController.ExplorationsHandler);
+router.get('/', explorationsController.listExplorationsHandler);
 router.get('/:id', explorationsController.getExplorationHandler);
 router.put(
   '/:id',

@@ -38,7 +38,7 @@ export async function getExplorationHandler(req: Request, res: Response) {
   return res.json(result);
 }
 
-export async function ExplorationsHandler(req: Request, res: Response) {
+export async function listExplorationsHandler(req: Request, res: Response) {
   const result = await getExplorations();
   return res.json(result);
 }
