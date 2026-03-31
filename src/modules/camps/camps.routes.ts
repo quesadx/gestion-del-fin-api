@@ -1,14 +1,24 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import * as campsController from './camps.controller.js';
 import { createCampSchema, updateCampSchema } from './camps.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
+import { idParamsSchema } from '../../shared/schemas/http.schema.js';
 
 const router = Router();
 
-router.post('/', validate(createCampSchema), campsController.createCampHandler);
+router.post('/', validate(z.object({ body: createCampSchema })), campsController.createCampHandler);
 router.get('/', campsController.getCampsHandler);
-router.get('/:id', campsController.getCampHandler);
-router.put('/:id', validate(updateCampSchema), campsController.updateCampHandler);
-router.delete('/:id', campsController.deleteCampHandler);
+router.get('/:id', validate(z.object({ params: idParamsSchema })), campsController.getCampHandler);
+router.put(
+  '/:id',
+  validate(z.object({ params: idParamsSchema, body: updateCampSchema })),
+  campsController.updateCampHandler,
+);
+router.delete(
+  '/:id',
+  validate(z.object({ params: idParamsSchema })),
+  campsController.deleteCampHandler,
+);
 
 export default router;

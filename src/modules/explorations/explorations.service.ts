@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { handleUniqueConstraintError } from '../../shared/utils/handlePrismaError.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import {
   CreateExplorationDto,
   UpdateExplorationDto,
@@ -92,7 +93,10 @@ function validateStatusTransition(
   }
 }
 
-async function getExpeditionMemberIds(tx: any, expeditionId: number): Promise<number[]> {
+async function getExpeditionMemberIds(
+  tx: Prisma.TransactionClient,
+  expeditionId: number,
+): Promise<number[]> {
   const members = await tx.expedition_members.findMany({
     where: { expedition_id: expeditionId },
     select: { person_id: true },
@@ -101,7 +105,7 @@ async function getExpeditionMemberIds(tx: any, expeditionId: number): Promise<nu
   return members.map((member: { person_id: number }) => member.person_id);
 }
 
-async function validateMembers(tx: any, campId: number, memberIds: number[]) {
+async function validateMembers(tx: Prisma.TransactionClient, campId: number, memberIds: number[]) {
   if (memberIds.length === 0) return;
 
   const uniqueMemberIds = Array.from(new Set(memberIds));
@@ -126,7 +130,7 @@ async function validateMembers(tx: any, campId: number, memberIds: number[]) {
 }
 
 async function changeMemberStatus(
-  tx: any,
+  tx: Prisma.TransactionClient,
   personIds: number[],
   newStatus: 'SICK' | 'HEALTHY' | 'INJURED' | 'AWAY' | 'DEAD',
   changedBy: number,
@@ -161,7 +165,7 @@ async function changeMemberStatus(
 
 // Handles the outbound inventory flow when an expedition starts.
 export async function handleResourceOutflow(
-  tx: any,
+  tx: Prisma.TransactionClient,
   input: {
     campId: number;
     loggedBy: number;
@@ -242,7 +246,7 @@ export async function handleResourceOutflow(
 
 // Handles the inbound inventory flow when an expedition returns.
 export async function handleResourceReturn(
-  tx: any,
+  tx: Prisma.TransactionClient,
   input: {
     campId: number;
     loggedBy: number;
@@ -353,7 +357,7 @@ export async function createExploration(data: CreateExplorationDto) {
   const memberIds = data.members.map((member) => member.person_id);
 
   try {
-    return await prisma.$transaction(async (tx: any) => {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await validateMembers(tx, data.camp_id, memberIds);
 
       const expedition = await tx.expeditions.create({
@@ -458,7 +462,7 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
   validateStatusTransition(expedition.status, data.status);
 
   try {
-    return await prisma.$transaction(async (tx: any) => {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       let resourcesToReturn = data.resources_to_return ?? [];
 
       if (data.status === 'RETURNED' && resourcesToReturn.length === 0) {
@@ -467,12 +471,10 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
           select: { resource_type_id: true, amount: true },
         });
 
-        resourcesToReturn = allocated.map(
-          (resource: { resource_type_id: number; amount: number }) => ({
-            resource_type_id: resource.resource_type_id,
-            amount: asNumber(resource.amount),
-          }),
-        );
+        resourcesToReturn = allocated.map((resource) => ({
+          resource_type_id: resource.resource_type_id,
+          amount: asNumber(resource.amount),
+        }));
       }
 
       const normalizedResourcesToReturn = Array.from(aggregateResources(resourcesToReturn)).map(
@@ -613,7 +615,7 @@ export async function deleteExploration(id: number, data: DeleteExplorationDto) 
 
   await validateReferences(undefined, data.changed_by);
 
-  await prisma.$transaction(async (tx: any) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const memberIds = await getExpeditionMemberIds(tx, id);
 
     if (memberIds.length > 0) {
