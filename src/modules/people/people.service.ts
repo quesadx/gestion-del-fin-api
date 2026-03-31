@@ -40,7 +40,9 @@ async function ensurePersonExists(id: number) {
   }
 }
 
-async function validateRelations(data: Partial<Pick<CreatePersonDto, 'camp_id' | 'profession_id'>>) {
+async function validateRelations(
+  data: Partial<Pick<CreatePersonDto, 'camp_id' | 'profession_id'>>,
+) {
   if (data.camp_id !== undefined) {
     await ensureCampExists(data.camp_id);
   }
