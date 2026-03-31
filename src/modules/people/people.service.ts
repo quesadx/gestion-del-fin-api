@@ -1,6 +1,10 @@
 import { prisma } from '../../lib/prisma.js';
 import { CreatePersonDto, UpdatePersonDto } from './people.schema.js';
 import { AppError } from '../../shared/utils/appError.js';
+import {
+  handleForeignKeyError,
+  handleUniqueConstraintError,
+} from '../../shared/utils/handlePrismaError.js';
 
 // Helper to secure date parsing and validation
 function parseDate(dateStr?: string) {
@@ -10,6 +14,34 @@ function parseDate(dateStr?: string) {
     throw new AppError(`Invalid admitted_at date: ${dateStr}`, 400);
   }
   return date;
+}
+
+function preparePersonCreateData(data: CreatePersonDto) {
+  return {
+    full_name: data.full_name.trim(),
+    age: data.age,
+    identification_code: data.identification_code,
+    blood_type: data.blood_type,
+    skills_summary: data.skills_summary?.trim(),
+    photo_url: data.photo_url,
+    status: data.status ?? 'HEALTHY',
+    admitted_at: parseDate(data.admitted_at)!,
+    camps: { connect: { id: data.camp_id } },
+    professions: { connect: { id: data.profession_id } },
+  };
+}
+
+function preparePersonUpdateData(data: UpdatePersonDto) {
+  const { camp_id, profession_id, admitted_at, ...rest } = data;
+
+  return {
+    ...rest,
+    full_name: rest.full_name?.trim(),
+    skills_summary: rest.skills_summary?.trim(),
+    admitted_at: admitted_at ? parseDate(admitted_at) : undefined,
+    camps: camp_id ? { connect: { id: camp_id } } : undefined,
+    professions: profession_id ? { connect: { id: profession_id } } : undefined,
+  };
 }
 
 export async function createPerson(data: CreatePersonDto) {
@@ -22,37 +54,24 @@ export async function createPerson(data: CreatePersonDto) {
     const profession = await prisma.professions.findUnique({
       where: { id: data.profession_id },
     });
-    if (profession)
-      return await prisma.persons.create({
-        data: {
-          full_name: data.full_name.trim(),
-          age: data.age,
-          identification_code: data.identification_code,
-          blood_type: data.blood_type,
-          skills_summary: data.skills_summary?.trim(),
-          photo_url: data.photo_url,
-          status: data.status ?? 'HEALTHY',
-          admitted_at: parseDate(data.admitted_at)!,
-          camps: { connect: { id: data.camp_id } },
-          professions: { connect: { id: data.profession_id } },
-        },
-        include: { camps: true, professions: true },
-      });
-  } catch (error: any) {
-    // Unique constraint
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.join(', ') ?? 'unique field';
-      throw new AppError(`Duplicate value already exists for: ${field}`, 409);
+    if (!profession) {
+      throw new AppError(`profession_id does not exist: ${data.profession_id}`, 404);
     }
-    throw error;
+
+    return await prisma.persons.create({
+      data: preparePersonCreateData(data),
+      include: { camps: true, professions: true },
+    });
+  } catch (error: any) {
+    handleUniqueConstraintError(error);
   }
 }
 
-export async function updatePerson(id: number, data: Partial<UpdatePersonDto>) {
+export async function updatePerson(id: number, data: UpdatePersonDto) {
   const person = await prisma.persons.findUnique({ where: { id } });
   if (!person) throw new AppError(`Person not found: ${id}`, 404);
 
-  const { camp_id, profession_id, admitted_at, ...rest } = data;
+  const { camp_id, profession_id } = data;
 
   if (camp_id) {
     const camp = await prisma.camps.findUnique({ where: { id: camp_id } });
@@ -67,22 +86,11 @@ export async function updatePerson(id: number, data: Partial<UpdatePersonDto>) {
   try {
     return await prisma.persons.update({
       where: { id },
-      data: {
-        ...rest,
-        full_name: rest.full_name?.trim(),
-        skills_summary: rest.skills_summary?.trim(),
-        admitted_at: admitted_at ? parseDate(admitted_at) : undefined,
-        camps: camp_id ? { connect: { id: camp_id } } : undefined,
-        professions: profession_id ? { connect: { id: profession_id } } : undefined,
-      },
+      data: preparePersonUpdateData(data),
       include: { camps: true, professions: true },
     });
   } catch (error: any) {
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.join(', ') ?? 'unique field';
-      throw new AppError(`Duplicate value already exists for: ${field}`, 409);
-    }
-    throw error;
+    handleUniqueConstraintError(error);
   }
 }
 
@@ -107,6 +115,9 @@ export async function getPeople(page = 1, limit = 10) {
 export async function deletePerson(id: number) {
   const person = await prisma.persons.findUnique({ where: { id } });
   if (!person) throw new AppError(`Person not found: ${id}`, 404);
-
-  return await prisma.persons.delete({ where: { id } });
+  try {
+    return await prisma.persons.delete({ where: { id } });
+  } catch (error: any) {
+    handleForeignKeyError(error);
+  }
 }

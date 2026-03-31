@@ -1,4 +1,4 @@
-import express from 'express';
+import { Router } from 'express';
 import {
   createPersonHandler,
   updatePersonHandler,
@@ -9,7 +9,7 @@ import {
 import { createPersonSchema, updatePersonSchema } from './people.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 
-const router = express.Router();
+const router = Router();
 
 router.post('/', validate(createPersonSchema), createPersonHandler);
 router.get('/', listPeopleHandler);
