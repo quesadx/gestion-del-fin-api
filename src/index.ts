@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { authMiddleware } from './middlewares/auth.middleware.js';
 
 import express from 'express';
 import systemRoutes from './modules/system/system.routes.js';
@@ -21,13 +22,12 @@ app.get('/', (req, res) => {
 
 app.use(express.json());
 app.use('/api/system', systemRoutes);
-app.use('/api/people', peopleRoutes);
-app.use('/api/camps', campsRoutes);
-
-app.use('/api/resources', resourcesRoutes);
-app.use('/api/expeditions', explorationsRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/resources', authMiddleware, resourcesRoutes);
+app.use('/api/expeditions', authMiddleware, explorationsRoutes);
+app.use('/api/people', authMiddleware, peopleRoutes);
+app.use('/api/camps', authMiddleware, campsRoutes);
+app.use('/api/users', authMiddleware, userRoutes);
 
 app.use(errorHandler);
 
