@@ -29,8 +29,6 @@ export const validate =
         ('body' in parsed || 'params' in parsed || 'query' in parsed)
       ) {
         if ('body' in parsed) req.body = parsed.body;
-        if ('params' in parsed) req.params = parsed.params as Request['params'];
-        if ('query' in parsed) req.query = parsed.query as Request['query'];
       }
 
       next();

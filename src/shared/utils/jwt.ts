@@ -1,14 +1,9 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { z } from 'zod';
 import { AppError } from './appError.js';
 
 export type AccessTokenPayload = {
   userId: number;
 };
-
-const accessTokenPayloadSchema = z.object({
-  userId: z.number().int().positive(),
-});
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -28,16 +23,7 @@ export function signAccessToken(userId: number): string {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiry() });
 }
 
-export function verifyAccessToken(token: string): AccessTokenPayload {
-  try {
-    const decoded = jwt.verify(token, getJwtSecret());
-    return accessTokenPayloadSchema.parse(decoded);
-  } catch {
-    throw new AppError('Invalid or expired token', 401);
-  }
-}
-
-export function extractBearerToken(authorizationHeader?: string): string {
+function extractBearerToken(authorizationHeader?: string): string {
   if (!authorizationHeader) {
     throw new AppError('Missing Authorization header', 401);
   }
@@ -51,14 +37,25 @@ export function extractBearerToken(authorizationHeader?: string): string {
 }
 
 export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): AccessTokenPayload {
-  const token = extractBearerToken(authorizationHeader);
-  return verifyAccessToken(token);
+  try {
+    const token = extractBearerToken(authorizationHeader);
+    const decoded = jwt.verify(token, getJwtSecret());
+
+    if (typeof decoded === 'string') {
+      throw new AppError('Invalid token payload', 401);
+    }
+
+    const userId = decoded.userId;
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new AppError('Invalid token payload', 401);
+    }
+
+    return { userId };
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    throw new AppError('Invalid or expired token', 401);
+  }
 }
-
-export const generateToken = (payload: object): string => {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiry() });
-};
-
-export const verifyToken = (token: string): any => {
-  return jwt.verify(token, getJwtSecret());
-};
