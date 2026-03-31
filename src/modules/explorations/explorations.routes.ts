@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import * as explorationsController from './explorations.controller.js';
 import {
   createExplorationSchema,
@@ -7,29 +8,34 @@ import {
   deleteExplorationSchema,
 } from './explorations.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
+import { idParamsSchema } from '../../shared/schemas/http.schema.js';
 
 const router = Router();
 
 router.post(
   '/',
-  validate(createExplorationSchema),
+  validate(z.object({ body: createExplorationSchema })),
   explorationsController.createExplorationHandler,
 );
 router.get('/', explorationsController.listExplorationsHandler);
-router.get('/:id', explorationsController.getExplorationHandler);
+router.get(
+  '/:id',
+  validate(z.object({ params: idParamsSchema })),
+  explorationsController.getExplorationHandler,
+);
 router.put(
   '/:id',
-  validate(updateExplorationSchema),
+  validate(z.object({ params: idParamsSchema, body: updateExplorationSchema })),
   explorationsController.updateExplorationHandler,
 );
 router.patch(
   '/:id/status',
-  validate(updateExplorationStatusSchema),
+  validate(z.object({ params: idParamsSchema, body: updateExplorationStatusSchema })),
   explorationsController.updateExplorationStatusHandler,
 );
 router.delete(
   '/:id',
-  validate(deleteExplorationSchema),
+  validate(z.object({ params: idParamsSchema, body: deleteExplorationSchema })),
   explorationsController.deleteExplorationHandler,
 );
 export default router;

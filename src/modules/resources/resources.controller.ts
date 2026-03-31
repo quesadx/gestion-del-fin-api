@@ -32,6 +32,7 @@ export async function getResourceHandler(req: Request, res: Response) {
 }
 
 export async function listResourcesHandler(req: Request, res: Response) {
-  const result = await getResources();
+  const { page, limit } = req.query as unknown as { page: number; limit: number };
+  const result = await getResources(page, limit);
   return res.json(result);
 }

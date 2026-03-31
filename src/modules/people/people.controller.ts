@@ -32,8 +32,7 @@ export async function getPersonHandler(req: Request, res: Response) {
 }
 
 export async function getPeopleHandler(req: Request, res: Response) {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const { page, limit } = req.query as unknown as { page: number; limit: number };
   const result = await getPeople(page, limit);
   return res.json(result);
 }
