@@ -3,9 +3,7 @@ import { z } from 'zod';
 export const expeditionStatusEnum = z.enum(['PLANNED', 'ONGOING', 'RETURNED', 'CANCELLED']);
 const personStatusEnum = z.enum(['SICK', 'HEALTHY', 'INJURED', 'AWAY', 'DEAD']);
 
-const dateStringSchema = z.string().refine((val) => !isNaN(new Date(val).getTime()), {
-  message: 'must be a valid date string',
-});
+const dateStringSchema = z.iso.date();
 
 const resourceAllocationSchema = z.object({
   resource_type_id: z.number().int().positive(),
@@ -39,7 +37,6 @@ export const createExplorationSchema = explorationBaseSchema.superRefine((data, 
   const expected = new Date(data.expected_return_date).getTime();
   const max = new Date(data.max_return_date).getTime();
 
-  // Allow equality to match service-side validateDateOrder(): departure_date <= expected_return_date <= max_return_date
   if (departure > expected || expected > max) {
     ctx.addIssue({
       code: 'custom',
@@ -72,7 +69,6 @@ export const updateExplorationStatusSchema = z
     actual_return_date: dateStringSchema.optional(),
     notes: z.string().optional(),
     changed_by: z.number().int().positive(),
-    // If omitted when RETURNED, service falls back to allocated resources.
     resources_to_return: z.array(resourceAllocationSchema).optional(),
     members: z.array(explorationMemberSchema).optional(),
     return_member_status: personStatusEnum.optional(),

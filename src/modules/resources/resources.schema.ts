@@ -20,6 +20,5 @@ export const createResourceSchema = z.object({
 
 export const updateResourceSchema = createResourceSchema.partial();
 
-// Extract TypeScript types from Zod schemas for type safety
 export type CreateResourceDto = z.infer<typeof createResourceSchema>;
 export type UpdateResourceDto = z.infer<typeof updateResourceSchema>;

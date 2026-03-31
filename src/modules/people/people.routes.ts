@@ -4,7 +4,7 @@ import {
   updatePersonHandler,
   deletePersonHandler,
   getPersonHandler,
-  listPeopleHandler,
+  getPeopleHandler,
 } from './people.controller.js';
 import { createPersonSchema, updatePersonSchema } from './people.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
@@ -12,7 +12,7 @@ import { validate } from '../../middlewares/validate.middleware.js';
 const router = Router();
 
 router.post('/', validate(createPersonSchema), createPersonHandler);
-router.get('/', listPeopleHandler);
+router.get('/', getPeopleHandler);
 router.get('/:id', getPersonHandler);
 router.put('/:id', validate(updatePersonSchema), updatePersonHandler);
 router.delete('/:id', deletePersonHandler);
