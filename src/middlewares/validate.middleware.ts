@@ -4,11 +4,24 @@ import { ZodType } from 'zod';
 export const validate =
   (schema: ZodType) => async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const parsed = await schema.parseAsync({
+      const bodyParseResult = await schema.safeParseAsync(req.body);
+      if (bodyParseResult.success) {
+        req.body = bodyParseResult.data;
+        next();
+        return;
+      }
+
+      const requestParseResult = await schema.safeParseAsync({
         body: req.body,
         params: req.params,
         query: req.query,
       });
+
+      if (!requestParseResult.success) {
+        throw requestParseResult.error;
+      }
+
+      const parsed = requestParseResult.data;
 
       if (
         parsed &&
@@ -18,8 +31,6 @@ export const validate =
         if ('body' in parsed) req.body = parsed.body;
         if ('params' in parsed) req.params = parsed.params as Request['params'];
         if ('query' in parsed) req.query = parsed.query as Request['query'];
-      } else {
-        req.body = parsed;
       }
 
       next();

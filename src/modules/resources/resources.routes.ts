@@ -7,14 +7,30 @@ import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http
 
 const router = Router();
 
-router.post('/', validate(z.object({ body: createResourceSchema })), resourcesController.createResourceHandler);
-router.get('/', validate(z.object({ query: paginationQuerySchema })), resourcesController.listResourcesHandler);
-router.get('/:id', validate(z.object({ params: idParamsSchema })), resourcesController.getResourceHandler);
+router.post(
+  '/',
+  validate(z.object({ body: createResourceSchema })),
+  resourcesController.createResourceHandler,
+);
+router.get(
+  '/',
+  validate(z.object({ query: paginationQuerySchema })),
+  resourcesController.listResourcesHandler,
+);
+router.get(
+  '/:id',
+  validate(z.object({ params: idParamsSchema })),
+  resourcesController.getResourceHandler,
+);
 router.put(
   '/:id',
   validate(z.object({ params: idParamsSchema, body: updateResourceSchema })),
   resourcesController.updateResourceHandler,
 );
-router.delete('/:id', validate(z.object({ params: idParamsSchema })), resourcesController.deleteResourceHandler);
+router.delete(
+  '/:id',
+  validate(z.object({ params: idParamsSchema })),
+  resourcesController.deleteResourceHandler,
+);
 
 export default router;
