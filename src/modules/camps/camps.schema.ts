@@ -14,6 +14,5 @@ export const createCampSchema = z.object({
 
 export const updateCampSchema = createCampSchema.partial();
 
-// Extract TypeScript types from Zod schemas for type safety
 export type CreateCampDto = z.infer<typeof createCampSchema>;
 export type UpdateCampDto = z.infer<typeof updateCampSchema>;
