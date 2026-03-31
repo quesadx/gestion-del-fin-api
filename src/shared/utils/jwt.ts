@@ -1,8 +1,14 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { z } from 'zod';
+import { AppError } from './appError.js';
 
 export type AccessTokenPayload = {
   userId: number;
 };
+
+const accessTokenPayloadSchema = z.object({
+  userId: z.number().int().positive(),
+});
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -23,20 +29,30 @@ export function signAccessToken(userId: number): string {
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, getJwtSecret()) as AccessTokenPayload;
+  try {
+    const decoded = jwt.verify(token, getJwtSecret());
+    return accessTokenPayloadSchema.parse(decoded);
+  } catch {
+    throw new AppError('Invalid or expired token', 401);
+  }
 }
 
 export function extractBearerToken(authorizationHeader?: string): string {
   if (!authorizationHeader) {
-    throw new Error('Missing Authorization header');
+    throw new AppError('Missing Authorization header', 401);
   }
 
   const [scheme, token, ...rest] = authorizationHeader.trim().split(' ');
   if (scheme !== 'Bearer' || !token || rest.length > 0) {
-    throw new Error('Invalid Authorization header format. Expected: Bearer <token>');
+    throw new AppError('Invalid Authorization header format. Expected: Bearer <token>', 401);
   }
 
   return token;
+}
+
+export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): AccessTokenPayload {
+  const token = extractBearerToken(authorizationHeader);
+  return verifyAccessToken(token);
 }
 
 export const generateToken = (payload: object): string => {
