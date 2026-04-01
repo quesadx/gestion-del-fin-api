@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const createProfessionSchema = z.object({
   name: z
@@ -6,7 +6,7 @@ export const createProfessionSchema = z.object({
     .min(1, 'name cannot be empty')
     .max(80, 'name cannot exceed 80 characters'),
   description: z.string().optional(),
-})
+});
 
 export const updateProfessionSchema = createProfessionSchema.partial();
 
