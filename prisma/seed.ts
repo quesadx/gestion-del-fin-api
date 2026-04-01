@@ -233,20 +233,21 @@ async function main() {
     },
   ];
 
-  await prisma.inventory.createMany({
-    data: mainCampInitialInventory,
-  });
-
-  await prisma.inventory_log.createMany({
-    data: mainCampInitialInventory.map((item) => ({
-      camp_id: item.camp_id,
-      resource_type_id: item.resource_type_id,
-      logged_by: adminUser.id,
-      log_type: 'MANUAL_IN',
-      delta: item.quantity,
-      description: 'Seed: opening inventory balance',
-    })),
-  });
+  await prisma.$transaction([
+    prisma.inventory.createMany({
+      data: mainCampInitialInventory,
+    }),
+    prisma.inventory_log.createMany({
+      data: mainCampInitialInventory.map((item) => ({
+        camp_id: item.camp_id,
+        resource_type_id: item.resource_type_id,
+        logged_by: adminUser.id,
+        log_type: 'MANUAL_IN',
+        delta: item.quantity,
+        description: 'Seed: opening inventory balance',
+      })),
+    }),
+  ]);
 
   // Seed inventories for secondary camp
   const secondaryCampInitialInventory = [
@@ -262,20 +263,21 @@ async function main() {
     },
   ];
 
-  await prisma.inventory.createMany({
-    data: secondaryCampInitialInventory,
-  });
-
-  await prisma.inventory_log.createMany({
-    data: secondaryCampInitialInventory.map((item) => ({
-      camp_id: item.camp_id,
-      resource_type_id: item.resource_type_id,
-      logged_by: standardUser.id,
-      log_type: 'MANUAL_IN',
-      delta: item.quantity,
-      description: 'Seed: opening inventory balance',
-    })),
-  });
+  await prisma.$transaction([
+    prisma.inventory.createMany({
+      data: secondaryCampInitialInventory,
+    }),
+    prisma.inventory_log.createMany({
+      data: secondaryCampInitialInventory.map((item) => ({
+        camp_id: item.camp_id,
+        resource_type_id: item.resource_type_id,
+        logged_by: standardUser.id,
+        log_type: 'MANUAL_IN',
+        delta: item.quantity,
+        description: 'Seed: opening inventory balance',
+      })),
+    }),
+  ]);
 
   // Seed expeditions module data
   console.log('Seeding expeditions data...');
