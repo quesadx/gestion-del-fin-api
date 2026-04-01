@@ -1,0 +1,66 @@
+import { prisma } from '../../lib/prisma.js';
+import { AppError } from '../../shared/utils/appError.js';
+import {
+  handleUniqueConstraintError,
+  handleForeignKeyError,
+} from '../../shared/utils/handlePrismaError.js';
+import { CreateProfessionDto, UpdateProfessionDto } from './professions.schema.js';
+
+function prepareProfessionCreateData(data: CreateProfessionDto) {
+  return {
+    name: data.name.trim(),
+    description: data.description?.trim(),
+  };
+}
+
+function prepareProfessionalUpdateData(data: UpdateProfessionDto) {
+  return {
+    name: data.name?.trim(),
+    description: data.description?.trim(),
+  };
+}
+
+export async function createProfession(data: CreateProfessionDto) {
+  try {
+    return await prisma.professions.create({
+      data: prepareProfessionCreateData(data),
+    });
+  } catch (error: any) {
+    handleUniqueConstraintError(error);
+  }
+}
+
+export async function updateProfession(id: number, data: UpdateProfessionDto) {
+  const profession = await prisma.professions.findUnique({ where: { id } });
+  if (!profession) throw new AppError(`Profession not found: ${id}`, 404);
+
+  try {
+    return await prisma.professions.update({
+      where: { id },
+      data: prepareProfessionalUpdateData(data),
+    });
+  } catch (error: any) {
+    handleUniqueConstraintError(error);
+  }
+}
+
+export async function getProfession(id: number) {
+  const profession = await prisma.professions.findUnique({ where: { id } });
+  if (!profession) throw new AppError(`Profession not found: ${id}`, 404);
+  return profession;
+}
+
+export async function getProfessions() {
+  return await prisma.professions.findMany();
+}
+
+export async function deleteProfession(id: number) {
+  const profession = await prisma.professions.findUnique({ where: { id } });
+  if (!profession) throw new AppError(`Profession not found: ${id}`, 404);
+
+  try {
+    await prisma.professions.delete({ where: { id } });
+  } catch (error: any) {
+    handleForeignKeyError(error);
+  }
+}
