@@ -46,17 +46,26 @@ async function validateInventoryConsistency(campId: number) {
     _sum: { delta: true },
   });
 
+  const inventoryMap = new Map(
+    inventoryRecords.map((inv) => [inv.resource_type_id, asNumber(inv.quantity)]),
+  );
+
   const logMap = new Map(
     logDeltasByResource.map((row) => [row.resource_type_id, asNumber(row._sum.delta ?? 0)]),
   );
 
-  return inventoryRecords.map((inv) => {
-    const inventoryQty = asNumber(inv.quantity);
-    const logSum = logMap.get(inv.resource_type_id) ?? 0;
+  const allResourceTypeIds = new Set<number>([
+    ...inventoryMap.keys(),
+    ...logMap.keys(),
+  ]);
+
+  return Array.from(allResourceTypeIds).map((resourceTypeId) => {
+    const inventoryQty = inventoryMap.get(resourceTypeId) ?? 0;
+    const logSum = logMap.get(resourceTypeId) ?? 0;
     const isConsistent = Math.abs(inventoryQty - logSum) < 0.01; // tolerance for decimals
 
     return {
-      resource_type_id: inv.resource_type_id,
+      resource_type_id: resourceTypeId,
       inventory_quantity: inventoryQty,
       log_delta_sum: logSum,
       is_consistent: isConsistent,
