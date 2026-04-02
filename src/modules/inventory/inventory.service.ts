@@ -54,10 +54,7 @@ async function validateInventoryConsistency(campId: number) {
     logDeltasByResource.map((row) => [row.resource_type_id, asNumber(row._sum.delta ?? 0)]),
   );
 
-  const allResourceTypeIds = new Set<number>([
-    ...inventoryMap.keys(),
-    ...logMap.keys(),
-  ]);
+  const allResourceTypeIds = new Set<number>([...inventoryMap.keys(), ...logMap.keys()]);
 
   return Array.from(allResourceTypeIds).map((resourceTypeId) => {
     const inventoryQty = inventoryMap.get(resourceTypeId) ?? 0;
