@@ -134,7 +134,7 @@ async function main() {
       camp_id: mainCamp.id,
       role_id: adminRole.id,
       username: 'admin_master',
-      password_hash: '$2b$10$EP03SokPxyW1sJ1vPxU/UekQv1r.tH4iKIfwXbY810T84QxXZX9dK', // bcrypt hash for 'password'
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
     },
   });
@@ -144,7 +144,7 @@ async function main() {
       camp_id: secondaryCamp.id,
       role_id: standardRole.id,
       username: 'camp_manager',
-      password_hash: '$2b$10$EP03SokPxyW1sJ1vPxU/UekQv1r.tH4iKIfwXbY810T84QxXZX9dK', // bcrypt hash for 'password'
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
     },
   });
@@ -215,41 +215,69 @@ async function main() {
   });
 
   // Seed inventories for main camp
-  await prisma.inventory.createMany({
-    data: [
-      {
-        camp_id: mainCamp.id,
-        resource_type_id: rationsResource.id,
-        quantity: '1200.0',
-      },
-      {
-        camp_id: mainCamp.id,
-        resource_type_id: waterResource.id,
-        quantity: '2500.0',
-      },
-      {
-        camp_id: mainCamp.id,
-        resource_type_id: medsResource.id,
-        quantity: '200.0',
-      },
-    ],
-  });
+  const mainCampInitialInventory = [
+    {
+      camp_id: mainCamp.id,
+      resource_type_id: rationsResource.id,
+      quantity: '1200.0',
+    },
+    {
+      camp_id: mainCamp.id,
+      resource_type_id: waterResource.id,
+      quantity: '2500.0',
+    },
+    {
+      camp_id: mainCamp.id,
+      resource_type_id: medsResource.id,
+      quantity: '200.0',
+    },
+  ];
+
+  await prisma.$transaction([
+    prisma.inventory.createMany({
+      data: mainCampInitialInventory,
+    }),
+    prisma.inventory_log.createMany({
+      data: mainCampInitialInventory.map((item) => ({
+        camp_id: item.camp_id,
+        resource_type_id: item.resource_type_id,
+        logged_by: adminUser.id,
+        log_type: 'MANUAL_IN',
+        delta: item.quantity,
+        description: 'Seed: opening inventory balance',
+      })),
+    }),
+  ]);
 
   // Seed inventories for secondary camp
-  await prisma.inventory.createMany({
-    data: [
-      {
-        camp_id: secondaryCamp.id,
-        resource_type_id: rationsResource.id,
-        quantity: '300.0',
-      },
-      {
-        camp_id: secondaryCamp.id,
-        resource_type_id: waterResource.id,
-        quantity: '600.0',
-      },
-    ],
-  });
+  const secondaryCampInitialInventory = [
+    {
+      camp_id: secondaryCamp.id,
+      resource_type_id: rationsResource.id,
+      quantity: '300.0',
+    },
+    {
+      camp_id: secondaryCamp.id,
+      resource_type_id: waterResource.id,
+      quantity: '600.0',
+    },
+  ];
+
+  await prisma.$transaction([
+    prisma.inventory.createMany({
+      data: secondaryCampInitialInventory,
+    }),
+    prisma.inventory_log.createMany({
+      data: secondaryCampInitialInventory.map((item) => ({
+        camp_id: item.camp_id,
+        resource_type_id: item.resource_type_id,
+        logged_by: standardUser.id,
+        log_type: 'MANUAL_IN',
+        delta: item.quantity,
+        description: 'Seed: opening inventory balance',
+      })),
+    }),
+  ]);
 
   // Seed expeditions module data
   console.log('Seeding expeditions data...');

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { authMiddleware } from './middlewares/auth.middleware.js';
 
 import express from 'express';
 import systemRoutes from './modules/system/system.routes.js';
@@ -12,6 +13,7 @@ import resourcesRoutes from './modules/resources/resources.routes.js';
 import explorationsRoutes from './modules/explorations/explorations.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/users/users.routes.js';
+import inventoryRoutes from './modules/inventory/inventory.routes.js';
 
 const app = express();
 
@@ -21,13 +23,13 @@ app.get('/', (req, res) => {
 
 app.use(express.json());
 app.use('/api/system', systemRoutes);
-app.use('/api/people', peopleRoutes);
-app.use('/api/camps', campsRoutes);
-
-app.use('/api/resources', resourcesRoutes);
-app.use('/api/expeditions', explorationsRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/resources', authMiddleware, resourcesRoutes);
+app.use('/api/expeditions', authMiddleware, explorationsRoutes);
+app.use('/api/people', authMiddleware, peopleRoutes);
+app.use('/api/camps', authMiddleware, campsRoutes);
+app.use('/api/users', authMiddleware, userRoutes);
+app.use('/api/inventory', authMiddleware, inventoryRoutes);
 
 app.use(errorHandler);
 
@@ -36,7 +38,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 if (
   NODE_ENV === 'production' &&
-  process.env.JWT_SECRET === 'dev-only-insecure-jwt-secret-change-me-12345'
+  (!process.env.JWT_SECRET ||
+    process.env.JWT_SECRET === 'dev-only-insecure-jwt-secret-change-me-12345')
 ) {
   console.error('JWT_SECRET is required in production and must not be the default.');
   process.exit(1);

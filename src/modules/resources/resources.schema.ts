@@ -11,15 +11,16 @@ export const createResourceSchema = z.object({
     .max(20, 'unit cannot exceed 20 characters'),
   daily_ration: z
     .number({ message: 'daily_ration is required' })
-    .min(0, 'daily_ration must be a positive number'),
+    .nonnegative('daily_ration must be zero or greater')
+    .max(999999.99, 'daily_ration exceeds DECIMAL(8,2) range'),
   minimum_stock: z
     .number({ message: 'minimum_stock is required' })
-    .min(0, 'minimum_stock must be a positive number'),
+    .nonnegative('minimum_stock must be zero or greater')
+    .max(99999999.99, 'minimum_stock exceeds DECIMAL(10,2) range'),
   auto_daily: z.boolean().optional(),
 });
 
 export const updateResourceSchema = createResourceSchema.partial();
 
-// Extract TypeScript types from Zod schemas for type safety
 export type CreateResourceDto = z.infer<typeof createResourceSchema>;
 export type UpdateResourceDto = z.infer<typeof updateResourceSchema>;

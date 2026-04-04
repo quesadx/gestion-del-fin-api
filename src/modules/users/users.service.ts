@@ -15,7 +15,7 @@ async function prepareUserCreateData(data: CreateUserDto) {
     password_hash,
     camp_id: data.camp_id,
     role_id: data.role_id,
-    is_active: data.is_active,
+    is_active: data.is_active ?? true,
     last_activity: data.last_activity,
     created_at: data.created_at,
   };
@@ -31,7 +31,6 @@ async function prepareUserUpdateData(data: UpdateUserDto) {
     role_id: data.role_id,
     is_active: data.is_active,
     last_activity: data.last_activity,
-    created_at: data.created_at,
   };
 }
 
