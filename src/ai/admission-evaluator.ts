@@ -1,5 +1,4 @@
-import { ai } from '../lib/gemini.js';
-import { z } from 'zod';
+import { ai } from '../lib/ai.js';
 import {
   AdmissionAIResult,
   CreateAdmissionDTO,
@@ -11,7 +10,17 @@ export async function evaluateAdmission(
   campRules: string,
 ): Promise<AdmissionAIResult> {
   const prompt = `
-    Eres el sistema de admisión de un campamento post-apocalíptico. Analiza el perfil del sobreviviente y toma una decisión basándote en las reglas. Razona paso a paso antes de decidir.
+    Eres el sistema de admisión de un campamento post-apocalíptico. 
+    Analiza el perfil del sobreviviente y toma una decisión basándote en las reglas. 
+    Razona paso a paso antes de decidir.
+    Responde únicamente con un objeto JSON válido con exactamente esta estructura:
+
+    {
+      "ai_decision": "ACCEPTED" o "REJECTED",
+      "ai_reasoning": "explicación detallada de la decisión",
+      "ai_suggested_profession": "profesión o cargo sugerido"
+    }
+
     Reglas del campamento:
     ${campRules}
 
@@ -23,17 +32,20 @@ export async function evaluateAdmission(
     - Antecedentes: ${data.background_notes ?? 'Sin Antecedentes'}
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseJsonSchema: z.toJSONSchema(admissionAIResultSchema),
-    },
+  const response = await ai.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+    response_format: { type: 'json_object' },
   });
 
-  // Parsing and evaluation via Zod after Gemini returns the string
+  // Parsing and evaluation via Zod after Groq returns the string
   // Validation for posible error. However, it shouldn't happen, is just a necessary validation to avoid an error
-  if (!response.text) throw new Error('Gemini returned and empty respone');
-  return admissionAIResultSchema.parse(JSON.parse(response.text!));
+  const text = response.choices[0]?.message?.content;
+  if (!text) throw new Error('Groq returned an empty response');
+  return admissionAIResultSchema.parse(JSON.parse(text));
 }

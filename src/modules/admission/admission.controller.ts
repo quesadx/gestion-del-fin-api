@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { createAdmissionSchema, reviewAdmissionSchema } from './admission.schema.js';
 import * as service from './admission.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
+import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 
 export async function create(req: Request, res: Response) {
   const body = createAdmissionSchema.parse(req.body);
@@ -24,10 +25,11 @@ export async function getById(req: Request, res: Response) {
 }
 
 export async function review(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
-  //const reviewedBy = req.user.id;
+  const reviewedBy = authReq.user.userId;
   const body = reviewAdmissionSchema.parse(req.body);
 
-  //const result = await service.reviewAdmission(id, reviewedBy, body);
-  //res.json(result);
+  const result = await service.reviewAdmission(id, reviewedBy, body);
+  res.json(result);
 }
