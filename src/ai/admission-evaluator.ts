@@ -24,7 +24,7 @@ export async function evaluateAdmission(
     Reglas del campamento:
     ${campRules}
 
-    Perfil del sobrevimiente:
+    Perfil del sobreviviente:
     - Nombre: ${data.applicant_name}
     - Edad: ${data.applicant_age ?? 'No especificada'}
     - Estado de salud: ${data.health_notes ?? 'Sin notas'}
