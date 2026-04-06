@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { createAdmissionSchema, reviewAdmissionSchema } from './admission.schema.js';
+import { CreateAdmissionDTO, reviewAdmissionSchema } from './admission.schema.js';
 import * as service from './admission.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 
 export async function createAdmissionHandler(req: Request, res: Response) {
-  const body = createAdmissionSchema.parse(req.body);
+  const body = req.body as CreateAdmissionDTO;
   const campId = parseIdParam(req.params.campId);
 
   const result = await service.createAdmission(campId, body);

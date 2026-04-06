@@ -4,6 +4,7 @@ import {
   CreateAdmissionDTO,
   admissionAIResultSchema,
 } from '../modules/admission/admission.schema.js';
+import { AppError } from '../shared/utils/appError.js';
 
 export async function evaluateAdmission(
   data: CreateAdmissionDTO,
@@ -45,7 +46,14 @@ export async function evaluateAdmission(
 
   // Parsing and evaluation via Zod after Groq returns the string
   // Validation for posible error. However, it shouldn't happen, is just a necessary validation to avoid an error
-  const text = response.choices[0]?.message?.content;
-  if (!text) throw new Error('Groq returned an empty response');
-  return admissionAIResultSchema.parse(JSON.parse(text));
+  try {
+    const text = response.choices[0]?.message?.content;
+    if (!text) throw new Error('Groq returned an empty response');
+    return admissionAIResultSchema.parse(JSON.parse(text));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new AppError('AI returned invalid JSON', 502);
+    }
+    throw new AppError('AI response validation failed', 422);
+  }
 }
