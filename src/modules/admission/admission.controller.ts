@@ -4,7 +4,7 @@ import * as service from './admission.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 
-export async function create(req: Request, res: Response) {
+export async function createAdmissionHandler(req: Request, res: Response) {
   const body = createAdmissionSchema.parse(req.body);
   const campId = parseIdParam(req.params.campId);
 
@@ -12,19 +12,19 @@ export async function create(req: Request, res: Response) {
   res.status(201).json(result);
 }
 
-export async function list(req: Request, res: Response) {
+export async function getAdmissionsHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
   const result = await service.getAdmissions(campId);
   res.json(result);
 }
 
-export async function getById(req: Request, res: Response) {
+export async function getAdmissionHandler(req: Request, res: Response) {
   const id = parseIdParam(req.params.id);
   const result = await service.getAdmissionsById(id);
   res.json(result);
 }
 
-export async function review(req: Request, res: Response) {
+export async function reviewAdmissionHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
   const reviewedBy = authReq.user.userId;

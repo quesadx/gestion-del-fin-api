@@ -11,29 +11,33 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post(
-  '/camps/:campId/admissions',
+  '/camps/:campId',
   validate(
     z.object({ params: z.object({ campId: z.coerce.number() }), body: createAdmissionSchema }),
   ),
-  admissionController.create,
+  admissionController.createAdmissionHandler,
 );
 
 router.get(
-  '/camps/:campId/admissions',
+  '/camps/:campId',
   validate(z.object({ params: z.object({ campId: z.coerce.number() }) })),
-  admissionController.list,
+  admissionController.getAdmissionsHandler,
 );
 
 router.get(
-  '/admissions/:id',
+  '/:id',
   validate(z.object({ params: idParamsSchema })),
-  admissionController.getById,
+  admissionController.getAdmissionHandler,
 );
 
 router.patch(
-  '/admissions/:id/review',
+  '/:id/review',
   validate(z.object({ params: idParamsSchema, body: reviewAdmissionSchema })),
-  admissionController.review,
+  admissionController.reviewAdmissionHandler,
 );
 
 export default router;
+
+//api/admision/:id
+//admitions para listas, porque va a entregarme ADMISIONES, en plural
+//admition para el de ID o getadmision
