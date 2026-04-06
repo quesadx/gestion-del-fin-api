@@ -17,8 +17,8 @@ export const createAdmissionSchema = z.object({
   applicant_skills: z.string().optional(),
   health_notes: z.string().optional(),
   background_notes: z.string().optional(),
-  photo_url: z.url().optional(),
-  id_card_url: z.url().optional(),
+  photo_url: z.url().max(255).optional(),
+  id_card_url: z.url().max(500).optional(),
 });
 
 export type CreateAdmissionDTO = z.infer<typeof createAdmissionSchema>;
