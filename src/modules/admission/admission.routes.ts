@@ -37,7 +37,3 @@ router.patch(
 );
 
 export default router;
-
-//api/admision/:id
-//admitions para listas, porque va a entregarme ADMISIONES, en plural
-//admition para el de ID o getadmision
