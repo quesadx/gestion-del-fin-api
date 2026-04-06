@@ -14,6 +14,7 @@ import explorationsRoutes from './modules/explorations/explorations.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/users/users.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
+import admissionRoutes from './modules/admission/admission.routes.js';
 
 const app = express();
 
@@ -30,7 +31,7 @@ app.use('/api/people', authMiddleware, peopleRoutes);
 app.use('/api/camps', authMiddleware, campsRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/inventory', authMiddleware, inventoryRoutes);
-
+app.use('/api/admission', authMiddleware, admissionRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;

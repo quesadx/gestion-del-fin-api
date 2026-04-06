@@ -24,7 +24,6 @@
   "author": "Matteo Quesada",
   "license": "ISC",
   "dependencies": {
-    "@google/genai": "^1.46.0",
     "@prisma/adapter-mariadb": "^7.5.0",
     "@prisma/client": "^7.6.0",
     "bcryptjs": "^3.0.3",
@@ -32,6 +31,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "express": "^5.2.1",
+    "groq-sdk": "^1.1.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mariadb": "^3.5.2",
