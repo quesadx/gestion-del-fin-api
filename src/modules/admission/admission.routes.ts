@@ -9,14 +9,17 @@ const router = Router();
 router.post(
   '/camps/:campId',
   validate(
-    z.object({ params: z.object({ campId: z.coerce.number() }), body: createAdmissionSchema }),
+    z.object({
+      params: z.object({ campId: z.coerce.number().int().positive() }),
+      body: createAdmissionSchema,
+    }),
   ),
   admissionController.createAdmissionHandler,
 );
 
 router.get(
   '/camps/:campId',
-  validate(z.object({ params: z.object({ campId: z.coerce.number() }) })),
+  validate(z.object({ params: z.object({ campId: z.coerce.number().int().positive() }) })),
   admissionController.getAdmissionsHandler,
 );
 
