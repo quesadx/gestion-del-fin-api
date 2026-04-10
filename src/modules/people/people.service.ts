@@ -176,38 +176,42 @@ export async function updatePerson(
 
   await validateRelations({ camp_id: data.camp_id, profession_id: data.profession_id });
 
-  return prisma.$transaction(async (tx: PeopleTransactionClient) => {
-    await ensureUserExistsTx(tx, changedBy);
+  try {
+    return await prisma.$transaction(async (tx: PeopleTransactionClient) => {
+      await ensureUserExistsTx(tx, changedBy);
 
-    const currentPerson = await tx.persons.findUnique({
-      where: { id },
-      select: { id: true, status: true },
-    });
-
-    if (!currentPerson) {
-      throw new AppError(`Person not found: ${id}`, 404);
-    }
-
-    const updatedPerson = await tx.persons.update({
-      where: { id },
-      data: preparePersonUpdateData({ ...data, camp_id: campId }),
-      include: personInclude,
-    });
-
-    if (data.status && data.status !== currentPerson.status) {
-      await tx.person_status_log.create({
-        data: {
-          person_id: id,
-          old_status: currentPerson.status,
-          new_status: data.status,
-          reason: 'Status changed via people update endpoint',
-          changed_by: changedBy,
-        },
+      const currentPerson = await tx.persons.findUnique({
+        where: { id },
+        select: { id: true, status: true },
       });
-    }
 
-    return updatedPerson;
-  });
+      if (!currentPerson) {
+        throw new AppError(`Person not found: ${id}`, 404);
+      }
+
+      const updatedPerson = await tx.persons.update({
+        where: { id },
+        data: preparePersonUpdateData({ ...data, camp_id: campId }),
+        include: personInclude,
+      });
+
+      if (data.status && data.status !== currentPerson.status) {
+        await tx.person_status_log.create({
+          data: {
+            person_id: id,
+            old_status: currentPerson.status,
+            new_status: data.status,
+            reason: 'Status changed via people update endpoint',
+            changed_by: changedBy,
+          },
+        });
+      }
+
+      return updatedPerson;
+    });
+  } catch (error: any) {
+    handleUniqueConstraintError(error);
+  }
 }
 
 export async function getPerson(campId: number, id: number) {
@@ -336,7 +340,8 @@ export async function createProfessionReassignment(
       );
     }
 
-    const today = new Date();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const today = new Date(`${todayStr}T00:00:00.000Z`);
 
     const activeReassignment = await tx.profession_reassignment_log.findFirst({
       where: {
