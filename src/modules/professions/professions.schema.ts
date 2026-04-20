@@ -11,4 +11,4 @@ export const createProfessionSchema = z.object({
 export const updateProfessionSchema = createProfessionSchema.partial();
 
 export type CreateProfessionDto = z.infer<typeof createProfessionSchema>;
-export type UpdateProfessionDto = z.infer<typeof createProfessionSchema>;
+export type UpdateProfessionDto = z.infer<typeof updateProfessionSchema>;
