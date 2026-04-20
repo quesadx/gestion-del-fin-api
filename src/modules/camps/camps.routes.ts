@@ -4,6 +4,7 @@ import * as campsController from './camps.controller.js';
 import { createCampSchema, updateCampSchema } from './camps.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { idParamsSchema } from '../../shared/schemas/http.schema.js';
+import peopleRoutes from '../people/people.routes.js';
 
 const router = Router();
 
@@ -20,5 +21,7 @@ router.delete(
   validate(z.object({ params: idParamsSchema })),
   campsController.deleteCampHandler,
 );
+
+router.use('/:campId/people', peopleRoutes);
 
 export default router;
