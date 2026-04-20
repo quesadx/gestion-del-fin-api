@@ -12,6 +12,7 @@ import resourcesRoutes from './modules/resources/resources.routes.js';
 import explorationsRoutes from './modules/explorations/explorations.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/users/users.routes.js';
+import professionsRoutes from './modules/professions/professions.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import admissionRoutes from './modules/admission/admission.routes.js';
 
@@ -28,6 +29,8 @@ app.use('/api/resources', authMiddleware, resourcesRoutes);
 app.use('/api/expeditions', authMiddleware, explorationsRoutes);
 app.use('/api/camps', authMiddleware, campsRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
+app.use('/api/professions', authMiddleware, professionsRoutes);
+
 app.use('/api/inventory', authMiddleware, inventoryRoutes);
 app.use('/api/admission', authMiddleware, admissionRoutes);
 app.use(errorHandler);
