@@ -39,8 +39,8 @@ app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, p
 app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
 app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.get('/docs.json', (req, res) => {
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api/docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
