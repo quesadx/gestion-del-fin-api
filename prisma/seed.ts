@@ -513,6 +513,133 @@ async function main() {
     ],
   });
 
+  // Seed transfers module data
+  console.log('Seeding transfers data...');
+
+  const pendingResourceTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: mainCamp.id,
+      target_camp: secondaryCamp.id,
+      status: 'PENDING',
+      type: 'RESOURCE',
+      notes: 'Emergency support package pending source approval',
+      requested_by: adminUser.id,
+      scheduled_delivery_date: new Date('2026-05-02T10:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: pendingResourceTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: rationsResource.id,
+        quantity: '30.00',
+      },
+      {
+        camp_transfer_id: pendingResourceTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: waterResource.id,
+        quantity: '60.00',
+      },
+    ],
+  });
+
+  const approvedSourceMixedTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: mainCamp.id,
+      target_camp: secondaryCamp.id,
+      status: 'APPROVED_SOURCE',
+      type: 'MIXED',
+      notes: 'Source approved. Awaiting target confirmation.',
+      requested_by: adminUser.id,
+      leader_person_id: quaternaryPerson.id,
+      scheduled_delivery_date: new Date('2026-05-03T14:30:00Z'),
+      approved_by_source: adminUser.id,
+      approved_source_at: new Date('2026-04-20T08:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: approvedSourceMixedTransfer.id,
+        item_type: 'PERSON',
+        person_id: quaternaryPerson.id,
+      },
+      {
+        camp_transfer_id: approvedSourceMixedTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: medsResource.id,
+        quantity: '8.00',
+      },
+    ],
+  });
+
+  const approvedTargetPersonTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: mainCamp.id,
+      target_camp: secondaryCamp.id,
+      status: 'APPROVED_TARGET',
+      type: 'PERSON',
+      notes: 'Fully approved transfer. Pending execution by logistics.',
+      requested_by: adminUser.id,
+      leader_person_id: primaryPerson.id,
+      scheduled_delivery_date: new Date('2026-05-04T09:15:00Z'),
+      approved_by_source: adminUser.id,
+      approved_source_at: new Date('2026-04-21T10:00:00Z'),
+      approved_by_target: standardUser.id,
+      approved_target_at: new Date('2026-04-22T11:30:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: approvedTargetPersonTransfer.id,
+        item_type: 'PERSON',
+        person_id: primaryPerson.id,
+      },
+      {
+        camp_transfer_id: approvedTargetPersonTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: rationsResource.id,
+        quantity: '6.00',
+      },
+      {
+        camp_transfer_id: approvedTargetPersonTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: waterResource.id,
+        quantity: '12.00',
+      },
+    ],
+  });
+
+  const rejectedTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: secondaryCamp.id,
+      target_camp: mainCamp.id,
+      status: 'REJECTED',
+      type: 'RESOURCE',
+      notes: 'Rejected by destination due to route risk escalation.',
+      requested_by: standardUser.id,
+      scheduled_delivery_date: new Date('2026-04-30T16:00:00Z'),
+      approved_by_source: standardUser.id,
+      approved_source_at: new Date('2026-04-18T09:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: rejectedTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: medsResource.id,
+        quantity: '4.00',
+      },
+    ],
+  });
+
   await prisma.system_config.create({
     data: {
       id: 1,
