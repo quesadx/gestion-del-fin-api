@@ -3,6 +3,8 @@ import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { authMiddleware } from './middlewares/auth.middleware.js';
+import { sessionMiddleware } from './middlewares/session.middleware.js';
+import { campMiddleware } from './middlewares/camp.middleware.js';
 
 import express from 'express';
 import systemRoutes from './modules/system/system.routes.js';
@@ -25,14 +27,14 @@ app.get('/', (req, res) => {
 app.use(express.json());
 app.use('/api/system', systemRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/resources', authMiddleware, resourcesRoutes);
-app.use('/api/expeditions', authMiddleware, explorationsRoutes);
-app.use('/api/camps', authMiddleware, campsRoutes);
-app.use('/api/users', authMiddleware, userRoutes);
-app.use('/api/professions', authMiddleware, professionsRoutes);
+app.use('/api/resources', authMiddleware, sessionMiddleware, campMiddleware, resourcesRoutes);
+app.use('/api/expeditions', authMiddleware, sessionMiddleware, campMiddleware, explorationsRoutes);
+app.use('/api/camps', authMiddleware, sessionMiddleware, campMiddleware, campsRoutes);
+app.use('/api/users', authMiddleware, sessionMiddleware, campMiddleware, userRoutes);
+app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, professionsRoutes);
 
-app.use('/api/inventory', authMiddleware, inventoryRoutes);
-app.use('/api/admission', authMiddleware, admissionRoutes);
+app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
+app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
