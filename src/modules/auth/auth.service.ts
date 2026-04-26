@@ -18,7 +18,7 @@ export const login = async (data: LoginInput) => {
     throw new AppError('Invalid credentials', 401);
   }
 
-  const token = signAccessToken(user.id);
+  const token = signAccessToken(user.id, user.camp_id);
 
   return { user: { username: user.username }, token };
 };
