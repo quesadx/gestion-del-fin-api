@@ -5,8 +5,10 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import { authMiddleware } from './middlewares/auth.middleware.js';
 import { sessionMiddleware } from './middlewares/session.middleware.js';
 import { campMiddleware } from './middlewares/camp.middleware.js';
+import { swaggerSpec } from './docs/swagger.js';
 
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import systemRoutes from './modules/system/system.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
 
@@ -25,6 +27,7 @@ app.get('/', (req, res) => {
 });
 
 app.use(express.json());
+
 app.use('/api/system', systemRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/resources', authMiddleware, sessionMiddleware, campMiddleware, resourcesRoutes);
@@ -35,6 +38,13 @@ app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, p
 
 app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
 app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
