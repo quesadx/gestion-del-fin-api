@@ -1,1 +1,47 @@
-//TODO: implement
+import { NextFunction, Request, Response } from 'express';
+import { prisma } from '../lib/prisma.js';
+import { AppError } from '../shared/utils/appError.js';
+import { AuthenticatedRequest } from './auth.middleware.js';
+
+const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000;
+
+export const sessionMiddleware = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.userId;
+
+    if (!userId) {
+      throw new AppError('Unauthorized', 401);
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { id: true, is_active: true, last_activity: true },
+    });
+
+    if (!user || !user.is_active) {
+      throw new AppError('Unauthorized', 401);
+    }
+
+    const now = new Date();
+    if (user.last_activity) {
+      const inactiveForMs = now.getTime() - user.last_activity.getTime();
+      if (inactiveForMs > INACTIVITY_TIMEOUT_MS) {
+        throw new AppError('Unauthorized', 401);
+      }
+    }
+
+    await prisma.users.update({
+      where: { id: userId },
+      data: { last_activity: now },
+    });
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};

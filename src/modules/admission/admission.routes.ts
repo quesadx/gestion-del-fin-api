@@ -4,6 +4,7 @@ import * as admissionController from './admission.controller.js';
 import { createAdmissionSchema, reviewAdmissionSchema } from './admission.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { idParamsSchema } from '../../shared/schemas/http.schema.js';
+import { roleMiddleware } from '../../middlewares/role.middleware.js';
 
 const router = Router();
 router.post(
@@ -31,6 +32,7 @@ router.get(
 
 router.patch(
   '/:id/review',
+  roleMiddleware(['system_admin']),
   validate(z.object({ params: idParamsSchema, body: reviewAdmissionSchema })),
   admissionController.reviewAdmissionHandler,
 );
