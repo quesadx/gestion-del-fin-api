@@ -155,6 +155,15 @@ async function applyResourceTransfer(
     resourceItems: Array<{ resource_type_id: number; quantity: number }>;
   },
 ) {
+  const logEntries: Array<{
+    camp_id: number;
+    resource_type_id: number;
+    logged_by: number;
+    log_type: string;
+    delta: number;
+    description: string;
+  }> = [];
+
   for (const item of input.resourceItems) {
     const updateResult = await tx.inventory.updateMany({
       where: {
@@ -193,26 +202,28 @@ async function applyResourceTransfer(
       },
     });
 
-    await tx.inventory_log.createMany({
-      data: [
-        {
-          camp_id: input.sourceCampId,
-          resource_type_id: item.resource_type_id,
-          logged_by: input.completedBy,
-          log_type: 'TRANSFER_OUT',
-          delta: -item.quantity,
-          description: `Transfer #${input.transferId} completed (source outflow)`,
-        },
-        {
-          camp_id: input.targetCampId,
-          resource_type_id: item.resource_type_id,
-          logged_by: input.completedBy,
-          log_type: 'TRANSFER_IN',
-          delta: item.quantity,
-          description: `Transfer #${input.transferId} completed (target inflow)`,
-        },
-      ],
-    });
+    logEntries.push(
+      {
+        camp_id: input.sourceCampId,
+        resource_type_id: item.resource_type_id,
+        logged_by: input.completedBy,
+        log_type: 'TRANSFER_OUT',
+        delta: -item.quantity,
+        description: `Transfer #${input.transferId} completed (source outflow)`,
+      },
+      {
+        camp_id: input.targetCampId,
+        resource_type_id: item.resource_type_id,
+        logged_by: input.completedBy,
+        log_type: 'TRANSFER_IN',
+        delta: item.quantity,
+        description: `Transfer #${input.transferId} completed (target inflow)`,
+      },
+    );
+  }
+
+  if (logEntries.length > 0) {
+    await tx.inventory_log.createMany({ data: logEntries });
   }
 }
 
