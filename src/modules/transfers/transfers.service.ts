@@ -155,6 +155,16 @@ async function applyResourceTransfer(
     resourceItems: Array<{ resource_type_id: number; quantity: number }>;
   },
 ) {
+  const aggregatedResourceItems = Array.from(
+    input.resourceItems
+      .reduce((acc, item) => {
+        const currentQuantity = acc.get(item.resource_type_id) ?? 0;
+        acc.set(item.resource_type_id, currentQuantity + item.quantity);
+        return acc;
+      }, new Map<number, number>())
+      .entries(),
+  ).map(([resource_type_id, quantity]) => ({ resource_type_id, quantity }));
+
   const logEntries: Array<{
     camp_id: number;
     resource_type_id: number;
@@ -164,7 +174,7 @@ async function applyResourceTransfer(
     description: string;
   }> = [];
 
-  for (const item of input.resourceItems) {
+  for (const item of aggregatedResourceItems) {
     const updateResult = await tx.inventory.updateMany({
       where: {
         camp_id: input.sourceCampId,
@@ -452,14 +462,35 @@ export async function completeTransfer(
 
     const resourceItems = transfer.camp_transfer_item
       .filter((item) => item.item_type === 'RESOURCE')
-      .map((item) => ({
-        resource_type_id: item.resource_type_id as number,
-        quantity: asNumber(item.quantity),
-      }));
+      .map((item) => {
+        if (item.resource_type_id == null) {
+          throw new AppError('RESOURCE items must include resource_type_id', 400);
+        }
+
+        if (item.quantity == null) {
+          throw new AppError('RESOURCE items must include quantity', 400);
+        }
+
+        const quantity = asNumber(item.quantity);
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+          throw new AppError('RESOURCE item quantity must be a finite positive number', 400);
+        }
+
+        return {
+          resource_type_id: item.resource_type_id,
+          quantity,
+        };
+      });
 
     const personIds = transfer.camp_transfer_item
       .filter((item) => item.item_type === 'PERSON')
-      .map((item) => item.person_id as number);
+      .map((item) => {
+        if (item.person_id == null) {
+          throw new AppError('PERSON items must include person_id', 400);
+        }
+
+        return item.person_id;
+      });
 
     if (personIds.length > 0 && resourceItems.length === 0) {
       throw new AppError('Person transfer must include travel rations (RESOURCE items)', 400);

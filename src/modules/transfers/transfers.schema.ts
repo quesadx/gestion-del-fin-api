@@ -177,7 +177,7 @@ export const completeTransferSchema = z.object({
 });
 
 export const rejectTransferSchema = z.object({
-  reason: z.string().min(1, 'reason is required').max(500),
+  reason: z.string().trim().min(1, 'reason is required').max(500),
 });
 
 export type CreateTransferDto = z.infer<typeof createTransferSchema>;
