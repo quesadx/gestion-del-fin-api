@@ -5,7 +5,7 @@ const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`; // TO
 
 export const swaggerSpec = swaggerJSDoc({
   definition: {
-    openapi: '6.2.8',
+    openapi: '3.2.0',
     info: {
       title: 'Gestion Del Fin API',
       version: '1.0.0',
