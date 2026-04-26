@@ -71,15 +71,29 @@ async function main() {
 
   const adminRole = await prisma.roles.create({
     data: {
-      name: 'ADMIN',
+      name: 'system_admin',
       description: 'Administrator with full access',
     },
   });
 
-  const standardRole = await prisma.roles.create({
+  const workerRole = await prisma.roles.create({
     data: {
-      name: 'CAMP_MANAGER',
-      description: 'Manager for a specific camp',
+      name: 'worker',
+      description: 'General camp worker access',
+    },
+  });
+
+  await prisma.roles.create({
+    data: {
+      name: 'resource_manager',
+      description: 'Inventory and resource operations manager',
+    },
+  });
+
+  await prisma.roles.create({
+    data: {
+      name: 'travel_coordinator',
+      description: 'Expedition and transfer coordination role',
     },
   });
 
@@ -142,7 +156,7 @@ async function main() {
   const standardUser = await prisma.users.create({
     data: {
       camp_id: secondaryCamp.id,
-      role_id: standardRole.id,
+      role_id: workerRole.id,
       username: 'camp_manager',
       password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
