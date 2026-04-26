@@ -282,10 +282,10 @@ export async function createTransfer(data: CreateTransferDto) {
       throw new AppError('requesting_camp and target_camp must be different', 400);
     }
 
-    await Promise.all([
+    const [requestedBy] = await Promise.all([
+      ensureUserExists(tx, data.requested_by),
       ensureCampExists(tx, data.requesting_camp),
       ensureCampExists(tx, data.target_camp),
-      ensureUserExists(tx, data.requested_by),
       ensureResourceTypesExist(tx, resourceTypeIds),
       ensurePeopleExistInSourceCamp(tx, personIds, data.requesting_camp),
     ]);
@@ -293,8 +293,6 @@ export async function createTransfer(data: CreateTransferDto) {
     if (data.leader_person_id) {
       await ensurePeopleExistInSourceCamp(tx, [data.leader_person_id], data.requesting_camp);
     }
-
-    const requestedBy = await ensureUserExists(tx, data.requested_by);
     if (requestedBy.camp_id !== data.requesting_camp) {
       throw new AppError('requested_by must belong to requesting_camp', 400);
     }
