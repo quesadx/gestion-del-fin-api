@@ -23,7 +23,7 @@ export const transferItemSchema = z
   })
   .superRefine((item, ctx) => {
     if (item.item_type === 'RESOURCE') {
-      if (!item.resource_type_id) {
+      if (item.resource_type_id == null) {
         ctx.addIssue({
           code: 'custom',
           path: ['resource_type_id'],
@@ -31,7 +31,7 @@ export const transferItemSchema = z
         });
       }
 
-      if (!item.quantity) {
+      if (item.quantity == null) {
         ctx.addIssue({
           code: 'custom',
           path: ['quantity'],
@@ -39,7 +39,7 @@ export const transferItemSchema = z
         });
       }
 
-      if (item.person_id) {
+      if (item.person_id != null) {
         ctx.addIssue({
           code: 'custom',
           path: ['person_id'],
@@ -49,7 +49,7 @@ export const transferItemSchema = z
     }
 
     if (item.item_type === 'PERSON') {
-      if (!item.person_id) {
+      if (item.person_id == null) {
         ctx.addIssue({
           code: 'custom',
           path: ['person_id'],
@@ -57,7 +57,7 @@ export const transferItemSchema = z
         });
       }
 
-      if (item.resource_type_id) {
+      if (item.resource_type_id != null) {
         ctx.addIssue({
           code: 'custom',
           path: ['resource_type_id'],
@@ -65,7 +65,7 @@ export const transferItemSchema = z
         });
       }
 
-      if (item.quantity) {
+      if (item.quantity != null) {
         ctx.addIssue({
           code: 'custom',
           path: ['quantity'],
