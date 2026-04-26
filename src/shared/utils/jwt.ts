@@ -3,6 +3,7 @@ import { AppError } from './appError.js';
 
 export type AccessTokenPayload = {
   userId: number;
+  campId: number;
 };
 
 function getJwtSecret(): string {
@@ -18,8 +19,8 @@ function getJwtExpiry(): SignOptions['expiresIn'] {
   return (process.env.JWT_EXPIRY || '1d') as SignOptions['expiresIn'];
 }
 
-export function signAccessToken(userId: number): string {
-  const payload: AccessTokenPayload = { userId };
+export function signAccessToken(userId: number, campId: number): string {
+  const payload: AccessTokenPayload = { userId, campId };
   return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiry() });
 }
 
@@ -50,7 +51,12 @@ export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): A
       throw new AppError('Invalid token payload', 401);
     }
 
-    return { userId };
+    const campId = decoded.campId;
+    if (!Number.isInteger(campId) || campId <= 0) {
+      throw new AppError('Invalid token payload', 401);
+    }
+
+    return { userId, campId };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
