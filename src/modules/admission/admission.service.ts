@@ -33,10 +33,24 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
   });
   if (!camp) throw new AppError(`Camp not found ${campId}`, 404);
 
+  const professions = await prisma.professions.findMany({
+    select: {
+      id: true,
+      name: true,
+      description: true,
+    },
+  });
+  if (!professions) throw new AppError(`Professions not found`, 404);
+
+  const professionList = professions
+    .map((p) => `- [ID: ${p.id}] ${p.name}: ${p.description ?? 'Sin descripción'}`)
+    .join('\n');
+
   const campContext = camp.ai_context_prompt;
   const aiResult = await evaluateAdmission(
     data,
     campContext ?? 'Sin contexto definido para este campamento',
+    professionList,
   );
 
   return prisma.admission_requests.create({

@@ -9,6 +9,7 @@ import { AppError } from '../shared/utils/appError.js';
 export async function evaluateAdmission(
   data: CreateAdmissionDTO,
   campRules: string,
+  professions: string,
 ): Promise<AdmissionAIResult> {
   const prompt = `
     Eres el sistema de admisión de un campamento post-apocalíptico. 
@@ -19,11 +20,15 @@ export async function evaluateAdmission(
     {
       "ai_decision": "ACCEPTED" o "REJECTED",
       "ai_reasoning": "explicación detallada de la decisión",
-      "ai_suggested_profession": "profesión o cargo sugerido"
+      "ai_suggested_profession": "profesión o cargo sugerido",
+      "ai_profession_id": "id de la profesión sugerida"
     }
 
     Reglas del campamento:
     ${campRules}
+
+    Profesiones disponibles:
+    ${professions}
 
     Perfil del sobreviviente:
     - Nombre: ${data.applicant_name}
