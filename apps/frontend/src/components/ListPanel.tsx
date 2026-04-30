@@ -144,10 +144,7 @@ export default function ListPanel({
                 {item.id !== undefined && <span className="muted"> # {String(item.id)}</span>}
               </div>
               {item.id !== undefined && onSelectId && (
-                <button
-                  className="button button-small"
-                  onClick={() => onSelectId(String(item.id))}
-                >
+                <button className="button button-small" onClick={() => onSelectId(String(item.id))}>
                   Use ID
                 </button>
               )}

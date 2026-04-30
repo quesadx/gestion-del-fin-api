@@ -337,9 +337,7 @@ export const entities: EntityConfig[] = [
       label: 'Inventory snapshot',
       path: '/inventory/:campId',
     },
-    secondaryLists: [
-      { key: 'audit', label: 'Inventory audit', path: '/inventory/audit/:campId' },
-    ],
+    secondaryLists: [{ key: 'audit', label: 'Inventory audit', path: '/inventory/audit/:campId' }],
     create: {
       key: 'adjustment',
       label: 'Create manual adjustment',
