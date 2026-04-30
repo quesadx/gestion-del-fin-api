@@ -1,10 +1,16 @@
-# gestion-del-fin-api
+# gestion-del-fin
 
-Secure API for **Gestión del fin** (EIF209). Handles multi-camp management, resources, AI-driven ingress decisions, and audit logs. Features server-side time consistency, RBAC, 20min session security, and support for resource transfers and expeditions. Built with Node.js and TypeScript. Universidad Nacional 2026.
+Turbo monorepo for **Gestión del fin** (EIF209). Includes a Node/Express backend API and a React + Vite frontend for CRUD workflows. Universidad Nacional 2026.
+
+## Monorepo Layout
+
+- apps/backend: Express + Prisma API
+- apps/frontend: React + Vite CRUD UI
+- docker, docs, backup: shared resources
 
 ## Development Setup
 
-This project can be run using either **manual Node setup** (recommended) or **Nix**.
+This project can be run using either **manual Node setup** or **Nix**.
 
 > **Before committing:** format all files with Prettier:
 >
@@ -20,17 +26,22 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    node --version
    ```
 
-2. Install dependencies:
+2. Install dependencies at the repo root:
 
    ```bash
    npm install
    ```
 
-3. Create a `.env` file (use `.env.example` if available) and configure your database connection.
+3. Create backend environment file:
+
+   ```bash
+   cp apps/backend/.env.example apps/backend/.env
+   ```
 
 4. Generate the Prisma client:
 
    ```bash
+   cd apps/backend
    npx prisma generate
    ```
 
@@ -46,9 +57,10 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    npx prisma db seed
    ```
 
-7. Start the dev server:
+7. Start the monorepo dev servers from the root:
 
    ```bash
+   cd ../..
    npm run dev
    ```
 
@@ -72,32 +84,12 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    npm install
    ```
 
-4. Generate the Prisma client:
+4. Generate the Prisma client and run migrations in apps/backend (same as above).
 
-   ```bash
-   npx prisma generate
-   ```
+### Useful Commands
 
-5. Apply migrations to keep the database schema in sync:
-
-   ```bash
-   npx prisma migrate dev
-   ```
-
-6. (Optional) Seed the database (recommended after migrations):
-
-   ```bash
-   npx prisma db seed
-   ```
-
-7. Start the dev server:
-
-   ```bash
-   npm run dev
-   ```
-
-> **Before committing:** format all files with Prettier:
->
-> ```bash
-> npm run format
-> ```
+- Run both apps: `npm run dev`
+- Run only backend: `npm run dev -- --filter=gestion-del-fin-api`
+- Run only frontend: `npm run dev -- --filter=gestion-del-fin-frontend`
+- Build all: `npm run build`
+- Backend tests: `npm run test -- --filter=gestion-del-fin-api`

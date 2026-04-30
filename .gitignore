@@ -22,5 +22,5 @@ logs/
 .DS_Store
 
 # Prisma client (generated)
-src/generated/prisma/
-prisma/migrations.lock/
+apps/backend/src/generated/prisma/
+apps/backend/prisma/migrations.lock/
