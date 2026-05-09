@@ -7,6 +7,7 @@ import { signAccessToken } from '../../shared/utils/jwt.js';
 export const login = async (data: LoginInput) => {
   const user = await prisma.users.findUnique({
     where: { username: data.username },
+    include: { roles: { select: { name: true } } },
   });
 
   if (!user) {
@@ -20,5 +21,8 @@ export const login = async (data: LoginInput) => {
 
   const token = signAccessToken(user.id, user.camp_id);
 
-  return { user: { username: user.username }, token };
+  return {
+    user: { username: user.username, role: user.roles.name },
+    token,
+  };
 };

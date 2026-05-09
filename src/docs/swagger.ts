@@ -67,9 +67,10 @@ export const swaggerSpec = swaggerJSDoc({
           properties: {
             user: {
               type: 'object',
-              required: ['username'],
+              required: ['username', 'role'],
               properties: {
                 username: { type: 'string', example: 'admin' },
+                role: { type: 'string', example: 'worker' },
               },
             },
             token: {
