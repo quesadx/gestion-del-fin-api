@@ -32,5 +32,10 @@ export const login = async (data: LoginInput) => {
 
   const token = signAccessToken(user.id, user.camp_id, user.roles.name);
 
+  await prisma.users.update({
+    where: { id: user.id },
+    data: { last_activity: new Date() },
+  });
+
   return { user: { username: user.username }, token };
 };
