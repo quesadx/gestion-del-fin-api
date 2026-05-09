@@ -7,10 +7,22 @@ import { signAccessToken } from '../../shared/utils/jwt.js';
 export const login = async (data: LoginInput) => {
   const user = await prisma.users.findUnique({
     where: { username: data.username },
+    select: {
+      id: true,
+      camp_id: true,
+      username: true,
+      password_hash: true,
+      is_active: true,
+      roles: { select: { name: true } },
+    },
   });
 
   if (!user) {
     throw new AppError('Invalid credentials', 401);
+  }
+
+  if (!user.is_active) {
+    throw new AppError('Account is inactive', 401);
   }
 
   const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
@@ -18,7 +30,7 @@ export const login = async (data: LoginInput) => {
     throw new AppError('Invalid credentials', 401);
   }
 
-  const token = signAccessToken(user.id, user.camp_id);
+  const token = signAccessToken(user.id, user.camp_id, user.roles.name);
 
   return { user: { username: user.username }, token };
 };
