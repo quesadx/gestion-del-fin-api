@@ -28,10 +28,12 @@ app.get('/', (req, res) => {
   res.json({ message: 'gestion-del-fin-api is alive and kicking!' });
 });
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 
