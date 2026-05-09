@@ -8,6 +8,7 @@ import { campMiddleware } from './middlewares/camp.middleware.js';
 import { swaggerSpec } from './docs/swagger.js';
 
 import express from 'express';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import systemRoutes from './modules/system/system.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
@@ -26,6 +27,13 @@ const app = express();
 app.get('/', (req, res) => {
   res.json({ message: 'gestion-del-fin-api is alive and kicking!' });
 });
+
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 
