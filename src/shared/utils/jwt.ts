@@ -5,6 +5,7 @@ export type AccessTokenPayload = {
   userId: number;
   campId: number;
   role: string;
+  sessionVersion: number;
 };
 
 function getJwtSecret(): string {
@@ -20,8 +21,13 @@ function getJwtExpiry(): SignOptions['expiresIn'] {
   return (process.env.JWT_EXPIRY || '1d') as SignOptions['expiresIn'];
 }
 
-export function signAccessToken(userId: number, campId: number, role: string): string {
-  const payload: AccessTokenPayload = { userId, campId, role };
+export function signAccessToken(
+  userId: number,
+  campId: number,
+  role: string,
+  sessionVersion: number,
+): string {
+  const payload: AccessTokenPayload = { userId, campId, role, sessionVersion };
   return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiry() });
 }
 
@@ -62,7 +68,12 @@ export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): A
       throw new AppError('Invalid token payload', 401);
     }
 
-    return { userId, campId, role };
+    const sessionVersion = decoded.sessionVersion;
+    if (!Number.isInteger(sessionVersion) || sessionVersion <= 0) {
+      throw new AppError('Invalid token payload', 401);
+    }
+
+    return { userId, campId, role, sessionVersion };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;

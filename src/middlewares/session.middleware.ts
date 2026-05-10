@@ -20,11 +20,15 @@ export const sessionMiddleware = async (
 
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      select: { id: true, is_active: true, last_activity: true },
+      select: { id: true, is_active: true, last_activity: true, session_version: true },
     });
 
     if (!user || !user.is_active) {
       throw new AppError('Unauthorized', 401);
+    }
+
+    if (user.session_version !== authReq.user.sessionVersion) {
+      throw new AppError('Session terminated', 401);
     }
 
     if (!user.last_activity) {
@@ -37,10 +41,14 @@ export const sessionMiddleware = async (
       throw new AppError('Session expired', 401);
     }
 
-    await prisma.users.update({
-      where: { id: userId },
+    const updateResult = await prisma.users.updateMany({
+      where: { id: userId, session_version: authReq.user.sessionVersion },
       data: { last_activity: now },
     });
+
+    if (updateResult.count === 0) {
+      throw new AppError('Session terminated', 401);
+    }
 
     next();
   } catch (error) {

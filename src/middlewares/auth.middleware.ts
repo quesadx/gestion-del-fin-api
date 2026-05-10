@@ -5,11 +5,16 @@ export interface AuthenticatedRequest extends Request {
   user: {
     userId: number;
     campId: number;
+    sessionVersion: number;
   };
 }
 
 export const authMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
   const payload = getAccessTokenPayloadFromHeader(req.header('authorization'));
-  (req as AuthenticatedRequest).user = { userId: payload.userId, campId: payload.campId };
+  (req as AuthenticatedRequest).user = {
+    userId: payload.userId,
+    campId: payload.campId,
+    sessionVersion: payload.sessionVersion,
+  };
   next();
 };
