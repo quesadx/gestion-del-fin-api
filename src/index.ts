@@ -21,6 +21,7 @@ import professionsRoutes from './modules/professions/professions.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import admissionRoutes from './modules/admission/admission.routes.js';
 import transfersRoutes from './modules/transfers/transfers.routes.js';
+import metricsRoutes from './modules/metrics/metrics.routes.js';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, p
 app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
 app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
 app.use('/api/transfers', authMiddleware, sessionMiddleware, campMiddleware, transfersRoutes);
+app.use('/api/metrics', authMiddleware, sessionMiddleware, campMiddleware, metricsRoutes);
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/api/docs.json', (req, res) => {
