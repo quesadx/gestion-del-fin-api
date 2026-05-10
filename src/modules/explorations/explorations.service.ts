@@ -588,17 +588,36 @@ export async function getExploration(id: number) {
   return expedition;
 }
 
-export async function getExplorations() {
-  return await prisma.expeditions.findMany({
-    include: {
-      camps: true,
-      users: true,
-      expedition_members: true,
-      expedition_allocated_resources: true,
-      expedition_found_resources: true,
+export async function getExplorations(page = 1, pageSize = 20) {
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [records, total] = await Promise.all([
+    prisma.expeditions.findMany({
+      skip,
+      take: effectiveLimit,
+      include: {
+        camps: true,
+        users: true,
+        expedition_members: true,
+        expedition_allocated_resources: true,
+        expedition_found_resources: true,
+      },
+      orderBy: { id: 'desc' },
+    }),
+    prisma.expeditions.count(),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
     },
-    orderBy: { id: 'desc' },
-  });
+  };
 }
 
 export async function deleteExploration(id: number, data: DeleteExplorationDto) {

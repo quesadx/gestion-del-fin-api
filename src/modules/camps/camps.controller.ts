@@ -26,6 +26,8 @@ export async function getCampHandler(req: Request, res: Response) {
 }
 
 export async function getCampsHandler(req: Request, res: Response) {
-  const result = await getCamps();
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getCamps(page, pageSize);
   return res.json(result);
 }

@@ -10,13 +10,17 @@ import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 
 export async function getCampInventoryHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
-  const result = await getCampInventory(campId);
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getCampInventory(campId, page, pageSize);
   return res.json(result);
 }
 
 export async function getInventoryAuditHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
-  const result = await getInventoryAudit(campId);
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getInventoryAudit(campId, page, pageSize);
   return res.json(result);
 }
 

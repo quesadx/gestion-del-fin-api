@@ -3,7 +3,7 @@ import { z } from 'zod';
 import * as usersController from './users.controller.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { CreateUserSchema, UpdateUserSchema } from './users.schema.js';
-import { idParamsSchema } from '../../shared/schemas/http.schema.js';
+import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import { roleMiddleware } from '../../middlewares/role.middleware.js';
 
 const router = Router();
@@ -91,7 +91,12 @@ router.post(
  *       500:
  *         description: Unexpected server error.
  */
-router.get('/', roleMiddleware(['system_admin']), usersController.getUsersHandler);
+router.get(
+  '/',
+  roleMiddleware(['system_admin']),
+  validate(z.object({ query: paginationQuerySchema })),
+  usersController.getUsersHandler,
+);
 
 /**
  * @openapi

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middlewares/validate.middleware.js';
-import { idParamsSchema } from '../../shared/schemas/http.schema.js';
+import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import {
   approveTransferSourceSchema,
   approveTransferTargetSchema,
@@ -20,7 +20,11 @@ router.post(
   transfersController.createTransferHandler,
 );
 
-router.get('/', transfersController.listTransfersHandler);
+router.get(
+  '/',
+  validate(z.object({ query: paginationQuerySchema })),
+  transfersController.listTransfersHandler,
+);
 
 router.get(
   '/:id',

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import * as admissionController from './admission.controller.js';
 import { createAdmissionSchema, reviewAdmissionSchema } from './admission.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
-import { idParamsSchema } from '../../shared/schemas/http.schema.js';
+import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import { roleMiddleware } from '../../middlewares/role.middleware.js';
 
 const router = Router();
@@ -96,7 +96,12 @@ router.post(
  */
 router.get(
   '/camps/:campId',
-  validate(z.object({ params: z.object({ campId: z.coerce.number().int().positive() }) })),
+  validate(
+    z.object({
+      params: z.object({ campId: z.coerce.number().int().positive() }),
+      query: paginationQuerySchema,
+    }),
+  ),
   admissionController.getAdmissionsHandler,
 );
 

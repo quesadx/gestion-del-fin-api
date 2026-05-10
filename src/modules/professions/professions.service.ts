@@ -50,8 +50,25 @@ export async function getProfession(id: number) {
   return profession;
 }
 
-export async function getProfessions() {
-  return await prisma.professions.findMany();
+export async function getProfessions(page = 1, pageSize = 20) {
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [records, total] = await Promise.all([
+    prisma.professions.findMany({ skip, take: effectiveLimit }),
+    prisma.professions.count(),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
+  };
 }
 
 export async function deleteProfession(id: number) {
