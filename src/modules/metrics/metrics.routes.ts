@@ -115,6 +115,10 @@ router.get('/people', roleMiddleware(['system_admin', 'resource_manager']), getP
  *       500:
  *         description: Unexpected server error.
  */
-router.get('/expeditions', roleMiddleware(['system_admin', 'resource_manager']), getExpeditionsHandler);
+router.get(
+  '/expeditions',
+  roleMiddleware(['system_admin', 'resource_manager']),
+  getExpeditionsHandler,
+);
 
 export default router;
