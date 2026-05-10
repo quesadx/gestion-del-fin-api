@@ -1,11 +1,92 @@
 #!/usr/bin/env bash
 set -u
 
-BASE_URL="${BASE_URL:-http://localhost:3000}"
-USERNAME="${USERNAME:-admin}"
-PASSWORD="${PASSWORD:-admin}"
-TOKEN_FILE="${TOKEN_FILE:-/tmp/gestion-del-fin.token}"
+BASE_URL="${BASE_URL:-}"
+USERNAME="${USERNAME:-}"
+PASSWORD="${PASSWORD:-}"
+TOKEN_FILE="${TOKEN_FILE:-}"
 TMP_DIR="${TMP_DIR:-/tmp/gestion-del-fin-smoke}"
+
+DEFAULT_BASE_URL="http://localhost:3000"
+DEFAULT_TOKEN_FILE="/tmp/gestion-del-fin.token"
+
+prompt_with_default() {
+  local var_name="$1"
+  local prompt_label="$2"
+  local default_value="$3"
+  local current_value="$4"
+
+  if [[ -n "$current_value" ]]; then
+    printf -v "$var_name" '%s' "$current_value"
+    return
+  fi
+
+  read -r -p "$prompt_label [$default_value]: " input_value
+  if [[ -z "$input_value" ]]; then
+    input_value="$default_value"
+  fi
+
+  printf -v "$var_name" '%s' "$input_value"
+}
+
+prompt_required() {
+  local var_name="$1"
+  local prompt_label="$2"
+  local current_value="$3"
+
+  if [[ -n "$current_value" ]]; then
+    printf -v "$var_name" '%s' "$current_value"
+    return
+  fi
+
+  local input_value=""
+  while [[ -z "$input_value" ]]; do
+    read -r -p "$prompt_label: " input_value
+  done
+
+  printf -v "$var_name" '%s' "$input_value"
+}
+
+prompt_always_with_default() {
+  local var_name="$1"
+  local prompt_label="$2"
+  local default_value="$3"
+
+  local input_value=""
+  read -r -p "$prompt_label [$default_value]: " input_value
+  if [[ -z "$input_value" ]]; then
+    input_value="$default_value"
+  fi
+
+  printf -v "$var_name" '%s' "$input_value"
+}
+
+prompt_password() {
+  local var_name="$1"
+  local prompt_label="$2"
+  local current_value="$3"
+
+  if [[ -n "$current_value" ]]; then
+    printf -v "$var_name" '%s' "$current_value"
+    return
+  fi
+
+  local input_value=""
+  while [[ -z "$input_value" ]]; do
+    read -r -s -p "$prompt_label: " input_value
+    echo
+  done
+
+  printf -v "$var_name" '%s' "$input_value"
+}
+
+prompt_with_default BASE_URL "Base URL" "$DEFAULT_BASE_URL" "$BASE_URL"
+prompt_always_with_default USERNAME "Username" "admin_master"
+prompt_password PASSWORD "Password" "$PASSWORD"
+prompt_with_default TOKEN_FILE "Token file" "$DEFAULT_TOKEN_FILE" "$TOKEN_FILE"
+
+# Reset token file at start to avoid using stale tokens if login fails.
+: > "$TOKEN_FILE"
 
 mkdir -p "$TMP_DIR"
 
@@ -86,18 +167,34 @@ else
   log_warn "GET /api/system/time -> $code"
 fi
 
-# Login and save token
-login_body=$(jq -cn --arg username "$USERNAME" --arg password "$PASSWORD" '{username: $username, password: $password}')
 login_out="$TMP_DIR/login.out"
-login_code=$(curl -sS -o "$login_out" -w "%{http_code}" -X POST "$BASE_URL/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d "$login_body" 2>/dev/null)
+login_code=""
 
-if [[ "$login_code" != "200" ]]; then
+# Allow retrying credentials when login fails (inactive user, wrong password, etc.)
+for attempt in 1 2 3; do
+  login_body=$(jq -cn --arg username "$USERNAME" --arg password "$PASSWORD" '{username: $username, password: $password}')
+  login_code=$(curl -sS -o "$login_out" -w "%{http_code}" -X POST "$BASE_URL/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
+    -d "$login_body" 2>/dev/null)
+
+  if [[ "$login_code" == "200" ]]; then
+    break
+  fi
+
   echo "Login failed with status $login_code"
   echo "Response:"
   cat "$login_out"
+
+  if [[ "$attempt" -lt 3 ]]; then
+    echo
+    echo "Try different credentials (attempt $((attempt + 1)) of 3)"
+    prompt_always_with_default USERNAME "Username" "admin_master"
+    prompt_password PASSWORD "Password" ""
+  fi
+done
+
+if [[ "$login_code" != "200" ]]; then
   exit 1
 fi
 

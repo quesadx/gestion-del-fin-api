@@ -143,23 +143,41 @@ async function main() {
 
   // Seed dependent entities
   console.log('Seeding dependent entities...');
-  const adminUser = await prisma.users.create({
-    data: {
+  const adminUser = await prisma.users.upsert({
+    where: { username: 'admin_master' },
+    create: {
       camp_id: mainCamp.id,
       role_id: adminRole.id,
       username: 'admin_master',
       password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
     },
+    update: {
+      camp_id: mainCamp.id,
+      role_id: adminRole.id,
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
+      is_active: true,
+      last_activity: null,
+      session_version: 1,
+    },
   });
 
-  const standardUser = await prisma.users.create({
-    data: {
+  const standardUser = await prisma.users.upsert({
+    where: { username: 'camp_manager' },
+    create: {
       camp_id: secondaryCamp.id,
       role_id: workerRole.id,
       username: 'camp_manager',
       password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
+    },
+    update: {
+      camp_id: secondaryCamp.id,
+      role_id: workerRole.id,
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
+      is_active: true,
+      last_activity: null,
+      session_version: 1,
     },
   });
 
