@@ -41,10 +41,7 @@ export async function getDashboard(campId: number) {
     }),
   ]);
 
-  const totalResourcesValue = inventoryRows.reduce(
-    (sum, row) => sum + asNumber(row.quantity),
-    0,
-  );
+  const totalResourcesValue = inventoryRows.reduce((sum, row) => sum + asNumber(row.quantity), 0);
 
   const lowResourceAlertsCount = lowResourceRows.filter(
     (row) => asNumber(row.quantity) < asNumber(row.resource_type.minimum_stock),
@@ -177,8 +174,7 @@ export async function getExpeditions(campId: number) {
       0,
     );
     const daysElapsed = Math.ceil(
-      (now.getTime() - new Date(exp.departure_date).getTime()) /
-        (1000 * 60 * 60 * 24),
+      (now.getTime() - new Date(exp.departure_date).getTime()) / (1000 * 60 * 60 * 24),
     );
 
     return {
