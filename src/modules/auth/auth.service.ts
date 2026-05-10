@@ -39,3 +39,12 @@ export const login = async (data: LoginInput) => {
 
   return { user: { username: user.username }, token };
 };
+
+export const logout = async (userId: number) => {
+  await prisma.users.update({
+    where: { id: userId },
+    data: { last_activity: null },
+  });
+
+  return { message: 'Logged out successfully' };
+};

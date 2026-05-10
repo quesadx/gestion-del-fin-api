@@ -27,12 +27,14 @@ export const sessionMiddleware = async (
       throw new AppError('Unauthorized', 401);
     }
 
+    if (!user.last_activity) {
+      throw new AppError('Session terminated', 401);
+    }
+
     const now = new Date();
-    if (user.last_activity) {
-      const inactiveForMs = now.getTime() - user.last_activity.getTime();
-      if (inactiveForMs > INACTIVITY_TIMEOUT_MS) {
-        throw new AppError('Unauthorized', 401);
-      }
+    const inactiveForMs = now.getTime() - user.last_activity.getTime();
+    if (inactiveForMs > INACTIVITY_TIMEOUT_MS) {
+      throw new AppError('Session expired', 401);
     }
 
     await prisma.users.update({
