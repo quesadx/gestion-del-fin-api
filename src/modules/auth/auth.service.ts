@@ -31,12 +31,7 @@ export const login = async (data: LoginInput) => {
     throw new AppError('Invalid credentials', 401);
   }
 
-  const token = signAccessToken(
-    user.id,
-    user.camp_id,
-    user.roles.name,
-    user.session_version,
-  );
+  const token = signAccessToken(user.id, user.camp_id, user.roles.name, user.session_version);
 
   await prisma.users.update({
     where: { id: user.id },
