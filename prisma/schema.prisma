@@ -370,6 +370,7 @@ model users {
   id                                                      Int                      @id @default(autoincrement()) @db.UnsignedInt
   camp_id                                                 Int                      @db.UnsignedInt
   role_id                                                 Int                      @db.UnsignedInt
+  session_version                                         Int                      @default(1) @db.UnsignedInt
   username                                                String                   @unique(map: "username_UNIQUE") @db.VarChar(60)
   password_hash                                           String                   @db.VarChar(255)
   is_active                                               Boolean                  @default(true)
