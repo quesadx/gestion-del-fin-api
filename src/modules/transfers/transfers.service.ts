@@ -567,18 +567,32 @@ export async function getTransfer(id: number) {
   return transfer;
 }
 
-export async function getTransfers() {
-  const transfers = await prisma.camp_transfers.findMany({
-    orderBy: { created_at: 'desc' },
-    include: {
-      camp_transfer_item: true,
-      camps_camp_transfers_requesting_campTocamps: true,
-      camps_camp_transfers_target_campTocamps: true,
-    },
-  });
+export async function getTransfers(page = 1, pageSize = 20) {
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [transfers, total] = await Promise.all([
+    prisma.camp_transfers.findMany({
+      skip,
+      take: effectiveLimit,
+      orderBy: { created_at: 'desc' },
+      include: {
+        camp_transfer_item: true,
+        camps_camp_transfers_requesting_campTocamps: true,
+        camps_camp_transfers_target_campTocamps: true,
+      },
+    }),
+    prisma.camp_transfers.count(),
+  ]);
 
   return {
-    total: transfers.length,
-    transfers,
+    data: transfers,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
   };
 }

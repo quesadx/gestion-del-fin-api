@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { inventoryByCampParamsSchema, manualAdjustmentSchema } from './inventory.schema.js';
+import { paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import {
   getCampInventoryHandler,
   getInventoryAuditHandler,
@@ -48,7 +49,7 @@ const router = Router();
 router.get(
   '/:campId',
   roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
-  validate(z.object({ params: inventoryByCampParamsSchema })),
+  validate(z.object({ params: inventoryByCampParamsSchema, query: paginationQuerySchema })),
   getCampInventoryHandler,
 );
 
@@ -89,7 +90,7 @@ router.get(
 router.get(
   '/audit/:campId',
   roleMiddleware(['system_admin', 'resource_manager']),
-  validate(z.object({ params: inventoryByCampParamsSchema })),
+  validate(z.object({ params: inventoryByCampParamsSchema, query: paginationQuerySchema })),
   getInventoryAuditHandler,
 );
 

@@ -29,6 +29,15 @@ export const validate =
         ('body' in parsed || 'params' in parsed || 'query' in parsed)
       ) {
         if ('body' in parsed) req.body = parsed.body;
+        if ('query' in parsed) {
+          Object.defineProperty(req, 'query', {
+            value: parsed.query,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          });
+        }
+        if ('params' in parsed) (req as any).params = parsed.params;
       }
 
       next();

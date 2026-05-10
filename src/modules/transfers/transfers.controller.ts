@@ -17,8 +17,10 @@ export async function createTransferHandler(req: Request, res: Response) {
   return res.status(201).json(result);
 }
 
-export async function listTransfersHandler(_req: Request, res: Response) {
-  const result = await getTransfers();
+export async function listTransfersHandler(req: Request, res: Response) {
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getTransfers(page, pageSize);
   return res.json(result);
 }
 

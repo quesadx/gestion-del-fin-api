@@ -71,28 +71,32 @@ async function validateInventoryConsistency(campId: number) {
   });
 }
 
-export async function getCampInventory(campId: number) {
+export async function getCampInventory(campId: number, page = 1, pageSize = 20) {
   await ensureCampExists(prisma, campId);
 
-  const inventoryRecords = await prisma.inventory.findMany({
-    where: { camp_id: campId },
-    select: {
-      resource_type_id: true,
-      quantity: true,
-      resource_type: {
-        select: {
-          id: true,
-          name: true,
-          unit: true,
-          minimum_stock: true,
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [total, inventoryRecords] = await Promise.all([
+    prisma.inventory.count({ where: { camp_id: campId } }),
+    prisma.inventory.findMany({
+      where: { camp_id: campId },
+      skip,
+      take: effectiveLimit,
+      select: {
+        resource_type_id: true,
+        quantity: true,
+        resource_type: {
+          select: {
+            id: true,
+            name: true,
+            unit: true,
+            minimum_stock: true,
+          },
         },
       },
-    },
-  });
-
-  if (inventoryRecords.length === 0) {
-    return { camp_id: campId, inventory: [] };
-  }
+    }),
+  ]);
 
   const inventory = inventoryRecords
     .map((row) => {
@@ -111,41 +115,62 @@ export async function getCampInventory(campId: number) {
     .sort((a, b) => a.resource_name.localeCompare(b.resource_name));
 
   return {
-    camp_id: campId,
-    inventory,
+    data: inventory,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
   };
 }
 
-export async function getInventoryAudit(campId: number) {
+export async function getInventoryAudit(campId: number, page = 1, pageSize = 20) {
   await ensureCampExists(prisma, campId);
+
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
 
   const consistency = await validateInventoryConsistency(campId);
   const hasInconsistencies = consistency.some((item) => !item.is_consistent);
 
+  const resourceTypeIds = consistency.map((c) => c.resource_type_id);
+  const total = consistency.length;
+
+  const paginatedIds = resourceTypeIds.slice(skip, skip + effectiveLimit);
   const resources = await prisma.resource_type.findMany({
-    where: { id: { in: consistency.map((c) => c.resource_type_id) } },
+    where: { id: { in: paginatedIds } },
     select: { id: true, name: true, unit: true },
   });
 
   const resourcesMap = new Map(resources.map((r) => [r.id, r]));
 
-  const audit = consistency.map((item) => {
-    const resource = resourcesMap.get(item.resource_type_id);
-    return {
-      resource_type_id: item.resource_type_id,
-      resource_name: resource?.name ?? null,
-      unit: resource?.unit ?? null,
-      inventory_quantity: item.inventory_quantity,
-      log_delta_sum: item.log_delta_sum,
-      is_consistent: item.is_consistent,
-      discrepancy: item.discrepancy,
-    };
-  });
+  const audit = consistency
+    .filter((item) => paginatedIds.includes(item.resource_type_id))
+    .map((item) => {
+      const resource = resourcesMap.get(item.resource_type_id);
+      return {
+        resource_type_id: item.resource_type_id,
+        resource_name: resource?.name ?? null,
+        unit: resource?.unit ?? null,
+        inventory_quantity: item.inventory_quantity,
+        log_delta_sum: item.log_delta_sum,
+        is_consistent: item.is_consistent,
+        discrepancy: item.discrepancy,
+      };
+    });
 
   return {
-    camp_id: campId,
+    data: audit,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
     has_inconsistencies: hasInconsistencies,
-    audit,
   };
 }
 
