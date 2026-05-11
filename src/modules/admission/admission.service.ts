@@ -45,13 +45,13 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
   if (!professions) throw new AppError(`Professions not found`, 404);
 
   const professionList = professions
-    .map((p) => `- [ID: ${p.id}] ${p.name}: ${p.description ?? 'Sin descripción'}`)
+    .map((p) => `- [ID: ${p.id}] ${p.name}: ${p.description ?? 'No description'}`)
     .join('\n');
 
   const campContext = camp.ai_context_prompt;
   const aiResult = await evaluateAdmission(
     data,
-    campContext ?? 'Sin contexto definido para este campamento',
+    campContext ?? 'No context defined for this camp',
     professionList,
   );
 
