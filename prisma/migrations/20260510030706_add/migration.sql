@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `users` ADD COLUMN `session_version` INTEGER UNSIGNED NOT NULL DEFAULT 1;

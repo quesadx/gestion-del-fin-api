@@ -26,6 +26,8 @@ export async function getUserHandler(req: Request, res: Response) {
 }
 
 export async function getUsersHandler(req: Request, res: Response) {
-  const result = await getUsers();
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getUsers(page, pageSize);
   return res.json(result);
 }

@@ -6,5 +6,7 @@ export const idParamsSchema = z.object({
 
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(10),
+  pageSize: z.coerce.number().int().positive().default(20),
 });
+
+export type PaginationQuery = z.infer<typeof paginationQuerySchema>;

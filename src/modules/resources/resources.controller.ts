@@ -33,7 +33,7 @@ export async function getResourceHandler(req: Request, res: Response) {
 
 export async function listResourcesHandler(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
-  const result = await getResources(page, limit);
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getResources(page, pageSize);
   return res.json(result);
 }

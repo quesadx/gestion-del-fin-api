@@ -71,15 +71,29 @@ async function main() {
 
   const adminRole = await prisma.roles.create({
     data: {
-      name: 'ADMIN',
+      name: 'system_admin',
       description: 'Administrator with full access',
     },
   });
 
-  const standardRole = await prisma.roles.create({
+  const workerRole = await prisma.roles.create({
     data: {
-      name: 'CAMP_MANAGER',
-      description: 'Manager for a specific camp',
+      name: 'worker',
+      description: 'General camp worker access',
+    },
+  });
+
+  await prisma.roles.create({
+    data: {
+      name: 'resource_manager',
+      description: 'Inventory and resource operations manager',
+    },
+  });
+
+  await prisma.roles.create({
+    data: {
+      name: 'travel_coordinator',
+      description: 'Expedition and transfer coordination role',
     },
   });
 
@@ -129,23 +143,41 @@ async function main() {
 
   // Seed dependent entities
   console.log('Seeding dependent entities...');
-  const adminUser = await prisma.users.create({
-    data: {
+  const adminUser = await prisma.users.upsert({
+    where: { username: 'admin_master' },
+    create: {
       camp_id: mainCamp.id,
       role_id: adminRole.id,
       username: 'admin_master',
       password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
     },
+    update: {
+      camp_id: mainCamp.id,
+      role_id: adminRole.id,
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
+      is_active: true,
+      last_activity: null,
+      session_version: 1,
+    },
   });
 
-  const standardUser = await prisma.users.create({
-    data: {
+  const standardUser = await prisma.users.upsert({
+    where: { username: 'camp_manager' },
+    create: {
       camp_id: secondaryCamp.id,
-      role_id: standardRole.id,
+      role_id: workerRole.id,
       username: 'camp_manager',
       password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
       is_active: true,
+    },
+    update: {
+      camp_id: secondaryCamp.id,
+      role_id: workerRole.id,
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
+      is_active: true,
+      last_activity: null,
+      session_version: 1,
     },
   });
 
@@ -495,6 +527,133 @@ async function main() {
         log_type: 'EXPEDITION_IN',
         delta: '10',
         description: `Seed: Expedition #${returnedExpedition.id} resource return`,
+      },
+    ],
+  });
+
+  // Seed transfers module data
+  console.log('Seeding transfers data...');
+
+  const pendingResourceTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: mainCamp.id,
+      target_camp: secondaryCamp.id,
+      status: 'PENDING',
+      type: 'RESOURCE',
+      notes: 'Emergency support package pending source approval',
+      requested_by: adminUser.id,
+      scheduled_delivery_date: new Date('2026-05-02T10:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: pendingResourceTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: rationsResource.id,
+        quantity: '30.00',
+      },
+      {
+        camp_transfer_id: pendingResourceTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: waterResource.id,
+        quantity: '60.00',
+      },
+    ],
+  });
+
+  const approvedSourceMixedTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: mainCamp.id,
+      target_camp: secondaryCamp.id,
+      status: 'APPROVED_SOURCE',
+      type: 'MIXED',
+      notes: 'Source approved. Awaiting target confirmation.',
+      requested_by: adminUser.id,
+      leader_person_id: quaternaryPerson.id,
+      scheduled_delivery_date: new Date('2026-05-03T14:30:00Z'),
+      approved_by_source: adminUser.id,
+      approved_source_at: new Date('2026-04-20T08:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: approvedSourceMixedTransfer.id,
+        item_type: 'PERSON',
+        person_id: quaternaryPerson.id,
+      },
+      {
+        camp_transfer_id: approvedSourceMixedTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: medsResource.id,
+        quantity: '8.00',
+      },
+    ],
+  });
+
+  const approvedTargetPersonTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: mainCamp.id,
+      target_camp: secondaryCamp.id,
+      status: 'APPROVED_TARGET',
+      type: 'PERSON',
+      notes: 'Fully approved transfer. Pending execution by logistics.',
+      requested_by: adminUser.id,
+      leader_person_id: primaryPerson.id,
+      scheduled_delivery_date: new Date('2026-05-04T09:15:00Z'),
+      approved_by_source: adminUser.id,
+      approved_source_at: new Date('2026-04-21T10:00:00Z'),
+      approved_by_target: standardUser.id,
+      approved_target_at: new Date('2026-04-22T11:30:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: approvedTargetPersonTransfer.id,
+        item_type: 'PERSON',
+        person_id: primaryPerson.id,
+      },
+      {
+        camp_transfer_id: approvedTargetPersonTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: rationsResource.id,
+        quantity: '6.00',
+      },
+      {
+        camp_transfer_id: approvedTargetPersonTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: waterResource.id,
+        quantity: '12.00',
+      },
+    ],
+  });
+
+  const rejectedTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: secondaryCamp.id,
+      target_camp: mainCamp.id,
+      status: 'REJECTED',
+      type: 'RESOURCE',
+      notes: 'Rejected by destination due to route risk escalation.',
+      requested_by: standardUser.id,
+      scheduled_delivery_date: new Date('2026-04-30T16:00:00Z'),
+      approved_by_source: standardUser.id,
+      approved_source_at: new Date('2026-04-18T09:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_item.createMany({
+    data: [
+      {
+        camp_transfer_id: rejectedTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: medsResource.id,
+        quantity: '4.00',
       },
     ],
   });

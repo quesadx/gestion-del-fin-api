@@ -32,6 +32,8 @@ export async function getProfessionHandler(req: Request, res: Response) {
 }
 
 export async function listProfessionsHandler(req: Request, res: Response) {
-  const result = await getProfessions();
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getProfessions(page, pageSize);
   return res.json(result);
 }

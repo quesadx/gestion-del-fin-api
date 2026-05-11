@@ -9,28 +9,37 @@ import { AppError } from '../shared/utils/appError.js';
 export async function evaluateAdmission(
   data: CreateAdmissionDTO,
   campRules: string,
+  professions: string,
 ): Promise<AdmissionAIResult> {
   const prompt = `
-    Eres el sistema de admisión de un campamento post-apocalíptico. 
-    Analiza el perfil del sobreviviente y toma una decisión basándote en las reglas. 
-    Razona paso a paso antes de decidir.
-    Responde únicamente con un objeto JSON válido con exactamente esta estructura:
+    You are the admission system for a post-apocalyptic camp.
+    Analyze the survivor profile and make a decision based on the camp rules.
+    Reason step by step before deciding.
+    Respond only with a valid JSON object using exactly this structure:
 
     {
-      "ai_decision": "ACCEPTED" o "REJECTED",
-      "ai_reasoning": "explicación detallada de la decisión",
-      "ai_suggested_profession": "profesión o cargo sugerido"
+      "ai_decision": "ACCEPTED" or "REJECTED",
+      "ai_reasoning": "detailed explanation of the decision",
+      "ai_suggested_profession": "suggested profession or role",
+      "ai_profession_id": "ID of the suggested profession"
     }
 
-    Reglas del campamento:
+    Camp rules:
     ${campRules}
 
-    Perfil del sobreviviente:
-    - Nombre: ${data.applicant_name}
-    - Edad: ${data.applicant_age ?? 'No especificada'}
-    - Estado de salud: ${data.health_notes ?? 'Sin notas'}
-    - Habilidades: ${data.applicant_skills ?? 'No especificadas'}
-    - Antecedentes: ${data.background_notes ?? 'Sin Antecedentes'}
+    Available professions:
+    ${professions}
+
+    Survivor profile:
+    - Name: ${data.applicant_name}
+    - Age: ${data.applicant_age ?? 'Not specified'}
+    - Health status: ${data.health_notes ?? 'No notes'}
+    - Skills: ${data.applicant_skills ?? 'Not specified'}
+    - Background: ${data.background_notes ?? 'No background provided'}
+
+    IMPORTANT: The "ai_profession_id" field must be an integer
+    that matches an ID from the professions list above.
+    Do not invent an ID. Use only IDs shown in the list.
   `;
 
   const response = await ai.chat.completions.create({

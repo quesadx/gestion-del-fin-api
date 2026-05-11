@@ -50,6 +50,7 @@ model admission_requests {
   ai_decision             admission_requests_ai_decision    @default(PENDING)
   ai_reasoning            String?                           @db.Text
   ai_suggested_profession String?                           @db.VarChar(80)
+  ai_profession_id        Int?                              @db.UnsignedInt
   reviewed_by             Int?                              @db.UnsignedInt
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?                         @db.DateTime(0)
@@ -371,6 +372,7 @@ model users {
   id                                                      Int                      @id @default(autoincrement()) @db.UnsignedInt
   camp_id                                                 Int                      @db.UnsignedInt
   role_id                                                 Int                      @db.UnsignedInt
+  session_version                                         Int                      @default(1) @db.UnsignedInt
   username                                                String                   @unique(map: "username_UNIQUE") @db.VarChar(60)
   password_hash                                           String                   @db.VarChar(255)
   is_active                                               Boolean                  @default(true)
