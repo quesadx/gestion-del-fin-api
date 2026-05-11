@@ -165,14 +165,7 @@ async function applyResourceTransfer(
       .entries(),
   ).map(([resource_type_id, quantity]) => ({ resource_type_id, quantity }));
 
-  const logEntries: Array<{
-    camp_id: number;
-    resource_type_id: number;
-    logged_by: number;
-    log_type: string;
-    delta: number;
-    description: string;
-  }> = [];
+  const logEntries: Prisma.inventory_logCreateManyInput[] = [];
 
   for (const item of aggregatedResourceItems) {
     const updateResult = await tx.inventory.updateMany({

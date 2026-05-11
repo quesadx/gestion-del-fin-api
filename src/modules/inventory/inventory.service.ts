@@ -10,14 +10,16 @@ function asNumber(value: unknown): number {
 type InventoryTransactionClient = Prisma.TransactionClient;
 
 async function ensureCampExists(tx: InventoryTransactionClient, campId: number) {
-  const camp = await tx.camps.findUnique({ where: { id: campId }, select: { id: true } });
+  const client = tx as unknown as typeof prisma;
+  const camp = await client.camps.findUnique({ where: { id: campId }, select: { id: true } });
   if (!camp) {
     throw new AppError(`Camp not found: ${campId}`, 404);
   }
 }
 
 async function ensureResourceExists(tx: InventoryTransactionClient, resourceTypeId: number) {
-  const resource = await tx.resource_type.findUnique({
+  const client = tx as unknown as typeof prisma;
+  const resource = await client.resource_type.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -28,7 +30,8 @@ async function ensureResourceExists(tx: InventoryTransactionClient, resourceType
 }
 
 async function ensureUserExists(tx: InventoryTransactionClient, userId: number) {
-  const user = await tx.users.findUnique({ where: { id: userId }, select: { id: true } });
+  const client = tx as unknown as typeof prisma;
+  const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
   }
@@ -47,11 +50,19 @@ async function validateInventoryConsistency(campId: number) {
   });
 
   const inventoryMap = new Map(
-    inventoryRecords.map((inv) => [inv.resource_type_id, asNumber(inv.quantity)]),
+    inventoryRecords.map((inv: { resource_type_id: number; quantity: Prisma.Decimal }) => [
+      inv.resource_type_id,
+      asNumber(inv.quantity),
+    ]),
   );
 
   const logMap = new Map(
-    logDeltasByResource.map((row) => [row.resource_type_id, asNumber(row._sum.delta ?? 0)]),
+    logDeltasByResource.map(
+      (row: { resource_type_id: number; _sum: { delta: Prisma.Decimal | null } }) => [
+        row.resource_type_id,
+        asNumber(row._sum.delta ?? 0),
+      ],
+    ),
   );
 
   const allResourceTypeIds = new Set<number>([...inventoryMap.keys(), ...logMap.keys()]);
@@ -99,20 +110,28 @@ export async function getCampInventory(campId: number, page = 1, pageSize = 20) 
   ]);
 
   const inventory = inventoryRecords
-    .map((row) => {
-      const quantity = asNumber(row.quantity);
-      const minimumStock = asNumber(row.resource_type.minimum_stock);
+    .map(
+      (row: {
+        resource_type_id: number;
+        quantity: Prisma.Decimal;
+        resource_type: { id: number; name: string; unit: string; minimum_stock: Prisma.Decimal };
+      }) => {
+        const quantity = asNumber(row.quantity);
+        const minimumStock = asNumber(row.resource_type.minimum_stock);
 
-      return {
-        resource_type_id: row.resource_type_id,
-        resource_name: row.resource_type.name,
-        unit: row.resource_type.unit,
-        quantity,
-        minimum_stock: minimumStock,
-        is_below_minimum: quantity < minimumStock,
-      };
-    })
-    .sort((a, b) => a.resource_name.localeCompare(b.resource_name));
+        return {
+          resource_type_id: row.resource_type_id,
+          resource_name: row.resource_type.name,
+          unit: row.resource_type.unit,
+          quantity,
+          minimum_stock: minimumStock,
+          is_below_minimum: quantity < minimumStock,
+        };
+      },
+    )
+    .sort((a: { resource_name: string }, b: { resource_name: string }) =>
+      a.resource_name.localeCompare(b.resource_name),
+    );
 
   return {
     data: inventory,
@@ -144,7 +163,9 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
     select: { id: true, name: true, unit: true },
   });
 
-  const resourcesMap = new Map(resources.map((r) => [r.id, r]));
+  const resourcesMap = new Map(
+    resources.map((r: { id: number; name: string; unit: string }) => [r.id, r]),
+  );
 
   const audit = consistency
     .filter((item) => paginatedIds.includes(item.resource_type_id))
@@ -176,6 +197,7 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
 
 export async function createManualAdjustment(data: ManualAdjustmentDto, userId: number) {
   return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
     await Promise.all([
       ensureCampExists(tx, data.camp_id),
       ensureResourceExists(tx, data.resource_type_id),
@@ -187,7 +209,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
     const delta = isManualIn ? data.quantity : -data.quantity;
 
     if (isManualIn) {
-      await tx.inventory.upsert({
+      await client.inventory.upsert({
         where: {
           camp_id_resource_type_id: {
             camp_id: data.camp_id,
@@ -206,7 +228,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
         },
       });
     } else {
-      const updateResult = await tx.inventory.updateMany({
+      const updateResult = await client.inventory.updateMany({
         where: {
           camp_id: data.camp_id,
           resource_type_id: data.resource_type_id,
@@ -226,7 +248,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       }
     }
 
-    const movement = await tx.inventory_log.create({
+    const movement = await client.inventory_log.create({
       data: {
         camp_id: data.camp_id,
         resource_type_id: data.resource_type_id,
@@ -247,7 +269,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       },
     });
 
-    const currentInventory = await tx.inventory.findUnique({
+    const currentInventory = await client.inventory.findUnique({
       where: {
         camp_id_resource_type_id: {
           camp_id: data.camp_id,

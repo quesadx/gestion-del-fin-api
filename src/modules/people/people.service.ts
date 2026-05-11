@@ -63,7 +63,8 @@ async function ensureProfessionExists(professionId: number) {
 }
 
 async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionId: number) {
-  const profession = await tx.professions.findUnique({
+  const client = tx as unknown as typeof prisma;
+  const profession = await client.professions.findUnique({
     where: { id: professionId },
     select: { id: true },
   });
@@ -74,7 +75,8 @@ async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionI
 }
 
 async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceTypeId: number) {
-  const resourceType = await tx.resource_type.findUnique({
+  const client = tx as unknown as typeof prisma;
+  const resourceType = await client.resource_type.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -85,7 +87,8 @@ async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceT
 }
 
 async function ensureUserExistsTx(tx: PeopleTransactionClient, userId: number) {
-  const user = await tx.users.findUnique({ where: { id: userId }, select: { id: true } });
+  const client = tx as unknown as typeof prisma;
+  const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
   }
@@ -181,9 +184,10 @@ export async function updatePerson(
 
   try {
     return await prisma.$transaction(async (tx: PeopleTransactionClient) => {
+      const client = tx as unknown as typeof prisma;
       await ensureUserExistsTx(tx, changedBy);
 
-      const currentPerson = await tx.persons.findUnique({
+      const currentPerson = await client.persons.findUnique({
         where: { id },
         select: { id: true, status: true },
       });
@@ -192,14 +196,14 @@ export async function updatePerson(
         throw new AppError(`Person not found: ${id}`, 404);
       }
 
-      const updatedPerson = await tx.persons.update({
+      const updatedPerson = await client.persons.update({
         where: { id },
         data: preparePersonUpdateData({ ...data, camp_id: campId }),
         include: personInclude,
       });
 
       if (data.status && data.status !== currentPerson.status) {
-        await tx.person_status_log.create({
+        await client.person_status_log.create({
           data: {
             person_id: id,
             old_status: currentPerson.status,
@@ -274,9 +278,10 @@ export async function createPersonStatusLog(
   userId: number,
 ) {
   return prisma.$transaction(async (tx: PeopleTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
     await ensureUserExistsTx(tx, userId);
 
-    const person = await tx.persons.findUnique({
+    const person = await client.persons.findUnique({
       where: { id: data.person_id },
       select: { id: true, camp_id: true, status: true },
     });
@@ -293,12 +298,12 @@ export async function createPersonStatusLog(
       throw new AppError('new_status must be different from current status', 400);
     }
 
-    await tx.persons.update({
+    await client.persons.update({
       where: { id: data.person_id },
       data: { status: data.new_status },
     });
 
-    return tx.person_status_log.create({
+    return client.person_status_log.create({
       data: {
         person_id: data.person_id,
         old_status: person.status,
@@ -330,7 +335,8 @@ export async function createProfessionReassignment(
   data: CreateProfessionReassignmentDto,
 ) {
   return prisma.$transaction(async (tx: PeopleTransactionClient) => {
-    const person = await tx.persons.findUnique({
+    const client = tx as unknown as typeof prisma;
+    const person = await client.persons.findUnique({
       where: { id: data.person_id },
       select: {
         id: true,
@@ -363,7 +369,7 @@ export async function createProfessionReassignment(
     const todayStr = new Date().toISOString().slice(0, 10);
     const today = new Date(`${todayStr}T00:00:00.000Z`);
 
-    const activeReassignment = await tx.profession_reassignment_log.findFirst({
+    const activeReassignment = await client.profession_reassignment_log.findFirst({
       where: {
         person_id: data.person_id,
         OR: [{ end_date: null }, { end_date: { gte: today } }],
@@ -378,7 +384,7 @@ export async function createProfessionReassignment(
       );
     }
 
-    const targetActiveCount = await tx.persons.count({
+    const targetActiveCount = await client.persons.count({
       where: {
         camp_id: person.camp_id,
         profession_id: data.to_profession_id,
@@ -396,12 +402,12 @@ export async function createProfessionReassignment(
     const startDate = parseDateOnly(data.start_date, 'start_date');
     const endDate = parseDateOnly(data.end_date, 'end_date');
 
-    await tx.persons.update({
+    await client.persons.update({
       where: { id: data.person_id },
       data: { profession_id: data.to_profession_id },
     });
 
-    const log = await tx.profession_reassignment_log.create({
+    const log = await client.profession_reassignment_log.create({
       data: {
         person_id: data.person_id,
         from_profession_id: data.from_profession_id,
@@ -436,12 +442,13 @@ export async function createContributionOverride(
   userId: number,
 ) {
   return prisma.$transaction(async (tx: PeopleTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
     await Promise.all([
       ensureResourceTypeExistsTx(tx, data.resource_type_id),
       ensureUserExistsTx(tx, userId),
     ]);
 
-    const person = await tx.persons.findUnique({
+    const person = await client.persons.findUnique({
       where: { id: data.person_id },
       select: { id: true, camp_id: true },
     });
@@ -457,7 +464,7 @@ export async function createContributionOverride(
     const startDate = parseDateOnly(data.start_date, 'start_date');
     const endDate = parseDateOnly(data.end_date, 'end_date');
 
-    return tx.contribution_overrides.create({
+    return client.contribution_overrides.create({
       data: {
         person_id: data.person_id,
         resource_type_id: data.resource_type_id,
