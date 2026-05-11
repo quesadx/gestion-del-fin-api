@@ -13,6 +13,7 @@ import {
   CreateProfessionReassignmentDto,
   UpdatePersonDto,
 } from './people.schema.js';
+import { TransactionClient } from '../../generated/prisma/internal/prismaNamespace.js';
 
 const personInclude = { camps: true, professions: true };
 const ACTIVE_PERSON_STATUS_SET = new Set<persons_status>(
@@ -145,15 +146,17 @@ function preparePersonUpdateData(data: UpdatePersonDto) {
   };
 }
 
-export async function createPerson(campId: number, data: CreatePersonDto) {
+export async function createPerson(campId: number, data: CreatePersonDto, tx?: TransactionClient) {
   if (data.camp_id !== campId) {
     throw new AppError(`camp_id in body (${data.camp_id}) must match URL campId (${campId})`, 400);
   }
 
   await validateRelations({ camp_id: campId, profession_id: data.profession_id });
 
+  const client = tx ?? prisma;
+
   try {
-    return await prisma.persons.create({
+    return await client.persons.create({
       data: preparePersonCreateData({ ...data, camp_id: campId }),
       include: personInclude,
     });

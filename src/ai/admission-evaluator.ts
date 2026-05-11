@@ -36,6 +36,10 @@ export async function evaluateAdmission(
     - Estado de salud: ${data.health_notes ?? 'Sin notas'}
     - Habilidades: ${data.applicant_skills ?? 'No especificadas'}
     - Antecedentes: ${data.background_notes ?? 'Sin Antecedentes'}
+
+    IMPORTANTE: El campo "ai_profession_id" debe ser un número entero 
+    correspondiente al ID de la lista de profesiones de arriba. 
+    NO inventes un ID, usa únicamente los que aparecen en la lista.
   `;
 
   const response = await ai.chat.completions.create({
