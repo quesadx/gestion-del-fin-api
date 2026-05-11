@@ -7,6 +7,7 @@ export const admissionAIResultSchema = z.object({
   ai_decision: aiDecisionEnum,
   ai_reasoning: z.string().describe('Detailed explanation step by step about the decision'),
   ai_suggested_profession: z.string().max(80).describe('Suggested profession within the camp'),
+  ai_profession_id: z.coerce.number().int(),
 });
 
 export type AdmissionAIResult = z.infer<typeof admissionAIResultSchema>;

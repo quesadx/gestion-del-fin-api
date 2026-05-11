@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { AdmissionAIResult, CreateAdmissionDTO, ReviewAdmissionDTO } from './admission.schema.js';
 import { evaluateAdmission } from '../../ai/admission-evaluator.js';
+import { createPerson } from '../people/people.service.js';
 import { AppError } from '../../shared/utils/appError.js';
 
 function prepareAdmissionCreateData(
@@ -23,6 +24,7 @@ function prepareAdmissionCreateData(
     ai_decision: aiData.ai_decision ?? 'PENDING',
     ai_reasoning: aiData.ai_reasoning.trim(),
     ai_suggested_profession: aiData.ai_suggested_profession.trim(),
+    ai_profession_id: aiData.ai_profession_id,
     created_at: new Date(),
   };
 }
@@ -33,10 +35,24 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
   });
   if (!camp) throw new AppError(`Camp not found ${campId}`, 404);
 
+  const professions = await prisma.professions.findMany({
+    select: {
+      id: true,
+      name: true,
+      description: true,
+    },
+  });
+  if (!professions) throw new AppError(`Professions not found`, 404);
+
+  const professionList = professions
+    .map((p) => `- [ID: ${p.id}] ${p.name}: ${p.description ?? 'No description'}`)
+    .join('\n');
+
   const campContext = camp.ai_context_prompt;
   const aiResult = await evaluateAdmission(
     data,
-    campContext ?? 'Sin contexto definido para este campamento',
+    campContext ?? 'No context defined for this camp',
+    professionList,
   );
 
   return prisma.admission_requests.create({
@@ -77,12 +93,34 @@ export async function getAdmissionsById(id: number) {
 }
 
 export async function reviewAdmission(id: number, reviewedBy: number, data: ReviewAdmissionDTO) {
-  return prisma.admission_requests.update({
-    where: { id },
-    data: {
-      final_decision: data.final_decision,
-      reviewed_by: reviewedBy,
-      reviewed_at: new Date(),
-    },
+  return prisma.$transaction(async (tx) => {
+    const admission = await tx.admission_requests.update({
+      where: { id },
+      data: {
+        final_decision: data.final_decision,
+        reviewed_by: reviewedBy,
+        reviewed_at: new Date(),
+      },
+    });
+
+    if (data.final_decision === 'ACCEPTED') {
+      if (!admission.ai_profession_id) {
+        throw new AppError('Cannot create person without a profession assigned by AI', 400);
+      }
+
+      await createPerson(
+        admission.camp_id,
+        {
+          full_name: admission.applicant_name,
+          age: admission.applicant_age ?? undefined,
+          skills_summary: admission.applicant_skills ?? undefined,
+          profession_id: admission.ai_profession_id,
+          camp_id: admission.camp_id,
+          admitted_at: new Date().toISOString(),
+        },
+        tx,
+      );
+    }
+    return admission;
   });
 }

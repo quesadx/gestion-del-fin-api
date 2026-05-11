@@ -49,6 +49,7 @@ model admission_requests {
   ai_decision             admission_requests_ai_decision    @default(PENDING)
   ai_reasoning            String?                           @db.Text
   ai_suggested_profession String?                           @db.VarChar(80)
+  ai_profession_id        Int?                              @db.UnsignedInt
   reviewed_by             Int?                              @db.UnsignedInt
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?                         @db.DateTime(0)
