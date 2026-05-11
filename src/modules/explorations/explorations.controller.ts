@@ -39,6 +39,8 @@ export async function getExplorationHandler(req: Request, res: Response) {
 }
 
 export async function listExplorationsHandler(req: Request, res: Response) {
-  const result = await getExplorations();
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await getExplorations(page, pageSize);
   return res.json(result);
 }

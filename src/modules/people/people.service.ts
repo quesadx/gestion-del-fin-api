@@ -230,15 +230,32 @@ export async function getPerson(campId: number, id: number) {
   return person;
 }
 
-export async function getPeople(campId: number, page = 1, limit = 10) {
+export async function getPeople(campId: number, page = 1, pageSize = 20) {
   await ensureCampExists(campId);
 
-  return await prisma.persons.findMany({
-    where: { camp_id: campId },
-    skip: (page - 1) * limit,
-    take: limit,
-    include: personInclude,
-  });
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [records, total] = await Promise.all([
+    prisma.persons.findMany({
+      where: { camp_id: campId },
+      skip,
+      take: effectiveLimit,
+      include: personInclude,
+    }),
+    prisma.persons.count({ where: { camp_id: campId } }),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
+  };
 }
 
 export async function deletePerson(campId: number, id: number) {

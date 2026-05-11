@@ -3,8 +3,13 @@ import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { authMiddleware } from './middlewares/auth.middleware.js';
+import { sessionMiddleware } from './middlewares/session.middleware.js';
+import { campMiddleware } from './middlewares/camp.middleware.js';
+import { swaggerSpec } from './docs/swagger.js';
 
 import express from 'express';
+import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import systemRoutes from './modules/system/system.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
 
@@ -15,6 +20,8 @@ import userRoutes from './modules/users/users.routes.js';
 import professionsRoutes from './modules/professions/professions.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import admissionRoutes from './modules/admission/admission.routes.js';
+import transfersRoutes from './modules/transfers/transfers.routes.js';
+import metricsRoutes from './modules/metrics/metrics.routes.js';
 
 const app = express();
 
@@ -22,17 +29,34 @@ app.get('/', (req, res) => {
   res.json({ message: 'gestion-del-fin-api is alive and kicking!' });
 });
 
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
+
 app.use('/api/system', systemRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/resources', authMiddleware, resourcesRoutes);
-app.use('/api/expeditions', authMiddleware, explorationsRoutes);
-app.use('/api/camps', authMiddleware, campsRoutes);
-app.use('/api/users', authMiddleware, userRoutes);
-app.use('/api/professions', authMiddleware, professionsRoutes);
+app.use('/api/resources', authMiddleware, sessionMiddleware, campMiddleware, resourcesRoutes);
+app.use('/api/expeditions', authMiddleware, sessionMiddleware, campMiddleware, explorationsRoutes);
+app.use('/api/camps', authMiddleware, sessionMiddleware, campMiddleware, campsRoutes);
+app.use('/api/users', authMiddleware, sessionMiddleware, campMiddleware, userRoutes);
+app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, professionsRoutes);
 
-app.use('/api/inventory', authMiddleware, inventoryRoutes);
-app.use('/api/admission', authMiddleware, admissionRoutes);
+app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
+app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
+app.use('/api/transfers', authMiddleware, sessionMiddleware, campMiddleware, transfersRoutes);
+app.use('/api/metrics', authMiddleware, sessionMiddleware, campMiddleware, metricsRoutes);
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api/docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;

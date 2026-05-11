@@ -54,8 +54,25 @@ export async function getCamp(id: number) {
   return camp;
 }
 
-export async function getCamps() {
-  return await prisma.camps.findMany();
+export async function getCamps(page = 1, pageSize = 20) {
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [records, total] = await Promise.all([
+    prisma.camps.findMany({ skip, take: effectiveLimit }),
+    prisma.camps.count(),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
+  };
 }
 
 export async function deleteCamp(id: number) {

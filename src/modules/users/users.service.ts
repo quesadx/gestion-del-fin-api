@@ -64,8 +64,25 @@ export async function getUser(id: number) {
   return user;
 }
 
-export async function getUsers() {
-  return await prisma.users.findMany();
+export async function getUsers(page = 1, pageSize = 20) {
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [records, total] = await Promise.all([
+    prisma.users.findMany({ skip, take: effectiveLimit }),
+    prisma.users.count(),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
+  };
 }
 
 export async function deleteUser(id: number) {

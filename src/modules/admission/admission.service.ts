@@ -60,11 +60,30 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
   });
 }
 
-export async function getAdmissions(campId: number) {
-  return prisma.admission_requests.findMany({
-    where: { camp_id: campId },
-    orderBy: { created_at: 'desc' },
-  });
+export async function getAdmissions(campId: number, page = 1, pageSize = 20) {
+  const effectiveLimit = Math.min(pageSize, 100);
+  const skip = (page - 1) * effectiveLimit;
+
+  const [records, total] = await Promise.all([
+    prisma.admission_requests.findMany({
+      where: { camp_id: campId },
+      skip,
+      take: effectiveLimit,
+      orderBy: { created_at: 'desc' },
+    }),
+    prisma.admission_requests.count({ where: { camp_id: campId } }),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      pageSize: effectiveLimit,
+      total,
+      hasNextPage: page * effectiveLimit < total,
+      totalPages: Math.ceil(total / effectiveLimit),
+    },
+  };
 }
 
 export async function getAdmissionsById(id: number) {

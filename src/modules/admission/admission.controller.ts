@@ -14,7 +14,9 @@ export async function createAdmissionHandler(req: Request, res: Response) {
 
 export async function getAdmissionsHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
-  const result = await service.getAdmissions(campId);
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 20;
+  const result = await service.getAdmissions(campId, page, pageSize);
   res.json(result);
 }
 
