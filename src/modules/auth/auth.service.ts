@@ -38,7 +38,7 @@ export const login = async (data: LoginInput) => {
     data: { last_activity: new Date() },
   });
 
-  return { user: { username: user.username }, token };
+  return { user: { username: user.username, role: user.roles.name }, token };
 };
 
 export const logout = async (userId: number) => {
