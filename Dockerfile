@@ -2,8 +2,11 @@ FROM node:22-slim AS base
 
 WORKDIR /app
 
-ENV NODE_ENV=production
 ENV PORT=3000
+
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends openssl \
+	&& rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 
@@ -18,6 +21,8 @@ COPY src ./src
 RUN npx prisma generate && npm run build
 
 FROM base AS runner
+
+ENV NODE_ENV=production
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
