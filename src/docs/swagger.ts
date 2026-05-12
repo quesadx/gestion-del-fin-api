@@ -67,14 +67,15 @@ export const swaggerSpec = swaggerJSDoc({
           properties: {
             user: {
               type: 'object',
-              required: ['username'],
+              required: ['username', 'role'],
               properties: {
                 username: { type: 'string', example: 'admin' },
+                role: { type: 'string', example: 'ADMIN' },
               },
             },
             token: {
               type: 'string',
-              description: 'JWT access token',
+              description: 'JWT access token (claims include userId, campId, role, sessionVersion)',
               example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
             },
           },
