@@ -6,6 +6,7 @@ import { authMiddleware } from './middlewares/auth.middleware.js';
 import { sessionMiddleware } from './middlewares/session.middleware.js';
 import { campMiddleware } from './middlewares/camp.middleware.js';
 import { swaggerSpec } from './docs/swagger.js';
+import jobScheduler from './jobs/scheduler.js';
 
 import express from 'express';
 import cors from 'cors';
@@ -71,11 +72,16 @@ if (
   process.exit(1);
 }
 
+if (NODE_ENV !== 'test') {
+  jobScheduler.startJobScheduler();
+}
+
 app.listen(PORT, () => {
   logger.info(`Server listening on port ${PORT} [${NODE_ENV}]`);
 });
 
 process.on('SIGINT', async () => {
+  jobScheduler.stopJobScheduler();
   await prisma.$disconnect();
   logger.info('DB connection closed. Shutting down gracefully...');
   process.exit(0);

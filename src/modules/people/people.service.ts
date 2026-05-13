@@ -262,6 +262,16 @@ export async function getPeople(campId: number, page = 1, pageSize = 20) {
   };
 }
 
+export async function getActivePeopleWithProfessionsByCamp(campId: number) {
+  await ensureCampExists(campId);
+
+  return prisma.persons.findMany({
+    where: { camp_id: campId, status: { not: persons_status.DEAD } },
+    include: { professions: true },
+    orderBy: [{ id: 'asc' }],
+  });
+}
+
 export async function deletePerson(campId: number, id: number) {
   await ensurePersonBelongsToCamp(campId, id);
 

@@ -1,4 +1,4 @@
-import { Prisma } from '../../generated/prisma/client.js';
+import { Prisma, inventory_log_log_type } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { ManualAdjustmentDto } from './inventory.schema.js';
@@ -8,6 +8,11 @@ function asNumber(value: unknown): number {
 }
 
 type InventoryTransactionClient = Prisma.TransactionClient;
+
+type InventoryConsumptionResult = {
+  consumed: number;
+  remaining: number;
+};
 
 async function ensureCampExists(tx: InventoryTransactionClient, campId: number) {
   const client = tx as unknown as typeof prisma;
@@ -78,6 +83,65 @@ async function validateInventoryConsistency(campId: number) {
       log_delta_sum: logSum,
       is_consistent: isConsistent,
       discrepancy: inventoryQty - logSum,
+    };
+  });
+}
+
+export async function consumeInventoryWithLog(
+  campId: number,
+  resourceTypeId: number,
+  quantity: number,
+  description: string,
+): Promise<InventoryConsumptionResult> {
+  if (quantity <= 0) {
+    throw new AppError('Quantity must be greater than 0', 400);
+  }
+
+  return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
+
+    const updateResult = await client.inventory.updateMany({
+      where: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+        quantity: { gte: quantity },
+      },
+      data: {
+        quantity: { decrement: quantity },
+      },
+    });
+
+    if (updateResult.count === 0) {
+      throw new AppError(
+        `Insufficient inventory for resource_type_id ${resourceTypeId} in camp ${campId}`,
+        400,
+      );
+    }
+
+    const movement = await client.inventory_log.create({
+      data: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+        log_type: inventory_log_log_type.DAILY_RATION,
+        delta: -quantity,
+        description,
+      },
+      select: { delta: true },
+    });
+
+    const currentInventory = await client.inventory.findUnique({
+      where: {
+        camp_id_resource_type_id: {
+          camp_id: campId,
+          resource_type_id: resourceTypeId,
+        },
+      },
+      select: { quantity: true },
+    });
+
+    return {
+      consumed: Number(movement.delta),
+      remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
 }
