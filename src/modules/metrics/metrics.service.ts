@@ -105,6 +105,14 @@ export async function getResources(campId: number) {
     .sort((a, b) => a.resource_name.localeCompare(b.resource_name));
 }
 
+export async function getLowResourceAlerts(campId: number) {
+  const resources = await getResources(campId);
+
+  return resources.filter(
+    (resource) => resource.status === 'LOW' || resource.status === 'CRITICAL',
+  );
+}
+
 export async function getPeople(campId: number) {
   const [totalSurvivors, byProfession, byStatus, camp] = await Promise.all([
     prisma.persons.count({ where: { camp_id: campId, status: { not: 'DEAD' } } }),

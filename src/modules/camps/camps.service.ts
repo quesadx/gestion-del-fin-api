@@ -54,6 +54,13 @@ export async function getCamp(id: number) {
   return camp;
 }
 
+export async function getAllCamps() {
+  return prisma.camps.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: 'asc' },
+  });
+}
+
 export async function getCamps(page = 1, pageSize = 20) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;

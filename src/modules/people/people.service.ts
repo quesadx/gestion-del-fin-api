@@ -272,6 +272,24 @@ export async function getActivePeopleWithProfessionsByCamp(campId: number) {
   });
 }
 
+export async function getActiveContributionOverridesByCamp(campId: number) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const today = new Date(`${todayStr}T00:00:00.000Z`);
+
+  return prisma.contribution_overrides.findMany({
+    where: {
+      persons: { camp_id: campId },
+      start_date: { lte: today },
+      OR: [{ end_date: null }, { end_date: { gte: today } }],
+    },
+    select: {
+      person_id: true,
+      resource_type_id: true,
+      amount: true,
+    },
+  });
+}
+
 export async function deletePerson(campId: number, id: number) {
   await ensurePersonBelongsToCamp(campId, id);
 

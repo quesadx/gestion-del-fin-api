@@ -2,6 +2,8 @@ import { Prisma, inventory_log_log_type } from '../../generated/prisma/client.js
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { ManualAdjustmentDto } from './inventory.schema.js';
+import { logger } from '../../logger/logger.js';
+import { getLowResourceAlerts } from '../metrics/metrics.service.js';
 
 function asNumber(value: unknown): number {
   return Number(value);
@@ -11,6 +13,11 @@ type InventoryTransactionClient = Prisma.TransactionClient;
 
 type InventoryConsumptionResult = {
   consumed: number;
+  remaining: number;
+};
+
+type InventoryGainResult = {
+  gained: number;
   remaining: number;
 };
 
@@ -39,6 +46,25 @@ async function ensureUserExists(tx: InventoryTransactionClient, userId: number) 
   const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
+  }
+}
+
+async function logLowResourceAlerts(campId: number) {
+  try {
+    const alerts = await getLowResourceAlerts(campId);
+
+    for (const alert of alerts) {
+      const message = ` [INVENTORY] Camp ${campId}: ${alert.status} alert for ${alert.resource_name} (${alert.quantity_current}/${alert.quantity_min_threshold})`;
+
+      if (alert.status === 'CRITICAL') {
+        logger.error(message);
+      } else {
+        logger.warn(message);
+      }
+    }
+  } catch (error) {
+    logger.error(` [INVENTORY] Failed to evaluate low stock alerts for camp ${campId}`);
+    logger.error(error);
   }
 }
 
@@ -141,6 +167,67 @@ export async function consumeInventoryWithLog(
 
     return {
       consumed: Number(movement.delta),
+      remaining: Number(currentInventory?.quantity ?? 0),
+    };
+  });
+}
+
+export async function increaseInventoryWithLog(
+  campId: number,
+  resourceTypeId: number,
+  quantity: number,
+  description: string,
+): Promise<InventoryGainResult> {
+  if (quantity <= 0) {
+    throw new AppError('Quantity must be greater than 0', 400);
+  }
+
+  return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
+
+    const updateResult = await client.inventory.updateMany({
+      where: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+      },
+      data: {
+        quantity: { increment: quantity },
+      },
+    });
+
+    if (updateResult.count === 0) {
+      await client.inventory.create({
+        data: {
+          camp_id: campId,
+          resource_type_id: resourceTypeId,
+          quantity,
+        },
+      });
+    }
+
+    const movement = await client.inventory_log.create({
+      data: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+        log_type: inventory_log_log_type.DAILY_GAIN,
+        delta: quantity,
+        description,
+      },
+      select: { delta: true },
+    });
+
+    const currentInventory = await client.inventory.findUnique({
+      where: {
+        camp_id_resource_type_id: {
+          camp_id: campId,
+          resource_type_id: resourceTypeId,
+        },
+      },
+      select: { quantity: true },
+    });
+
+    return {
+      gained: Number(movement.delta),
       remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
