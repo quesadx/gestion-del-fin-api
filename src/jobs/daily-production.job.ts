@@ -1,6 +1,9 @@
 import { logger } from '../logger/logger.js';
 import { prisma } from '../lib/prisma.js';
-import { increaseInventoryWithLog } from '../modules/inventory/inventory.service.js';
+import {
+  increaseInventoryWithLog,
+  logLowResourceAlerts,
+} from '../modules/inventory/inventory.service.js';
 import {
   getActiveContributionOverridesByCamp,
   getActivePeopleWithProfessionsByCamp,
@@ -100,8 +103,11 @@ async function processCampProduction(camp: Camp) {
       resourceTypeId,
       quantity,
       `Daily production from professions and overrides for camp ${camp.id}`,
+      { logAlerts: false },
     );
   }
+
+  await logLowResourceAlerts(camp.id);
 
   logger.info(
     ` [JOB] Camp ${camp.id} (${camp.name}): applied ${appliedTotals.length} production movement(s)`,

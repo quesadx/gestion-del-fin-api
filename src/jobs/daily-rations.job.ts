@@ -1,6 +1,9 @@
 import { logger } from '../logger/logger.js';
 import { prisma } from '../lib/prisma.js';
-import { consumeInventoryWithLog } from '../modules/inventory/inventory.service.js';
+import {
+  consumeInventoryWithLog,
+  logLowResourceAlerts,
+} from '../modules/inventory/inventory.service.js';
 import { getActivePeopleWithProfessionsByCamp } from '../modules/people/people.service.js';
 import { getDailyRationResources } from '../modules/resources/resources.service.js';
 
@@ -119,6 +122,7 @@ async function distributeResource(params: {
     resource.id,
     consumeTotal,
     `Daily ${resource.name} distribution`,
+    { logAlerts: false },
   );
 
   if (selectedRecipientIds.length === recipientIds.length) {
@@ -153,6 +157,8 @@ async function processCampRations(camp: { id: number; name: string }) {
   for (const resource of rationResources) {
     await distributeResource({ campId: camp.id, resource, assignments });
   }
+
+  await logLowResourceAlerts(camp.id);
 
   const served = countServed(assignments);
   logger.info(

@@ -21,6 +21,10 @@ type InventoryGainResult = {
   remaining: number;
 };
 
+type InventoryLogOptions = {
+  logAlerts?: boolean;
+};
+
 async function ensureCampExists(tx: InventoryTransactionClient, campId: number) {
   const client = tx as unknown as typeof prisma;
   const camp = await client.camps.findUnique({ where: { id: campId }, select: { id: true } });
@@ -118,6 +122,7 @@ export async function consumeInventoryWithLog(
   resourceTypeId: number,
   quantity: number,
   description: string,
+  options: InventoryLogOptions = {},
 ): Promise<InventoryConsumptionResult> {
   if (quantity <= 0) {
     throw new AppError('Quantity must be greater than 0', 400);
@@ -173,7 +178,9 @@ export async function consumeInventoryWithLog(
     };
   });
 
-  await logLowResourceAlerts(campId);
+  if (options.logAlerts ?? true) {
+    await logLowResourceAlerts(campId);
+  }
 
   return result;
 }
@@ -183,6 +190,7 @@ export async function increaseInventoryWithLog(
   resourceTypeId: number,
   quantity: number,
   description: string,
+  options: InventoryLogOptions = {},
 ): Promise<InventoryGainResult> {
   if (quantity <= 0) {
     throw new AppError('Quantity must be greater than 0', 400);
@@ -241,7 +249,9 @@ export async function increaseInventoryWithLog(
     };
   });
 
-  await logLowResourceAlerts(campId);
+  if (options.logAlerts ?? true) {
+    await logLowResourceAlerts(campId);
+  }
 
   return result;
 }
