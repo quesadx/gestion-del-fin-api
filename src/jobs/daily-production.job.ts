@@ -1,5 +1,5 @@
 import { logger } from '../logger/logger.js';
-import { prisma } from '../lib/prisma.js';
+import { getAllCamps } from '../modules/camps/camps.service.js';
 import {
   increaseInventoryWithLog,
   logLowResourceAlerts,
@@ -59,10 +59,12 @@ function buildProfessionTotals(
   return totals;
 }
 
-async function processCampProduction(camp: Camp) {
-  const [people, professionResourceAmounts, activeOverrides] = await Promise.all([
+async function processCampProduction(
+  camp: Camp,
+  professionResourceAmounts: ProfessionResourceAmount[],
+) {
+  const [people, activeOverrides] = await Promise.all([
     getActivePeopleWithProfessionsByCamp(camp.id),
-    getProfessionResourceAmounts(),
     getActiveContributionOverridesByCamp(camp.id),
   ]);
 
@@ -71,8 +73,9 @@ async function processCampProduction(camp: Camp) {
     return;
   }
 
-  const professionResourceAmountsForCamp = professionResourceAmounts.filter((amount) =>
-    people.some((person) => person.profession_id === amount.professions_id),
+  const professionResourceAmountsForCamp = professionResourceAmounts.filter(
+    (amount: ProfessionResourceAmount) =>
+      people.some((person: ActivePerson) => person.profession_id === amount.professions_id),
   );
 
   if (professionResourceAmountsForCamp.length === 0 && activeOverrides.length === 0) {
@@ -115,10 +118,13 @@ async function processCampProduction(camp: Camp) {
 }
 
 export async function execute() {
-  const camps = await prisma.camps.findMany({ select: { id: true, name: true } });
+  const [camps, professionResourceAmounts] = await Promise.all([
+    getAllCamps(),
+    getProfessionResourceAmounts(),
+  ]);
 
   for (const camp of camps) {
-    await processCampProduction(camp);
+    await processCampProduction(camp, professionResourceAmounts);
   }
 }
 

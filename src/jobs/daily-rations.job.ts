@@ -1,5 +1,5 @@
 import { logger } from '../logger/logger.js';
-import { prisma } from '../lib/prisma.js';
+import { getAllCamps } from '../modules/camps/camps.service.js';
 import {
   consumeInventoryWithLog,
   logLowResourceAlerts,
@@ -70,7 +70,9 @@ function createAssignments(priority: PersonWithProfession[]) {
 }
 
 function getInventoryForCamp(resource: DailyRationResource, campId: number) {
-  const inv = resource.inventory.find((i) => i.camp_id === campId);
+  const inv = resource.inventory.find(
+    (i: DailyRationResource['inventory'][number]) => i.camp_id === campId,
+  );
   return inv || null;
 }
 
@@ -167,7 +169,7 @@ async function processCampRations(camp: { id: number; name: string }) {
 }
 
 export async function execute() {
-  const camps = await prisma.camps.findMany({ select: { id: true, name: true } });
+  const camps = await getAllCamps();
 
   for (const camp of camps) {
     await processCampRations(camp);
