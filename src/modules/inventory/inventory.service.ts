@@ -125,6 +125,7 @@ export async function consumeInventoryWithLog(
 
   const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
     const client = tx as unknown as typeof prisma;
+    const now = new Date();
 
     const updateResult = await client.inventory.updateMany({
       where: {
@@ -134,6 +135,7 @@ export async function consumeInventoryWithLog(
       },
       data: {
         quantity: { decrement: quantity },
+        last_updated: now,
       },
     });
 
@@ -188,6 +190,7 @@ export async function increaseInventoryWithLog(
 
   const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
     const client = tx as unknown as typeof prisma;
+    const now = new Date();
 
     const updateResult = await client.inventory.updateMany({
       where: {
@@ -196,6 +199,7 @@ export async function increaseInventoryWithLog(
       },
       data: {
         quantity: { increment: quantity },
+        last_updated: now,
       },
     });
 
@@ -205,6 +209,7 @@ export async function increaseInventoryWithLog(
           camp_id: campId,
           resource_type_id: resourceTypeId,
           quantity,
+          last_updated: now,
         },
       });
     }
