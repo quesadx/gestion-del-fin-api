@@ -1,33 +1,24 @@
 import 'dotenv/config';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 
-const resolveDbConfig = () => {
-  const host = process.env.DB_HOST;
-  const port = Number(process.env.DB_PORT) || 3306;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
-  const database = process.env.DB_NAME;
-
-  if (!host || !user || password === undefined || !database) {
-    throw new Error(
-      'Missing DB config. Define DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME in the environment variables.',
-    );
+// Get DATABASE_URL from environment or construct from individual variables
+const getConnectionUrl = (): string => {
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
   }
 
-  return { host, port, user, password, database };
+  const host = process.env.DB_HOST || 'localhost';
+  const port = process.env.DB_PORT || '5432';
+  const user = process.env.DB_USER || 'postgres';
+  const password = process.env.DB_PASSWORD || '';
+  const database = process.env.DB_NAME || 'gestion_del_fin';
+
+  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
 };
 
-const db = resolveDbConfig();
-
-const adapter = new PrismaMariaDb({
-  host: db.host,
-  port: db.port,
-  user: db.user,
-  password: db.password,
-  database: db.database,
-  connectionLimit: 5,
-});
+// Create Prisma Client with PostgreSQL adapter
+const adapter = new PrismaPg({ connectionString: getConnectionUrl() });
 const prisma = new PrismaClient({ adapter });
 
 export { prisma };
