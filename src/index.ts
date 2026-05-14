@@ -80,9 +80,17 @@ app.listen(PORT, () => {
   logger.info(`Server listening on port ${PORT} [${NODE_ENV}]`);
 });
 
-process.on('SIGINT', async () => {
+async function gracefulShutdown(signal: 'SIGINT' | 'SIGTERM') {
   jobScheduler.stopJobScheduler();
   await prisma.$disconnect();
-  logger.info('DB connection closed. Shutting down gracefully...');
+  logger.info(`Received ${signal}. DB connection closed. Shutting down gracefully...`);
   process.exit(0);
+}
+
+process.on('SIGINT', () => {
+  void gracefulShutdown('SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  void gracefulShutdown('SIGTERM');
 });

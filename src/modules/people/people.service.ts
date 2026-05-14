@@ -273,6 +273,8 @@ export async function getActivePeopleWithProfessionsByCamp(campId: number) {
 }
 
 export async function getActiveContributionOverridesByCamp(campId: number) {
+  await ensureCampExists(campId);
+
   const todayStr = new Date().toISOString().slice(0, 10);
   const today = new Date(`${todayStr}T00:00:00.000Z`);
 
