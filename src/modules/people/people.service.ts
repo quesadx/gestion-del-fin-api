@@ -262,6 +262,36 @@ export async function getPeople(campId: number, page = 1, pageSize = 20) {
   };
 }
 
+export async function getActivePeopleWithProfessionsByCamp(campId: number) {
+  await ensureCampExists(campId);
+
+  return prisma.persons.findMany({
+    where: { camp_id: campId, status: { not: persons_status.DEAD } },
+    include: { professions: true },
+    orderBy: [{ id: 'asc' }],
+  });
+}
+
+export async function getActiveContributionOverridesByCamp(campId: number) {
+  await ensureCampExists(campId);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const today = new Date(`${todayStr}T00:00:00.000Z`);
+
+  return prisma.contribution_overrides.findMany({
+    where: {
+      persons: { camp_id: campId },
+      start_date: { lte: today },
+      OR: [{ end_date: null }, { end_date: { gte: today } }],
+    },
+    select: {
+      person_id: true,
+      resource_type_id: true,
+      amount: true,
+    },
+  });
+}
+
 export async function deletePerson(campId: number, id: number) {
   await ensurePersonBelongsToCamp(campId, id);
 

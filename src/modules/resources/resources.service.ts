@@ -86,3 +86,19 @@ export async function deleteResource(id: number) {
     handleForeignKeyError(error);
   }
 }
+
+export async function getDailyRationResources(campId: number) {
+  return await prisma.resource_type.findMany({
+    where: { auto_daily: true },
+    include: {
+      inventory: {
+        where: { camp_id: campId },
+        select: {
+          camp_id: true,
+          resource_type_id: true,
+          quantity: true,
+        },
+      },
+    },
+  });
+}

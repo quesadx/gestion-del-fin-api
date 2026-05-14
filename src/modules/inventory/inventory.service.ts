@@ -1,13 +1,29 @@
-import { Prisma } from '../../generated/prisma/client.js';
+import { Prisma, inventory_log_log_type } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { ManualAdjustmentDto } from './inventory.schema.js';
+import { logger } from '../../logger/logger.js';
+import { getLowResourceAlerts } from '../metrics/metrics.service.js';
 
 function asNumber(value: unknown): number {
   return Number(value);
 }
 
 type InventoryTransactionClient = Prisma.TransactionClient;
+
+type InventoryConsumptionResult = {
+  consumed: number;
+  remaining: number;
+};
+
+type InventoryGainResult = {
+  gained: number;
+  remaining: number;
+};
+
+type InventoryLogOptions = {
+  logAlerts?: boolean;
+};
 
 async function ensureCampExists(tx: InventoryTransactionClient, campId: number) {
   const client = tx as unknown as typeof prisma;
@@ -34,6 +50,25 @@ async function ensureUserExists(tx: InventoryTransactionClient, userId: number) 
   const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
+  }
+}
+
+export async function logLowResourceAlerts(campId: number) {
+  try {
+    const alerts = await getLowResourceAlerts(campId);
+
+    for (const alert of alerts) {
+      const message = ` [INVENTORY] Camp ${campId}: ${alert.status} alert for ${alert.resource_name} (${alert.quantity_current}/${alert.quantity_min_threshold})`;
+
+      if (alert.status === 'CRITICAL') {
+        logger.error(message);
+      } else {
+        logger.warn(message);
+      }
+    }
+  } catch (error) {
+    logger.error(` [INVENTORY] Failed to evaluate low stock alerts for camp ${campId}`);
+    logger.error(error);
   }
 }
 
@@ -80,6 +115,145 @@ async function validateInventoryConsistency(campId: number) {
       discrepancy: inventoryQty - logSum,
     };
   });
+}
+
+export async function consumeInventoryWithLog(
+  campId: number,
+  resourceTypeId: number,
+  quantity: number,
+  description: string,
+  options: InventoryLogOptions = {},
+): Promise<InventoryConsumptionResult> {
+  if (quantity <= 0) {
+    throw new AppError('Quantity must be greater than 0', 400);
+  }
+
+  const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
+    const now = new Date();
+
+    const updateResult = await client.inventory.updateMany({
+      where: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+        quantity: { gte: quantity },
+      },
+      data: {
+        quantity: { decrement: quantity },
+        last_updated: now,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      throw new AppError(
+        `Insufficient inventory for resource_type_id ${resourceTypeId} in camp ${campId}`,
+        400,
+      );
+    }
+
+    const movement = await client.inventory_log.create({
+      data: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+        log_type: inventory_log_log_type.DAILY_RATION,
+        delta: -quantity,
+        description,
+      },
+      select: { delta: true },
+    });
+
+    const currentInventory = await client.inventory.findUnique({
+      where: {
+        camp_id_resource_type_id: {
+          camp_id: campId,
+          resource_type_id: resourceTypeId,
+        },
+      },
+      select: { quantity: true },
+    });
+
+    return {
+      consumed: -Number(movement.delta),
+      remaining: Number(currentInventory?.quantity ?? 0),
+    };
+  });
+
+  if (options.logAlerts ?? true) {
+    await logLowResourceAlerts(campId);
+  }
+
+  return result;
+}
+
+export async function increaseInventoryWithLog(
+  campId: number,
+  resourceTypeId: number,
+  quantity: number,
+  description: string,
+  options: InventoryLogOptions = {},
+): Promise<InventoryGainResult> {
+  if (quantity <= 0) {
+    throw new AppError('Quantity must be greater than 0', 400);
+  }
+
+  const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
+    const client = tx as unknown as typeof prisma;
+    const now = new Date();
+
+    const updateResult = await client.inventory.updateMany({
+      where: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+      },
+      data: {
+        quantity: { increment: quantity },
+        last_updated: now,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      await client.inventory.create({
+        data: {
+          camp_id: campId,
+          resource_type_id: resourceTypeId,
+          quantity,
+          last_updated: now,
+        },
+      });
+    }
+
+    const movement = await client.inventory_log.create({
+      data: {
+        camp_id: campId,
+        resource_type_id: resourceTypeId,
+        log_type: inventory_log_log_type.DAILY_GAIN,
+        delta: quantity,
+        description,
+      },
+      select: { delta: true },
+    });
+
+    const currentInventory = await client.inventory.findUnique({
+      where: {
+        camp_id_resource_type_id: {
+          camp_id: campId,
+          resource_type_id: resourceTypeId,
+        },
+      },
+      select: { quantity: true },
+    });
+
+    return {
+      gained: Number(movement.delta),
+      remaining: Number(currentInventory?.quantity ?? 0),
+    };
+  });
+
+  if (options.logAlerts ?? true) {
+    await logLowResourceAlerts(campId);
+  }
+
+  return result;
 }
 
 export async function getCampInventory(campId: number, page = 1, pageSize = 20) {
@@ -196,7 +370,7 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
 }
 
 export async function createManualAdjustment(data: ManualAdjustmentDto, userId: number) {
-  return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+  const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
     const client = tx as unknown as typeof prisma;
     await Promise.all([
       ensureCampExists(tx, data.camp_id),
@@ -295,4 +469,8 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       },
     };
   });
+
+  await logLowResourceAlerts(data.camp_id);
+
+  return result;
 }

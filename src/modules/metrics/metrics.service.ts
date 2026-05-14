@@ -5,8 +5,6 @@ function asNumber(value: unknown): number {
   return Number(value);
 }
 
-type PersonStatus = 'SICK' | 'HEALTHY' | 'INJURED' | 'AWAY' | 'DEAD';
-
 export async function getDashboard(campId: number) {
   const [
     survivorCount,
@@ -103,6 +101,14 @@ export async function getResources(campId: number) {
       };
     })
     .sort((a, b) => a.resource_name.localeCompare(b.resource_name));
+}
+
+export async function getLowResourceAlerts(campId: number) {
+  const resources = await getResources(campId);
+
+  return resources.filter(
+    (resource) => resource.status === 'LOW' || resource.status === 'CRITICAL',
+  );
 }
 
 export async function getPeople(campId: number) {

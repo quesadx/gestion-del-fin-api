@@ -81,3 +81,27 @@ export async function deleteProfession(id: number) {
     handleForeignKeyError(error);
   }
 }
+
+export async function getProfessionResourceAmounts() {
+  return prisma.professions_resources_amounts.findMany({
+    select: {
+      professions_id: true,
+      resource_type_id: true,
+      amount: true,
+      professions: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      resource_type: {
+        select: {
+          id: true,
+          name: true,
+          unit: true,
+        },
+      },
+    },
+    orderBy: [{ professions_id: 'asc' }, { resource_type_id: 'asc' }],
+  });
+}
