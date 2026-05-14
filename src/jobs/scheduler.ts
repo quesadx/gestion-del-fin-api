@@ -19,24 +19,39 @@ export function startJobScheduler() {
 
   dailyRationsTask = cron.schedule(DAILY_RATIONS_CRON, async () => {
     logger.info('[JOB] Starting daily rations job');
-    await dailyRationsJob.execute();
-    logger.info('[JOB] Daily rations job finished');
+
+    try {
+      await dailyRationsJob.execute();
+      logger.info('[JOB] Daily rations job finished');
+    } catch (error) {
+      logger.error('[JOB] Daily rations job failed', error);
+    }
   });
 
   logger.info(`[JOB] Daily rations scheduler registered with cron: ${DAILY_RATIONS_CRON}`);
 
   dailyProductionTask = cron.schedule(DAILY_PRODUCTION_CRON, async () => {
     logger.info('[JOB] Starting daily production job');
-    await dailyProductionJob.execute();
-    logger.info('[JOB] Daily production job finished');
+
+    try {
+      await dailyProductionJob.execute();
+      logger.info('[JOB] Daily production job finished');
+    } catch (error) {
+      logger.error('[JOB] Daily production job failed', error);
+    }
   });
 
   logger.info(`[JOB] Daily production scheduler registered with cron: ${DAILY_PRODUCTION_CRON}`);
 
   resourceAlertsTask = cron.schedule(RESOURCE_ALERTS_CRON, async () => {
     logger.info('[JOB] Starting resource alerts job');
-    await resourceAlertsJob.execute();
-    logger.info('[JOB] Resource alerts job finished');
+
+    try {
+      await resourceAlertsJob.execute();
+      logger.info('[JOB] Resource alerts job finished');
+    } catch (error) {
+      logger.error('[JOB] Resource alerts job failed', error);
+    }
   });
 
   logger.info(`[JOB] Resource alerts scheduler registered with cron: ${RESOURCE_ALERTS_CRON}`);
