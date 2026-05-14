@@ -73,9 +73,9 @@ async function processCampProduction(
     return;
   }
 
+  const activeProfessionIds = new Set(people.map((person: ActivePerson) => person.profession_id));
   const professionResourceAmountsForCamp = professionResourceAmounts.filter(
-    (amount: ProfessionResourceAmount) =>
-      people.some((person: ActivePerson) => person.profession_id === amount.professions_id),
+    (amount: ProfessionResourceAmount) => activeProfessionIds.has(amount.professions_id),
   );
 
   if (professionResourceAmountsForCamp.length === 0 && activeOverrides.length === 0) {
