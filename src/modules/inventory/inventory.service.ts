@@ -49,7 +49,7 @@ async function ensureUserExists(tx: InventoryTransactionClient, userId: number) 
   }
 }
 
-async function logLowResourceAlerts(campId: number) {
+export async function logLowResourceAlerts(campId: number) {
   try {
     const alerts = await getLowResourceAlerts(campId);
 
@@ -123,7 +123,7 @@ export async function consumeInventoryWithLog(
     throw new AppError('Quantity must be greater than 0', 400);
   }
 
-  return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+  const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
     const client = tx as unknown as typeof prisma;
 
     const updateResult = await client.inventory.updateMany({
@@ -170,6 +170,10 @@ export async function consumeInventoryWithLog(
       remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
+
+  await logLowResourceAlerts(campId);
+
+  return result;
 }
 
 export async function increaseInventoryWithLog(
@@ -182,7 +186,7 @@ export async function increaseInventoryWithLog(
     throw new AppError('Quantity must be greater than 0', 400);
   }
 
-  return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+  const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
     const client = tx as unknown as typeof prisma;
 
     const updateResult = await client.inventory.updateMany({
@@ -231,6 +235,10 @@ export async function increaseInventoryWithLog(
       remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
+
+  await logLowResourceAlerts(campId);
+
+  return result;
 }
 
 export async function getCampInventory(campId: number, page = 1, pageSize = 20) {
@@ -347,7 +355,7 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
 }
 
 export async function createManualAdjustment(data: ManualAdjustmentDto, userId: number) {
-  return prisma.$transaction(async (tx: InventoryTransactionClient) => {
+  const result = await prisma.$transaction(async (tx: InventoryTransactionClient) => {
     const client = tx as unknown as typeof prisma;
     await Promise.all([
       ensureCampExists(tx, data.camp_id),
@@ -446,4 +454,8 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       },
     };
   });
+
+  await logLowResourceAlerts(data.camp_id);
+
+  return result;
 }
