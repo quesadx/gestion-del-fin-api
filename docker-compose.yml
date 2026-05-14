@@ -5,26 +5,25 @@
 services:
   # 'db' refers to the database itself
   # it works as a DNS name, so we can use it to connect to the database from other services (if we had any)
-  # example: db:3306 would be the address to connect to the database from another service
+  # example: db:5432 would be the address to connect to the database from another service
   db:
-    # Should I lock the image version?
-    image: mariadb:11.4
+    # PostgreSQL image
+    image: postgres:16-alpine
     container_name: gestion-del-fin-db
     environment:
-      - MYSQL_ROOT_PASSWORD=admin
-      - MYSQL_DATABASE=gestion_del_fin
-      - MYSQL_USER=admin
-      - MYSQL_PASSWORD=admin
+      - POSTGRES_DB=gestion_del_fin
+      - POSTGRES_USER=gestion_user
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_INITDB_ARGS=-c shared_preload_libraries=pg_stat_statements
     ports:
-      - '3306:3306'
+      - '5432:5432'
     volumes:
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
       # Allows to run the migrations when the container starts
-      # 'docker-entrypoint-initdb.d' is a special directory in the MariaDB image that runs any .sql or .sh files it contains when the container is initialized.
-      # - ./src/database/migrations:/docker-entrypoint-initdb.d
-      - db_data:/var/lib/mysql
+      # PostgreSQL will execute any .sql or .sh files in this directory during startup
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      test: ['CMD-SHELL', 'pg_isready -U gestion_user']
       interval: 10s
       timeout: 5s
       retries: 5

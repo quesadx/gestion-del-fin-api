@@ -3,11 +3,9 @@ import { prisma } from '../src/lib/prisma';
 async function main() {
   console.log('Starting database seed...');
 
-  // To deeply avoid issues with foreign keys during the clean phase
-  // we execute raw SQL to disable checks.
-  await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 0;`);
-
+  // For PostgreSQL, we disable triggers and constraints temporarily
   console.log('Cleaning existing data...');
+
   const tableNames = [
     'user_achievements',
     'achievements',
@@ -35,16 +33,17 @@ async function main() {
     'User',
   ];
 
+  // Disable constraints for PostgreSQL
   for (const table of tableNames) {
     try {
-      await prisma.$executeRawUnsafe(`DELETE FROM \`${table}\`;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE \`${table}\` AUTO_INCREMENT = 1;`);
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`);
     } catch (err) {
-      console.warn(`Could not clean table ${table} (maybe it doesn't exist)`);
+      console.warn(
+        `Could not truncate table ${table} (maybe it doesn't exist): ${(err as any).message}`,
+      );
     }
   }
 
-  await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 1;`);
   console.log('Database cleaned.');
 
   // Seed base entities
