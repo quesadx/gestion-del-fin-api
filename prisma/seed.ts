@@ -5,7 +5,7 @@ async function main() {
 
   // For PostgreSQL, we disable triggers and constraints temporarily
   console.log('Cleaning existing data...');
-  
+
   const tableNames = [
     'user_achievements',
     'achievements',
@@ -38,7 +38,9 @@ async function main() {
     try {
       await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`);
     } catch (err) {
-      console.warn(`Could not truncate table ${table} (maybe it doesn't exist): ${(err as any).message}`);
+      console.warn(
+        `Could not truncate table ${table} (maybe it doesn't exist): ${(err as any).message}`,
+      );
     }
   }
 
