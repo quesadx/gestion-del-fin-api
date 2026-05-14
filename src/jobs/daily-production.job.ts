@@ -73,7 +73,7 @@ async function processCampProduction(
     return;
   }
 
-  const activeProfessionIds = new Set(people.map((person: ActivePerson) => person.profession_id));
+  const activeProfessionIds = new Set(people.map((person) => person.profession_id));
   const professionResourceAmountsForCamp = professionResourceAmounts.filter(
     (amount: ProfessionResourceAmount) => activeProfessionIds.has(amount.professions_id),
   );

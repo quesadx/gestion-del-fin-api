@@ -70,9 +70,7 @@ function createAssignments(priority: PersonWithProfession[]) {
 }
 
 function getInventoryForCamp(resource: DailyRationResource, campId: number) {
-  const inv = resource.inventory.find(
-    (i: DailyRationResource['inventory'][number]) => i.camp_id === campId,
-  );
+  const inv = resource.inventory.find((i) => i.camp_id === campId);
   return inv || null;
 }
 
