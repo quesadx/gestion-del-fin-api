@@ -168,7 +168,7 @@ export async function consumeInventoryWithLog(
     });
 
     return {
-      consumed: Number(movement.delta),
+      consumed: -Number(movement.delta),
       remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
