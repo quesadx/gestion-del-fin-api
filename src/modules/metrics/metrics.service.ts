@@ -5,8 +5,6 @@ function asNumber(value: unknown): number {
   return Number(value);
 }
 
-type PersonStatus = 'SICK' | 'HEALTHY' | 'INJURED' | 'AWAY' | 'DEAD';
-
 export async function getDashboard(campId: number) {
   const [
     survivorCount,

@@ -27,7 +27,7 @@ function isDoctor(person: PersonWithProfession) {
 function isExplorer(person: PersonWithProfession) {
   const professionName = person.professions?.name?.toLowerCase();
   return typeof professionName === 'string'
-    ? professionName.includes('explor') || professionName.includes('scav')
+    ? professionName.includes('explorer') || professionName.includes('scout')
     : false;
 }
 
