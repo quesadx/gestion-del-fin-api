@@ -25,8 +25,6 @@ import transfersRoutes from './modules/transfers/transfers.routes.js';
 import metricsRoutes from './modules/metrics/metrics.routes.js';
 import rolesRoutes from './modules/roles/roles.routes.js';
 import permissionsRoutes from './modules/permissions/permissions.routes.js';
-import peopleRoutes from './modules/people/people.routes.js';
-
 const app = express();
 
 app.get('/', (req, res) => {
@@ -51,7 +49,6 @@ app.use('/api/users', authMiddleware, sessionMiddleware, campMiddleware, userRou
 app.use('/api/roles', authMiddleware, sessionMiddleware, campMiddleware, rolesRoutes);
 app.use('/api/permissions', authMiddleware, sessionMiddleware, campMiddleware, permissionsRoutes);
 app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, professionsRoutes);
-app.use('/api/people', authMiddleware, sessionMiddleware, campMiddleware, peopleRoutes);
 
 app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
 app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
