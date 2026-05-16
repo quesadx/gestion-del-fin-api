@@ -3,6 +3,7 @@ import { AppError } from '../../shared/utils/appError.js';
 import bcrypt from 'bcryptjs';
 import { LoginInput } from './auth.schema.js';
 import { signAccessToken } from '../../shared/utils/jwt.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 export const login = async (data: LoginInput) => {
   const user = await prisma.users.findUnique({
@@ -45,7 +46,9 @@ export const login = async (data: LoginInput) => {
   // campMiddleware uses it to bypass camp-scoping, but permissionMiddleware
   // re-checks permissions from the DB on every request, so no actual data access is leaked.
   // Re-login refreshes the flag with current permissions.
-  const isAdmin = user.roles.role_permissions.some((rp) => rp.permissions.name === 'roles.create');
+  const isAdmin = user.roles.role_permissions.some(
+    (rp) => rp.permissions.name === PERMISSIONS.ADMIN_BYPASS_CAMP_SCOPING,
+  );
 
   const token = signAccessToken(
     user.id,

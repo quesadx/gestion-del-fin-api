@@ -52,6 +52,7 @@ export const PERMISSIONS = {
   PERMISSIONS_READ: 'permissions.read',
   PERMISSIONS_UPDATE: 'permissions.update',
   PERMISSIONS_DELETE: 'permissions.delete',
+  ADMIN_BYPASS_CAMP_SCOPING: 'admin.bypass_camp_scoping',
 } as const;
 
 export type PermissionName = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
