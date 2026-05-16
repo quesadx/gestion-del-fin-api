@@ -21,7 +21,8 @@ import {
 } from './people.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { paginationQuerySchema } from '../../shared/schemas/http.schema.js';
-import { roleMiddleware } from '../../middlewares/role.middleware.js';
+import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router({ mergeParams: true });
 
@@ -68,7 +69,7 @@ const router = Router({ mergeParams: true });
  */
 router.post(
   '/',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_CREATE),
   validate(z.object({ params: campIdParamsSchema, body: createPersonSchema })),
   createPersonHandler,
 );
@@ -116,7 +117,7 @@ router.post(
  */
 router.post(
   '/status-log',
-  roleMiddleware(['system_admin', 'resource_manager']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_STATUS_LOG_CREATE),
   validate(z.object({ params: campIdParamsSchema, body: createPersonStatusLogSchema })),
   createPersonStatusLogHandler,
 );
@@ -164,7 +165,7 @@ router.post(
  */
 router.post(
   '/profession-reassignments',
-  roleMiddleware(['system_admin', 'resource_manager']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_PROFESSION_REASSIGN),
   validate(z.object({ params: campIdParamsSchema, body: createProfessionReassignmentSchema })),
   createProfessionReassignmentHandler,
 );
@@ -212,7 +213,7 @@ router.post(
  */
 router.post(
   '/contribution-overrides',
-  roleMiddleware(['resource_manager']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_CONTRIBUTION_OVERRIDE_CREATE),
   validate(z.object({ params: campIdParamsSchema, body: createContributionOverrideSchema })),
   createContributionOverrideHandler,
 );
@@ -267,7 +268,7 @@ router.post(
  */
 router.get(
   '/',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_READ),
   validate(z.object({ params: campIdParamsSchema, query: paginationQuerySchema })),
   getPeopleHandler,
 );
@@ -314,7 +315,7 @@ router.get(
  */
 router.get(
   '/:id',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_READ),
   validate(z.object({ params: campIdAndPersonIdParamsSchema })),
   getPersonHandler,
 );
@@ -368,7 +369,7 @@ router.get(
  */
 router.put(
   '/:id',
-  roleMiddleware(['system_admin', 'resource_manager']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_UPDATE),
   validate(z.object({ params: campIdAndPersonIdParamsSchema, body: updatePersonSchema })),
   updatePersonHandler,
 );
@@ -415,7 +416,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.PEOPLE_DELETE),
   validate(z.object({ params: campIdAndPersonIdParamsSchema })),
   deletePersonHandler,
 );

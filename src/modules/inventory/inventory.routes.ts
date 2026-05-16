@@ -8,7 +8,8 @@ import {
   getInventoryAuditHandler,
   manualAdjustmentHandler,
 } from './inventory.controller.js';
-import { roleMiddleware } from '../../middlewares/role.middleware.js';
+import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
@@ -48,7 +49,7 @@ const router = Router();
  */
 router.get(
   '/:campId',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.INVENTORY_READ),
   validate(z.object({ params: inventoryByCampParamsSchema, query: paginationQuerySchema })),
   getCampInventoryHandler,
 );
@@ -89,7 +90,7 @@ router.get(
  */
 router.get(
   '/audit/:campId',
-  roleMiddleware(['system_admin', 'resource_manager']),
+  permissionMiddleware(PERMISSIONS.INVENTORY_AUDIT_READ),
   validate(z.object({ params: inventoryByCampParamsSchema, query: paginationQuerySchema })),
   getInventoryAuditHandler,
 );
@@ -141,7 +142,7 @@ router.get(
  */
 router.post(
   '/adjustment',
-  roleMiddleware(['worker', 'resource_manager']),
+  permissionMiddleware(PERMISSIONS.INVENTORY_ADJUST),
   validate(z.object({ body: manualAdjustmentSchema })),
   manualAdjustmentHandler,
 );

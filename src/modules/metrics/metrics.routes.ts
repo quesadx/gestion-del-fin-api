@@ -5,7 +5,8 @@ import {
   getPeopleHandler,
   getExpeditionsHandler,
 } from './metrics.controller.js';
-import { roleMiddleware } from '../../middlewares/role.middleware.js';
+import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ const router = Router();
  *       500:
  *         description: Unexpected server error.
  */
-router.get('/dashboard', roleMiddleware(['system_admin', 'resource_manager']), getDashboardHandler);
+router.get('/dashboard', permissionMiddleware(PERMISSIONS.METRICS_DASHBOARD), getDashboardHandler);
 
 /**
  * @openapi
@@ -61,7 +62,7 @@ router.get('/dashboard', roleMiddleware(['system_admin', 'resource_manager']), g
  *       500:
  *         description: Unexpected server error.
  */
-router.get('/resources', roleMiddleware(['system_admin', 'resource_manager']), getResourcesHandler);
+router.get('/resources', permissionMiddleware(PERMISSIONS.METRICS_RESOURCES), getResourcesHandler);
 
 /**
  * @openapi
@@ -88,7 +89,7 @@ router.get('/resources', roleMiddleware(['system_admin', 'resource_manager']), g
  *       500:
  *         description: Unexpected server error.
  */
-router.get('/people', roleMiddleware(['system_admin', 'resource_manager']), getPeopleHandler);
+router.get('/people', permissionMiddleware(PERMISSIONS.METRICS_PEOPLE), getPeopleHandler);
 
 /**
  * @openapi
@@ -117,7 +118,7 @@ router.get('/people', roleMiddleware(['system_admin', 'resource_manager']), getP
  */
 router.get(
   '/expeditions',
-  roleMiddleware(['system_admin', 'resource_manager']),
+  permissionMiddleware(PERMISSIONS.METRICS_EXPEDITIONS),
   getExpeditionsHandler,
 );
 

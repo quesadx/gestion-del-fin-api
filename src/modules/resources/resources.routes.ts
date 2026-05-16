@@ -4,7 +4,8 @@ import * as resourcesController from './resources.controller.js';
 import { createResourceSchema, updateResourceSchema } from './resources.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
-import { roleMiddleware } from '../../middlewares/role.middleware.js';
+import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
@@ -59,7 +60,7 @@ const router = Router();
  */
 router.post(
   '/',
-  roleMiddleware(['resource_manager']),
+  permissionMiddleware(PERMISSIONS.RESOURCES_CREATE),
   validate(z.object({ body: createResourceSchema })),
   resourcesController.createResourceHandler,
 );
@@ -106,7 +107,7 @@ router.post(
  */
 router.get(
   '/',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.RESOURCES_READ),
   validate(z.object({ query: paginationQuerySchema })),
   resourcesController.listResourcesHandler,
 );
@@ -147,7 +148,7 @@ router.get(
  */
 router.get(
   '/:id',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.RESOURCES_READ),
   validate(z.object({ params: idParamsSchema })),
   resourcesController.getResourceHandler,
 );
@@ -211,7 +212,7 @@ router.get(
  */
 router.put(
   '/:id',
-  roleMiddleware(['resource_manager']),
+  permissionMiddleware(PERMISSIONS.RESOURCES_UPDATE),
   validate(z.object({ params: idParamsSchema, body: updateResourceSchema })),
   resourcesController.updateResourceHandler,
 );
@@ -252,7 +253,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  roleMiddleware(['resource_manager']),
+  permissionMiddleware(PERMISSIONS.RESOURCES_DELETE),
   validate(z.object({ params: idParamsSchema })),
   resourcesController.deleteResourceHandler,
 );
