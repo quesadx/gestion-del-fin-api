@@ -103,6 +103,6 @@ export async function deleteUser(id: number) {
   if (!user) throw new AppError(`User not found: ${id}`, 404);
   await prisma.users.update({
     where: { id },
-    data: { is_active: false },
+    data: { is_active: false, session_version: { increment: 1 }, last_activity: null },
   });
 }
