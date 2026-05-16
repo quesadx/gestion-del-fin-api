@@ -23,6 +23,8 @@ import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import admissionRoutes from './modules/admission/admission.routes.js';
 import transfersRoutes from './modules/transfers/transfers.routes.js';
 import metricsRoutes from './modules/metrics/metrics.routes.js';
+import rolesRoutes from './modules/roles/roles.routes.js';
+import permissionsRoutes from './modules/permissions/permissions.routes.js';
 
 const app = express();
 
@@ -45,6 +47,8 @@ app.use('/api/resources', authMiddleware, sessionMiddleware, campMiddleware, res
 app.use('/api/expeditions', authMiddleware, sessionMiddleware, campMiddleware, explorationsRoutes);
 app.use('/api/camps', authMiddleware, sessionMiddleware, campMiddleware, campsRoutes);
 app.use('/api/users', authMiddleware, sessionMiddleware, campMiddleware, userRoutes);
+app.use('/api/roles', authMiddleware, sessionMiddleware, campMiddleware, rolesRoutes);
+app.use('/api/permissions', authMiddleware, sessionMiddleware, campMiddleware, permissionsRoutes);
 app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, professionsRoutes);
 
 app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);

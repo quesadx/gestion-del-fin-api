@@ -111,7 +111,9 @@ async function main() {
     select: { id: true, name: true },
   });
 
-  const permissionIdByName = new Map(permissions.map((permission) => [permission.name, permission.id]));
+  const permissionIdByName = new Map(
+    permissions.map((permission) => [permission.name, permission.id]),
+  );
   const roleIdByName = new Map<string, number>([
     [adminRole.name, adminRole.id],
     [workerRole.name, workerRole.id],
