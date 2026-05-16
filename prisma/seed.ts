@@ -33,8 +33,6 @@ async function main() {
     'roles',
     'camps',
     'system_config',
-    'Post',
-    'User',
   ];
 
   // Disable constraints for PostgreSQL
