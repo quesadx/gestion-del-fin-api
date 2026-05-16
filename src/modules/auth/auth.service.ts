@@ -14,7 +14,12 @@ export const login = async (data: LoginInput) => {
       username: true,
       password_hash: true,
       is_active: true,
-      roles: { select: { name: true } },
+      roles: {
+        select: {
+          name: true,
+          role_permissions: { select: { permissions: { select: { name: true } } } },
+        },
+      },
     },
   });
 
@@ -26,12 +31,29 @@ export const login = async (data: LoginInput) => {
     throw new AppError('Account is inactive', 401);
   }
 
+  if (!user.roles) {
+    throw new AppError('User has no role assigned', 500);
+  }
+
   const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
   if (!isPasswordValid) {
     throw new AppError('Invalid credentials', 401);
   }
 
-  const token = signAccessToken(user.id, user.camp_id, user.roles.name, user.session_version);
+  // NOTE: isAdmin is static for the token lifetime (up to 24h).
+  // If the role's permissions change after login, the flag is not auto-revoked.
+  // campMiddleware uses it to bypass camp-scoping, but permissionMiddleware
+  // re-checks permissions from the DB on every request, so no actual data access is leaked.
+  // Re-login refreshes the flag with current permissions.
+  const isAdmin = user.roles.role_permissions.some((rp) => rp.permissions.name === 'roles.create');
+
+  const token = signAccessToken(
+    user.id,
+    user.camp_id,
+    user.roles.name,
+    user.session_version,
+    isAdmin,
+  );
 
   await prisma.users.update({
     where: { id: user.id },
