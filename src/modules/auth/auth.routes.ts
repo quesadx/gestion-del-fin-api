@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import * as authController from './auth.controller.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { LoginSchema } from './auth.schema.js';
@@ -45,7 +46,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/login', validate(LoginSchema), authController.login);
+router.post('/login', validate(z.object({ body: LoginSchema })), authController.login);
 
 /**
  * @openapi
