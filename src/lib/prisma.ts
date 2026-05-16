@@ -21,4 +21,3 @@ const getConnectionUrl = (): string => {
 const adapter = new PrismaPg({ connectionString: getConnectionUrl() });
 
 export const prisma = new PrismaClient({ adapter });
-

@@ -3,57 +3,56 @@
 Secure API for **Gestión del fin** (EIF209). Handles multi-camp management, resources, AI-driven ingress decisions, and audit logs. Features server-side time consistency, RBAC, 20min session security, and support for resource transfers and expeditions. Built with Node.js and TypeScript. Universidad Nacional 2026.
 
 # Database
- 
+
 This project uses **PostgreSQL** via [Supabase](https://supabase.com) in production, and a local PostgreSQL instance (via Docker Compose) for development.
- 
+
 ### Environment variables
- 
+
 Copy `.env.example` and fill in the values:
- 
+
 ```bash
 cp .env.example .env
 ```
- 
+
 For **local development**, set the database URLs to your local PostgreSQL instance:
- 
+
 ```env
 DATABASE_URL="postgresql://postgres:secret@localhost:5432/gestion_del_fin"
 DATABASE_DIRECT_URL="postgresql://postgres:secret@localhost:5432/gestion_del_fin"
 ```
- 
+
 For **production (Supabase)**, use the connection strings from your Supabase project dashboard under Project Settings → Database → Connection string:
- 
+
 ```env
 DATABASE_URL="postgresql://postgres.xxx:password@aws-x-xx.pooler.supabase.com:5432/postgres"
 DATABASE_DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.co:5432/postgres"
 ```
- 
+
 ### Migrations
- 
+
 To apply migrations to the **local** database:
- 
+
 ```bash
 npx prisma migrate dev
 ```
- 
+
 To apply migrations to **Supabase** (production):
- 
+
 ```bash
 npx prisma migrate deploy
 ```
- 
+
 > Migrations are applied automatically on deploy via Railway.
- 
+
 ### Seed
- 
+
 To populate the database with initial data:
- 
+
 ```bash
 npx prisma db seed
 ```
- 
----
 
+---
 
 ## Development Setup
 
