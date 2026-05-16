@@ -89,8 +89,10 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
   const role = await prisma.roles.findUnique({ where: { id } });
   if (!role) throw new AppError(`Role not found: ${id}`, 404);
 
-  const permissionIds = normalizePermissionIds(data.permission_ids);
-  await ensurePermissionsExist(permissionIds);
+  if (data.permission_ids !== undefined) {
+    const permissionIds = normalizePermissionIds(data.permission_ids);
+    await ensurePermissionsExist(permissionIds);
+  }
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
@@ -104,6 +106,7 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
 
       if (data.permission_ids !== undefined) {
         await tx.role_permissions.deleteMany({ where: { role_id: id } });
+        const permissionIds = normalizePermissionIds(data.permission_ids);
         if (permissionIds.length > 0) {
           await tx.role_permissions.createMany({
             data: permissionIds.map((permissionId) => ({
@@ -161,8 +164,19 @@ export async function deleteRole(id: number) {
   if (!role) throw new AppError(`Role not found: ${id}`, 404);
 
   try {
-    await prisma.roles.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      const userCount = await tx.users.count({ where: { role_id: id } });
+      if (userCount > 0) {
+        throw new AppError(
+          `Cannot delete role: ${userCount} user(s) are assigned to this role`,
+          409,
+        );
+      }
+      await tx.role_permissions.deleteMany({ where: { role_id: id } });
+      await tx.roles.delete({ where: { id } });
+    });
   } catch (error: any) {
+    if (error instanceof AppError) throw error;
     handleForeignKeyError(error);
   }
 }
