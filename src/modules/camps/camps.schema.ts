@@ -5,6 +5,7 @@ export const campStatusEnum = z.enum(['ACTIVE', 'ABANDONED']);
 export const createCampSchema = z.object({
   name: z
     .string({ message: 'name is required' })
+    .trim()
     .min(1, 'name cannot be empty')
     .max(100, 'name cannot exceed 100 characters'),
   location: z.string().max(100, 'location cannot exceed 100 characters').optional(),
