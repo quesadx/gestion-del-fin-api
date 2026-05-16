@@ -13,7 +13,11 @@ export const createCampSchema = z.object({
   ai_context_prompt: z.string().optional(),
 });
 
-export const updateCampSchema = createCampSchema.partial();
+export const updateCampSchema = createCampSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided for update',
+  });
 
 export type CreateCampDto = z.infer<typeof createCampSchema>;
 export type UpdateCampDto = z.infer<typeof updateCampSchema>;
