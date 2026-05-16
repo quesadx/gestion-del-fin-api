@@ -78,7 +78,6 @@ export async function createRole(data: CreateRoleDto) {
       return tx.roles.findUnique({ where: { id: role.id }, select: roleSelect });
     });
 
-    if (!created) throw new AppError('Role creation failed', 500);
     return mapRole(created as RoleWithPermissions);
   } catch (error: any) {
     handleUniqueConstraintError(error);
