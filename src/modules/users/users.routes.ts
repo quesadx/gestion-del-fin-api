@@ -4,7 +4,8 @@ import * as usersController from './users.controller.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { CreateUserSchema, UpdateUserSchema } from './users.schema.js';
 import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
-import { roleMiddleware } from '../../middlewares/role.middleware.js';
+import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
@@ -67,7 +68,7 @@ const router = Router();
  */
 router.post(
   '/',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.USERS_CREATE),
   validate(z.object({ body: CreateUserSchema })),
   usersController.createUserHandler,
 );
@@ -93,7 +94,7 @@ router.post(
  */
 router.get(
   '/',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.USERS_READ),
   validate(z.object({ query: paginationQuerySchema })),
   usersController.getUsersHandler,
 );
@@ -134,7 +135,7 @@ router.get(
  */
 router.get(
   '/:id',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.USERS_READ),
   validate(z.object({ params: idParamsSchema })),
   usersController.getUserHandler,
 );
@@ -204,7 +205,7 @@ router.get(
  */
 router.put(
   '/:id',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.USERS_UPDATE),
   validate(z.object({ params: idParamsSchema, body: UpdateUserSchema })),
   usersController.updateUserHandler,
 );
@@ -245,7 +246,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.USERS_DELETE),
   validate(z.object({ params: idParamsSchema })),
   usersController.deleteUserHandler,
 );

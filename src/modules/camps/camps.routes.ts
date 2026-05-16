@@ -5,7 +5,8 @@ import { createCampSchema, updateCampSchema } from './camps.schema.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import peopleRoutes from '../people/people.routes.js';
-import { roleMiddleware } from '../../middlewares/role.middleware.js';
+import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
+import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
@@ -58,7 +59,7 @@ const router = Router();
  */
 router.post(
   '/',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.CAMPS_CREATE),
   validate(z.object({ body: createCampSchema })),
   campsController.createCampHandler,
 );
@@ -84,7 +85,7 @@ router.post(
  */
 router.get(
   '/',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.CAMPS_READ),
   validate(z.object({ query: paginationQuerySchema })),
   campsController.getCampsHandler,
 );
@@ -125,7 +126,7 @@ router.get(
  */
 router.get(
   '/:id',
-  roleMiddleware(['system_admin', 'worker', 'resource_manager', 'travel_coordinator']),
+  permissionMiddleware(PERMISSIONS.CAMPS_READ),
   validate(z.object({ params: idParamsSchema })),
   campsController.getCampHandler,
 );
@@ -185,7 +186,7 @@ router.get(
  */
 router.put(
   '/:id',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.CAMPS_UPDATE),
   validate(z.object({ params: idParamsSchema, body: updateCampSchema })),
   campsController.updateCampHandler,
 );
@@ -226,7 +227,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  roleMiddleware(['system_admin']),
+  permissionMiddleware(PERMISSIONS.CAMPS_DELETE),
   validate(z.object({ params: idParamsSchema })),
   campsController.deleteCampHandler,
 );

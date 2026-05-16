@@ -25,10 +25,18 @@ export async function getInventoryAuditHandler(req: Request, res: Response) {
 }
 
 export async function manualAdjustmentHandler(req: Request, res: Response) {
-  const userId = (req as AuthenticatedRequest).user?.userId;
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user?.userId;
+  const isAdmin = authReq.user?.isAdmin;
+  const userCampId = authReq.user?.campId;
 
   if (!userId) {
     throw new AppError('Unauthorized', 401);
+  }
+
+  // Prevent cross-camp tampering via body camp_id for non-admin users
+  if (!isAdmin && req.body.camp_id !== userCampId) {
+    throw new AppError('Unauthorized: cannot modify another camp', 401);
   }
 
   const result = await createManualAdjustment(req.body, userId);

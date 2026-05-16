@@ -7,24 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
-}
-
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String? @db.Text
-  published Boolean @default(false)
-  authorId  Int
-  author    User    @relation(fields: [authorId], references: [id])
-
-  @@index([authorId])
-}
-
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model achievements {
   id                Int                 @id @default(autoincrement())
@@ -345,6 +327,26 @@ model roles {
   name        String  @unique(map: "roles_name_unique") @db.VarChar(60)
   description String? @db.VarChar(255)
   users       users[]
+  role_permissions role_permissions[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model permissions {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique(map: "permissions_name_unique") @db.VarChar(80)
+  description String? @db.VarChar(255)
+  role_permissions role_permissions[]
+}
+
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([role_id, permission_id])
+  @@index([permission_id])
+  @@index([role_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments

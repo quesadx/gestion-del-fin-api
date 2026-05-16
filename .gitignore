@@ -20,6 +20,7 @@ logs/
 
 # Misc
 .DS_Store
+.planning
 
 # Prisma client (generated)
 src/generated/prisma/

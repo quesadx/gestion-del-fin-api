@@ -6,19 +6,25 @@ export type AccessTokenPayload = {
   campId: number;
   role: string;
   sessionVersion: number;
+  isAdmin: boolean;
 };
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error('JWT_SECRET is not defined in environment variables');
+    throw new AppError('JWT_SECRET is not defined in environment variables', 500);
   }
 
   return secret;
 }
 
 function getJwtExpiry(): SignOptions['expiresIn'] {
-  return (process.env.JWT_EXPIRY || '1d') as SignOptions['expiresIn'];
+  const raw = process.env.JWT_EXPIRY;
+  if (!raw) return '1d';
+  if (!/^\d+[smhd]?$/.test(raw)) {
+    throw new AppError(`Invalid JWT_EXPIRY format: "${raw}". Expected: <number>[s|m|h|d]`, 500);
+  }
+  return raw as SignOptions['expiresIn'];
 }
 
 export function signAccessToken(
@@ -26,8 +32,9 @@ export function signAccessToken(
   campId: number,
   role: string,
   sessionVersion: number,
+  isAdmin = false,
 ): string {
-  const payload: AccessTokenPayload = { userId, campId, role, sessionVersion };
+  const payload: AccessTokenPayload = { userId, campId, role, sessionVersion, isAdmin };
   return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiry() });
 }
 
@@ -73,7 +80,9 @@ export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): A
       throw new AppError('Invalid token payload', 401);
     }
 
-    return { userId, campId, role, sessionVersion };
+    const isAdmin = typeof decoded.isAdmin === 'boolean' ? decoded.isAdmin : false;
+
+    return { userId, campId, role, sessionVersion, isAdmin };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
