@@ -71,7 +71,7 @@ if (
   (!process.env.JWT_SECRET ||
     process.env.JWT_SECRET === 'dev-only-insecure-jwt-secret-change-me-12345')
 ) {
-  console.error('JWT_SECRET is required in production and must not be the default.');
+  logger.error('JWT_SECRET is required in production and must not be the default.');
   process.exit(1);
 }
 
