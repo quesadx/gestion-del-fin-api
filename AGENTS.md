@@ -153,7 +153,7 @@ export async function update(id: number, data: UpdateDto) {
 | Insufficient role permission        | 403  | `role.middleware`             |
 | Resource not found                  | 404  | Service 404 check             |
 | Unique constraint violation         | 409  | `handleUniqueConstraintError` |
-| Foreign key violation               | 400  | `handleForeignKeyError`       |
+| Foreign key violation               | 409  | `handleForeignKeyError`       |
 | Validation failure                  | 400  | Zod middleware                |
 | Unexpected error                    | 500  | Global error handler          |
 
