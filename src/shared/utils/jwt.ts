@@ -19,7 +19,12 @@ function getJwtSecret(): string {
 }
 
 function getJwtExpiry(): SignOptions['expiresIn'] {
-  return (process.env.JWT_EXPIRY || '1d') as SignOptions['expiresIn'];
+  const raw = process.env.JWT_EXPIRY;
+  if (!raw) return '1d';
+  if (!/^\d+[smhd]?$/.test(raw)) {
+    throw new AppError(`Invalid JWT_EXPIRY format: "${raw}". Expected: <number>[s|m|h|d]`, 500);
+  }
+  return raw as SignOptions['expiresIn'];
 }
 
 export function signAccessToken(
