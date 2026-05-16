@@ -61,7 +61,7 @@ export async function createRole(data: CreateRoleDto) {
     const created = await prisma.$transaction(async (tx) => {
       const role = await tx.roles.create({
         data: {
-          name: data.name,
+          name: data.name.trim(),
           description: data.description?.trim(),
         },
       });
@@ -89,23 +89,20 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
   const role = await prisma.roles.findUnique({ where: { id } });
   if (!role) throw new AppError(`Role not found: ${id}`, 404);
 
-  const permissionIds =
-    data.permission_ids !== undefined ? normalizePermissionIds(data.permission_ids) : undefined;
-  if (permissionIds !== undefined) {
-    await ensurePermissionsExist(permissionIds);
-  }
+  const permissionIds = normalizePermissionIds(data.permission_ids);
+  await ensurePermissionsExist(permissionIds);
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
       await tx.roles.update({
         where: { id },
         data: {
-          name: data.name,
+          name: data.name?.trim(),
           description: data.description?.trim(),
         },
       });
 
-      if (permissionIds !== undefined) {
+      if (data.permission_ids !== undefined) {
         await tx.role_permissions.deleteMany({ where: { role_id: id } });
         if (permissionIds.length > 0) {
           await tx.role_permissions.createMany({
@@ -163,17 +160,8 @@ export async function deleteRole(id: number) {
   const role = await prisma.roles.findUnique({ where: { id } });
   if (!role) throw new AppError(`Role not found: ${id}`, 404);
 
-  // Check for assigned users before attempting delete
-  const userCount = await prisma.users.count({ where: { role_id: id } });
-  if (userCount > 0) {
-    throw new AppError(`Cannot delete role: ${userCount} user(s) are assigned to this role`, 409);
-  }
-
   try {
-    await prisma.$transaction([
-      prisma.role_permissions.deleteMany({ where: { role_id: id } }),
-      prisma.roles.delete({ where: { id } }),
-    ]);
+    await prisma.roles.delete({ where: { id } });
   } catch (error: any) {
     handleForeignKeyError(error);
   }

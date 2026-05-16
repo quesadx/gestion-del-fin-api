@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { z } from 'zod';
 import * as authController from './auth.controller.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { LoginSchema } from './auth.schema.js';
@@ -46,7 +45,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/login', validate(z.object({ body: LoginSchema })), authController.login);
+router.post('/login', validate(LoginSchema), authController.login);
 
 /**
  * @openapi
@@ -80,11 +79,6 @@ router.post('/login', validate(z.object({ body: LoginSchema })), authController.
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- */
-/**
- * Logout does NOT apply sessionMiddleware — users with expired sessions
- * (inactive > 20 min) should still be able to log out as long as their JWT
- * is valid. The service increments session_version to invalidate the token.
  */
 router.post('/logout', authMiddleware, authController.logout);
 

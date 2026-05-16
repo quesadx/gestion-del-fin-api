@@ -8,7 +8,7 @@ import { CreateCampDto, UpdateCampDto } from './camps.schema.js';
 
 function prepareCampCreateData(data: CreateCampDto) {
   return {
-    name: data.name,
+    name: data.name.trim(),
     location: data.location?.trim(),
     status: data.status ?? 'ACTIVE',
     ai_context_prompt: data.ai_context_prompt?.trim(),
@@ -17,7 +17,7 @@ function prepareCampCreateData(data: CreateCampDto) {
 
 function prepareCampUpdateData(data: UpdateCampDto) {
   return {
-    name: data.name,
+    name: data.name?.trim(),
     location: data.location?.trim(),
     status: data.status,
     ai_context_prompt: data.ai_context_prompt?.trim(),

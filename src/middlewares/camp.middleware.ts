@@ -36,11 +36,6 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
       throw new AppError('Unauthorized', 401);
     }
 
-    // System admin bypass — skip camp validation completely
-    if (role === SYSTEM_ADMIN) {
-      return next();
-    }
-
     const camp = await prisma.camps.findUnique({
       where: { id: campId },
       select: { id: true, status: true },
@@ -48,6 +43,10 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
 
     if (!camp || camp.status !== 'ACTIVE') {
       throw new AppError('Unauthorized', 401);
+    }
+
+    if (role === SYSTEM_ADMIN) {
+      return next();
     }
 
     const requestedCampParam = req.params.campId;
