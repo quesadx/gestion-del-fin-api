@@ -1,4 +1,5 @@
 import { prisma } from '../src/lib/prisma';
+import { PERMISSIONS } from '../src/shared/constants/permissions';
 
 async function main() {
   console.log('Starting database seed...');
@@ -26,6 +27,8 @@ async function main() {
     'professions',
     'resource_type',
     'users',
+    'role_permissions',
+    'permissions',
     'roles',
     'camps',
     'system_config',
@@ -82,19 +85,178 @@ async function main() {
     },
   });
 
-  await prisma.roles.create({
+  const resourceManagerRole = await prisma.roles.create({
     data: {
       name: 'resource_manager',
       description: 'Inventory and resource operations manager',
     },
   });
 
-  await prisma.roles.create({
+  const travelCoordinatorRole = await prisma.roles.create({
     data: {
       name: 'travel_coordinator',
       description: 'Expedition and transfer coordination role',
     },
   });
+
+  const permissionDefinitions = Object.values(PERMISSIONS).map((name) => ({
+    name,
+    description: name.replace(/\./g, ' ').replace(/_/g, ' '),
+  }));
+
+  await prisma.permissions.createMany({ data: permissionDefinitions, skipDuplicates: true });
+
+  const permissions = await prisma.permissions.findMany({
+    where: { name: { in: permissionDefinitions.map((entry) => entry.name) } },
+    select: { id: true, name: true },
+  });
+
+  const permissionIdByName = new Map(permissions.map((permission) => [permission.name, permission.id]));
+  const roleIdByName = new Map<string, number>([
+    [adminRole.name, adminRole.id],
+    [workerRole.name, workerRole.id],
+    [resourceManagerRole.name, resourceManagerRole.id],
+    [travelCoordinatorRole.name, travelCoordinatorRole.id],
+  ]);
+
+  const rolePermissionMap: Record<string, string[]> = {
+    system_admin: [
+      PERMISSIONS.CAMPS_CREATE,
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.CAMPS_UPDATE,
+      PERMISSIONS.CAMPS_DELETE,
+      PERMISSIONS.PEOPLE_CREATE,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PEOPLE_UPDATE,
+      PERMISSIONS.PEOPLE_DELETE,
+      PERMISSIONS.PEOPLE_STATUS_LOG_CREATE,
+      PERMISSIONS.PEOPLE_PROFESSION_REASSIGN,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.PROFESSIONS_CREATE,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.PROFESSIONS_UPDATE,
+      PERMISSIONS.PROFESSIONS_DELETE,
+      PERMISSIONS.USERS_CREATE,
+      PERMISSIONS.USERS_READ,
+      PERMISSIONS.USERS_UPDATE,
+      PERMISSIONS.USERS_DELETE,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.INVENTORY_AUDIT_READ,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.ADMISSION_REVIEW,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+      PERMISSIONS.METRICS_DASHBOARD,
+      PERMISSIONS.METRICS_RESOURCES,
+      PERMISSIONS.METRICS_PEOPLE,
+      PERMISSIONS.METRICS_EXPEDITIONS,
+      PERMISSIONS.ROLES_CREATE,
+      PERMISSIONS.ROLES_READ,
+      PERMISSIONS.ROLES_UPDATE,
+      PERMISSIONS.ROLES_DELETE,
+      PERMISSIONS.PERMISSIONS_CREATE,
+      PERMISSIONS.PERMISSIONS_READ,
+      PERMISSIONS.PERMISSIONS_UPDATE,
+      PERMISSIONS.PERMISSIONS_DELETE,
+    ],
+    worker: [
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.INVENTORY_ADJUST,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+    ],
+    resource_manager: [
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.RESOURCES_CREATE,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.RESOURCES_UPDATE,
+      PERMISSIONS.RESOURCES_DELETE,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PEOPLE_UPDATE,
+      PERMISSIONS.PEOPLE_STATUS_LOG_CREATE,
+      PERMISSIONS.PEOPLE_PROFESSION_REASSIGN,
+      PERMISSIONS.PEOPLE_CONTRIBUTION_OVERRIDE_CREATE,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.INVENTORY_AUDIT_READ,
+      PERMISSIONS.INVENTORY_ADJUST,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+      PERMISSIONS.METRICS_DASHBOARD,
+      PERMISSIONS.METRICS_RESOURCES,
+      PERMISSIONS.METRICS_PEOPLE,
+      PERMISSIONS.METRICS_EXPEDITIONS,
+    ],
+    travel_coordinator: [
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.EXPEDITIONS_CREATE,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.EXPEDITIONS_UPDATE,
+      PERMISSIONS.EXPEDITIONS_UPDATE_STATUS,
+      PERMISSIONS.EXPEDITIONS_DELETE,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+    ],
+  };
+
+  const rolePermissionRows: Array<{ role_id: number; permission_id: number }> = [];
+
+  for (const [roleName, permissionNames] of Object.entries(rolePermissionMap)) {
+    const roleId = roleIdByName.get(roleName);
+    if (!roleId) {
+      throw new Error(`Role not found when assigning permissions: ${roleName}`);
+    }
+
+    for (const permissionName of permissionNames) {
+      const permissionId = permissionIdByName.get(permissionName);
+      if (!permissionId) {
+        throw new Error(`Permission not found when assigning: ${permissionName}`);
+      }
+
+      rolePermissionRows.push({ role_id: roleId, permission_id: permissionId });
+    }
+  }
+
+  if (rolePermissionRows.length > 0) {
+    await prisma.role_permissions.createMany({ data: rolePermissionRows });
+  }
 
   const engineerProfession = await prisma.professions.create({
     data: {
