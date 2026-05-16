@@ -9,6 +9,12 @@ import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
+router.get(
+  '/roles',
+  roleMiddleware(['system_admin']),
+  usersController.getRolesHandler,
+);
+
 /**
  * @openapi
  * /api/users:

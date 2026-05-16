@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createUser, deleteUser, getUsers, getUser, updateUser } from './users.service.js';
+import { createUser, deleteUser, getRoles, getUsers, getUser, updateUser } from './users.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 
 export async function createUserHandler(req: Request, res: Response) {
@@ -30,4 +30,9 @@ export async function getUsersHandler(req: Request, res: Response) {
   const pageSize = Number(req.query.pageSize) || 20;
   const result = await getUsers(page, pageSize);
   return res.json(result);
+}
+
+export async function getRolesHandler(_req: Request, res: Response) {
+  const roles = await getRoles();
+  return res.json(roles);
 }
