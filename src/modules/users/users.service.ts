@@ -4,8 +4,10 @@ import { handleUniqueConstraintError } from '../../shared/utils/handlePrismaErro
 import { CreateUserDto, UpdateUserDto } from './users.schema.js';
 import bcrypt from 'bcryptjs';
 
+const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+
 async function prepareUserCreateData(data: CreateUserDto) {
-  const password_hash = await bcrypt.hash(data.password, 10);
+  const password_hash = await bcrypt.hash(data.password, SALT_ROUNDS);
 
   return {
     username: data.username.trim(),
@@ -19,7 +21,7 @@ async function prepareUserCreateData(data: CreateUserDto) {
 }
 
 async function prepareUserUpdateData(data: UpdateUserDto) {
-  const password_hash = data.password ? await bcrypt.hash(data.password, 10) : undefined;
+  const password_hash = data.password ? await bcrypt.hash(data.password, SALT_ROUNDS) : undefined;
 
   return {
     username: data.username?.trim(),
