@@ -11,6 +11,14 @@ import { AuthenticatedRequest } from './auth.middleware.js';
  *   - /inventory/audit/<id>[/...] (audit routes)
  *   - /inventory/<id>[/...]       (inventory lookup by camp)
  *   - /admission/camps/<id>[/...] (admission by camp)
+ *   - /resources/<id>[/...]       (resources scoped to camp)
+ *   - /expeditions/<id>[/...]     (expeditions scoped to camp)
+ *   - /professions/<id>[/...]     (professions scoped to camp)
+ *   - /transfers/<id>[/...]       (transfers scoped to camp)
+ *   - /users/<id>[/...]           (users scoped to camp)
+ *   - /roles/<id>[/...]           (roles scoped to camp)
+ *   - /permissions/<id>[/...]     (permissions scoped to camp)
+ *   - /metrics/<id>[/...]         (metrics scoped to camp)
  *
  * Query strings are stripped before matching to avoid false-positive
  * camp ID extraction from user-supplied query parameters.
@@ -18,10 +26,22 @@ import { AuthenticatedRequest } from './auth.middleware.js';
 function extractCampIdFromUrl(url: string): number | null {
   const pathOnly = url.split('?')[0];
   const match = pathOnly.match(
-    /\/(?:camps\/(\d+)(?:\/|$)|inventory\/audit\/(\d+)(?:\/|$)|inventory\/(\d+)(?:\/|$)|admission\/camps\/(\d+)(?:\/|$))/,
+    /\/(?:camps\/(\d+)|inventory\/audit\/(\d+)|inventory\/(\d+)|admission\/camps\/(\d+)|resources\/(\d+)|expeditions\/(\d+)|professions\/(\d+)|transfers\/(\d+)|users\/(\d+)|roles\/(\d+)|permissions\/(\d+)|metrics\/(\d+))(?:\/|$)/,
   );
   if (!match) return null;
-  const id = match[1] || match[2] || match[3] || match[4];
+  const id =
+    match[1] ||
+    match[2] ||
+    match[3] ||
+    match[4] ||
+    match[5] ||
+    match[6] ||
+    match[7] ||
+    match[8] ||
+    match[9] ||
+    match[10] ||
+    match[11] ||
+    match[12];
   return id ? Number(id) : null;
 }
 
