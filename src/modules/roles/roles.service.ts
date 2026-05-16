@@ -5,6 +5,7 @@ import {
   handleForeignKeyError,
 } from '../../shared/utils/handlePrismaError.js';
 import { CreateRoleDto, UpdateRoleDto } from './roles.schema.js';
+import { z } from 'zod';
 
 const roleSelect = {
   id: true,
@@ -15,14 +16,22 @@ const roleSelect = {
   },
 } as const;
 
-type RoleWithPermissions = {
-  id: number;
-  name: string;
-  description: string | null;
-  role_permissions: Array<{
-    permissions: { id: number; name: string; description: string | null };
-  }>;
-};
+const RoleWithPermissionsSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  role_permissions: z.array(
+    z.object({
+      permissions: z.object({
+        id: z.number(),
+        name: z.string(),
+        description: z.string().nullable(),
+      }),
+    }),
+  ),
+});
+
+type RoleWithPermissions = z.infer<typeof RoleWithPermissionsSchema>;
 
 function normalizePermissionIds(permissionIds?: number[]): number[] {
   if (!permissionIds) return [];
@@ -78,7 +87,7 @@ export async function createRole(data: CreateRoleDto) {
       return tx.roles.findUnique({ where: { id: role.id }, select: roleSelect });
     });
 
-    return mapRole(created as RoleWithPermissions);
+    return mapRole(RoleWithPermissionsSchema.parse(created));
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
@@ -120,7 +129,7 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
     });
 
     if (!updated) throw new AppError(`Role not found: ${id}`, 404);
-    return mapRole(updated as RoleWithPermissions);
+    return mapRole(RoleWithPermissionsSchema.parse(updated));
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
@@ -129,7 +138,7 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
 export async function getRole(id: number) {
   const role = await prisma.roles.findUnique({ where: { id }, select: roleSelect });
   if (!role) throw new AppError(`Role not found: ${id}`, 404);
-  return mapRole(role as RoleWithPermissions);
+  return mapRole(RoleWithPermissionsSchema.parse(role));
 }
 
 export async function getRoles(page = 1, pageSize = 20) {
@@ -147,7 +156,7 @@ export async function getRoles(page = 1, pageSize = 20) {
   ]);
 
   return {
-    data: records.map((record) => mapRole(record as RoleWithPermissions)),
+    data: records.map((record) => mapRole(RoleWithPermissionsSchema.parse(record))),
     pagination: {
       page,
       pageSize: effectiveLimit,
