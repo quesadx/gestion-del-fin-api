@@ -34,10 +34,22 @@ async function prepareUserUpdateData(data: UpdateUserDto) {
   };
 }
 
+const userSelectWithoutPassword = {
+  id: true,
+  camp_id: true,
+  role_id: true,
+  session_version: true,
+  username: true,
+  is_active: true,
+  last_activity: true,
+  created_at: true,
+} as const;
+
 export async function createUser(data: CreateUserDto) {
   try {
     return await prisma.users.create({
       data: await prepareUserCreateData(data),
+      select: userSelectWithoutPassword,
     });
   } catch (error: any) {
     handleUniqueConstraintError(error);
@@ -52,6 +64,7 @@ export async function updateUser(id: number, data: UpdateUserDto) {
     return await prisma.users.update({
       where: { id },
       data: await prepareUserUpdateData(data),
+      select: userSelectWithoutPassword,
     });
   } catch (error: any) {
     handleUniqueConstraintError(error);
@@ -59,7 +72,10 @@ export async function updateUser(id: number, data: UpdateUserDto) {
 }
 
 export async function getUser(id: number) {
-  const user = await prisma.users.findUnique({ where: { id } });
+  const user = await prisma.users.findUnique({
+    where: { id },
+    select: userSelectWithoutPassword,
+  });
   if (!user) throw new AppError(`User not found: ${id}`, 404);
   return user;
 }
@@ -69,7 +85,7 @@ export async function getUsers(page = 1, pageSize = 20) {
   const skip = (page - 1) * effectiveLimit;
 
   const [records, total] = await Promise.all([
-    prisma.users.findMany({ skip, take: effectiveLimit }),
+    prisma.users.findMany({ skip, take: effectiveLimit, select: userSelectWithoutPassword }),
     prisma.users.count(),
   ]);
 
