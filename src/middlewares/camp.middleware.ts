@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../shared/utils/appError.js';
-import { SYSTEM_ADMIN } from '../shared/constants/roles.js';
 import { AuthenticatedRequest } from './auth.middleware.js';
 
 /**
@@ -30,10 +29,16 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
   try {
     const authReq = req as AuthenticatedRequest;
     const campId = authReq.user?.campId;
-    const role = authReq.user?.role;
+    const isAdmin = authReq.user?.isAdmin;
 
     if (!campId) {
       throw new AppError('Unauthorized', 401);
+    }
+
+    // Admin bypass — skip camp validation entirely.
+    // Uses isAdmin from JWT (set at login) so role renames don't break access.
+    if (isAdmin) {
+      return next();
     }
 
     const camp = await prisma.camps.findUnique({
@@ -43,10 +48,6 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
 
     if (!camp || camp.status !== 'ACTIVE') {
       throw new AppError('Unauthorized', 401);
-    }
-
-    if (role === SYSTEM_ADMIN) {
-      return next();
     }
 
     const requestedCampParam = req.params.campId;

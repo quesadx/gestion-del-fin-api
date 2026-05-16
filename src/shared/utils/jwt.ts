@@ -6,6 +6,7 @@ export type AccessTokenPayload = {
   campId: number;
   role: string;
   sessionVersion: number;
+  isAdmin: boolean;
 };
 
 function getJwtSecret(): string {
@@ -26,8 +27,9 @@ export function signAccessToken(
   campId: number,
   role: string,
   sessionVersion: number,
+  isAdmin = false,
 ): string {
-  const payload: AccessTokenPayload = { userId, campId, role, sessionVersion };
+  const payload: AccessTokenPayload = { userId, campId, role, sessionVersion, isAdmin };
   return jwt.sign(payload, getJwtSecret(), { expiresIn: getJwtExpiry() });
 }
 
@@ -73,7 +75,9 @@ export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): A
       throw new AppError('Invalid token payload', 401);
     }
 
-    return { userId, campId, role, sessionVersion };
+    const isAdmin = typeof decoded.isAdmin === 'boolean' ? decoded.isAdmin : false;
+
+    return { userId, campId, role, sessionVersion, isAdmin };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;

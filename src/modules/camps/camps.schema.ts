@@ -5,6 +5,7 @@ export const campStatusEnum = z.enum(['ACTIVE', 'ABANDONED']);
 export const createCampSchema = z.object({
   name: z
     .string({ message: 'name is required' })
+    .trim()
     .min(1, 'name cannot be empty')
     .max(100, 'name cannot exceed 100 characters'),
   location: z.string().max(100, 'location cannot exceed 100 characters').optional(),
@@ -12,7 +13,11 @@ export const createCampSchema = z.object({
   ai_context_prompt: z.string().optional(),
 });
 
-export const updateCampSchema = createCampSchema.partial();
+export const updateCampSchema = createCampSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided for update',
+  });
 
 export type CreateCampDto = z.infer<typeof createCampSchema>;
 export type UpdateCampDto = z.infer<typeof updateCampSchema>;
