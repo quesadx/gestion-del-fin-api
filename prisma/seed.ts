@@ -322,7 +322,7 @@ async function main() {
       camp_id: mainCamp.id,
       role_id: adminRole.id,
       username: 'admin_master',
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
       is_active: true,
     },
     update: {
@@ -341,7 +341,7 @@ async function main() {
       camp_id: secondaryCamp.id,
       role_id: workerRole.id,
       username: 'camp_manager',
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
       is_active: true,
     },
     update: {
