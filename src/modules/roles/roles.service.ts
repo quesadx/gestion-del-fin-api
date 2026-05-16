@@ -61,7 +61,7 @@ export async function createRole(data: CreateRoleDto) {
     const created = await prisma.$transaction(async (tx) => {
       const role = await tx.roles.create({
         data: {
-          name: data.name.trim(),
+          name: data.name,
           description: data.description?.trim(),
         },
       });
@@ -100,7 +100,7 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
       await tx.roles.update({
         where: { id },
         data: {
-          name: data.name?.trim(),
+          name: data.name,
           description: data.description?.trim(),
         },
       });

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const roleNameSchema = z
   .string({ message: 'name is required' })
+  .trim()
   .min(1, 'name cannot be empty')
   .max(60, 'name cannot exceed 60 characters')
   .regex(/^[a-z_]+$/, 'name must use lowercase letters and underscores');
