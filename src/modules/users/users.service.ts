@@ -5,7 +5,7 @@ import { CreateUserDto, UpdateUserDto } from './users.schema.js';
 import bcrypt from 'bcryptjs';
 
 async function prepareUserCreateData(data: CreateUserDto) {
-  const password_hash = await bcrypt.hash(data.password.trim(), 10);
+  const password_hash = await bcrypt.hash(data.password, 10);
 
   return {
     username: data.username.trim(),
@@ -19,7 +19,7 @@ async function prepareUserCreateData(data: CreateUserDto) {
 }
 
 async function prepareUserUpdateData(data: UpdateUserDto) {
-  const password_hash = data.password ? await bcrypt.hash(data.password.trim(), 10) : undefined;
+  const password_hash = data.password ? await bcrypt.hash(data.password, 10) : undefined;
 
   return {
     username: data.username?.trim(),
