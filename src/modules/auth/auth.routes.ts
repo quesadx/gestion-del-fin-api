@@ -81,6 +81,11 @@ router.post('/login', validate(z.object({ body: LoginSchema })), authController.
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+/**
+ * Logout does NOT apply sessionMiddleware — users with expired sessions
+ * (inactive > 20 min) should still be able to log out as long as their JWT
+ * is valid. The service increments session_version to invalidate the token.
+ */
 router.post('/logout', authMiddleware, authController.logout);
 
 export default router;
