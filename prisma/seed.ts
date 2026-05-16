@@ -1,11 +1,12 @@
 import { prisma } from '../src/lib/prisma';
 import { PERMISSIONS } from '../src/shared/constants/permissions';
+import { logger } from '../src/logger/logger';
 
 async function main() {
-  console.log('Starting database seed...');
+  logger.info('Starting database seed...');
 
   // For PostgreSQL, we disable triggers and constraints temporarily
-  console.log('Cleaning existing data...');
+  logger.info('Cleaning existing data...');
 
   const tableNames = [
     'user_achievements',
@@ -41,16 +42,16 @@ async function main() {
     try {
       await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`);
     } catch (err) {
-      console.warn(
+      logger.warn(
         `Could not truncate table ${table} (maybe it doesn't exist): ${(err as any).message}`,
       );
     }
   }
 
-  console.log('Database cleaned.');
+  logger.info('Database cleaned.');
 
   // Seed base entities
-  console.log('Seeding base entities...');
+  logger.info('Seeding base entities...');
   const mainCamp = await prisma.camps.create({
     data: {
       name: 'Alpha Outpost',
@@ -315,7 +316,7 @@ async function main() {
   });
 
   // Seed dependent entities
-  console.log('Seeding dependent entities...');
+  logger.info('Seeding dependent entities...');
   const adminUser = await prisma.users.upsert({
     where: { username: 'admin_master' },
     create: {
@@ -485,7 +486,7 @@ async function main() {
   ]);
 
   // Seed expeditions module data
-  console.log('Seeding expeditions data...');
+  logger.info('Seeding expeditions data...');
 
   const plannedExpedition = await prisma.expeditions.create({
     data: {
@@ -705,7 +706,7 @@ async function main() {
   });
 
   // Seed transfers module data
-  console.log('Seeding transfers data...');
+  logger.info('Seeding transfers data...');
 
   const pendingResourceTransfer = await prisma.camp_transfers.create({
     data: {
@@ -839,13 +840,13 @@ async function main() {
     },
   });
 
-  console.log('Seed completed successfully.');
+  logger.info('Seed completed successfully.');
 }
 
 main()
   .catch((e) => {
-    console.error('Error during seeding:');
-    console.error(e);
+    logger.error('Error during seeding:');
+    logger.error(e);
     process.exit(1);
   })
   .finally(async () => {
