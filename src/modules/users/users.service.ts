@@ -1,9 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
-import {
-  handleUniqueConstraintError,
-  handleForeignKeyError,
-} from '../../shared/utils/handlePrismaError.js';
+import { handleUniqueConstraintError } from '../../shared/utils/handlePrismaError.js';
 import { CreateUserDto, UpdateUserDto } from './users.schema.js';
 import bcrypt from 'bcryptjs';
 
@@ -104,12 +101,8 @@ export async function getUsers(page = 1, pageSize = 20) {
 export async function deleteUser(id: number) {
   const user = await prisma.users.findUnique({ where: { id } });
   if (!user) throw new AppError(`User not found: ${id}`, 404);
-  try {
-    await prisma.users.update({
-      where: { id },
-      data: { is_active: false },
-    });
-  } catch (error: any) {
-    handleForeignKeyError(error);
-  }
+  await prisma.users.update({
+    where: { id },
+    data: { is_active: false },
+  });
 }
