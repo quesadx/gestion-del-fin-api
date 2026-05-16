@@ -19,6 +19,6 @@ const getConnectionUrl = (): string => {
 
 // Create Prisma Client with PostgreSQL adapter
 const adapter = new PrismaPg({ connectionString: getConnectionUrl() });
-const prisma = new PrismaClient({ adapter });
 
-export { prisma };
+export const prisma = new PrismaClient({ adapter });
+
