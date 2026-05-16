@@ -89,9 +89,10 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
   const role = await prisma.roles.findUnique({ where: { id } });
   if (!role) throw new AppError(`Role not found: ${id}`, 404);
 
+  let normalizedPermissionIds: number[] | undefined;
   if (data.permission_ids !== undefined) {
-    const permissionIds = normalizePermissionIds(data.permission_ids);
-    await ensurePermissionsExist(permissionIds);
+    normalizedPermissionIds = normalizePermissionIds(data.permission_ids);
+    await ensurePermissionsExist(normalizedPermissionIds);
   }
 
   try {
@@ -106,10 +107,9 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
 
       if (data.permission_ids !== undefined) {
         await tx.role_permissions.deleteMany({ where: { role_id: id } });
-        const permissionIds = normalizePermissionIds(data.permission_ids);
-        if (permissionIds.length > 0) {
+        if (normalizedPermissionIds!.length > 0) {
           await tx.role_permissions.createMany({
-            data: permissionIds.map((permissionId) => ({
+            data: normalizedPermissionIds!.map((permissionId) => ({
               role_id: id,
               permission_id: permissionId,
             })),
