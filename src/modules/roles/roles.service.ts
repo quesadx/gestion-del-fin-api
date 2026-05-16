@@ -168,11 +168,10 @@ export async function getRoles(page = 1, pageSize = 20) {
 }
 
 export async function deleteRole(id: number) {
-  const role = await prisma.roles.findUnique({ where: { id } });
-  if (!role) throw new AppError(`Role not found: ${id}`, 404);
-
   try {
     await prisma.$transaction(async (tx) => {
+      const role = await tx.roles.findUnique({ where: { id }, select: { id: true } });
+      if (!role) throw new AppError(`Role not found: ${id}`, 404);
       const userCount = await tx.users.count({ where: { role_id: id } });
       if (userCount > 0) {
         throw new AppError(
