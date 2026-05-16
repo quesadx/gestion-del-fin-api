@@ -4,9 +4,22 @@ import { AppError } from '../shared/utils/appError.js';
 import { SYSTEM_ADMIN } from '../shared/constants/roles.js';
 import { AuthenticatedRequest } from './auth.middleware.js';
 
+/**
+ * Extracts a camp ID from known URL patterns used by camp-scoped routes.
+ *
+ * Handles these route families:
+ *   - /camps/<id>[/...]           (camp-scoped resource routes)
+ *   - /inventory/audit/<id>[/...] (audit routes)
+ *   - /inventory/<id>[/...]       (inventory lookup by camp)
+ *   - /admission/camps/<id>[/...] (admission by camp)
+ *
+ * Query strings are stripped before matching to avoid false-positive
+ * camp ID extraction from user-supplied query parameters.
+ */
 function extractCampIdFromUrl(url: string): number | null {
-  const match = url.match(
-    /\/(?:camps\/(\d+)|inventory\/audit\/(\d+)|inventory\/(\d+)|admission\/camps\/(\d+))/,
+  const pathOnly = url.split('?')[0];
+  const match = pathOnly.match(
+    /\/(?:camps\/(\d+)(?:\/|$)|inventory\/audit\/(\d+)(?:\/|$)|inventory\/(\d+)(?:\/|$)|admission\/camps\/(\d+)(?:\/|$))/,
   );
   if (!match) return null;
   const id = match[1] || match[2] || match[3] || match[4];
