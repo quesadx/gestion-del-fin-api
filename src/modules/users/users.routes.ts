@@ -8,6 +8,12 @@ import { roleMiddleware } from '../../middlewares/role.middleware.js';
 
 const router = Router();
 
+router.get(
+  '/roles',
+  roleMiddleware(['system_admin']),
+  usersController.getRolesHandler,
+);
+
 /**
  * @openapi
  * /api/users:

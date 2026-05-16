@@ -85,6 +85,13 @@ export async function getUsers(page = 1, pageSize = 20) {
   };
 }
 
+export async function getRoles() {
+  return prisma.roles.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: 'asc' },
+  });
+}
+
 export async function deleteUser(id: number) {
   const user = await prisma.users.findUnique({ where: { id } });
   if (!user) throw new AppError(`User not found: ${id}`, 404);
