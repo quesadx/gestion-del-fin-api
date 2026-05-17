@@ -24,7 +24,14 @@ Build a comprehensive E2E test suite covering all 14 API modules (66+ endpoints)
 2. Auth helper utility generates valid JWT tokens for admin, memberCampA, memberCampB, and unauthenticated roles — all tokens accepted by protected API endpoints without per-test login boilerplate
 3. Test database is provisioned with deterministic seed data (2 camps, 4 roles, 56 permissions, test users, resources, professions) before tests and cleaned up after; `.env.test` isolates credentials from development
 4. System health endpoints (`GET /api/system/time`, `GET /api/system/health`) return correct responses — proving the test harness works end-to-end as a proof-of-pattern for all subsequent phases
-   **Plans**: TBD
+   **Plans**: 4 plans
+
+Plans:
+
+- [ ] 01-01-PLAN.md — Playwright Configuration & Environment Setup (config, .env.test, dependencies)
+- [ ] 01-02-PLAN.md — Global Setup, Database Seeding & Teardown (seed data, token generation, cleanup)
+- [ ] 01-03-PLAN.md — Auth Helpers, Fixtures, Assertions & Data Constants (shared test utilities)
+- [ ] 01-04-PLAN.md — System Module Smoke Tests (proof-of-pattern, public endpoints)
 
 ### Phase 2: Auth & Foundation CRUD
 
@@ -69,7 +76,7 @@ Build a comprehensive E2E test suite covering all 14 API modules (66+ endpoints)
 
 | Phase                                     | Plans Complete | Status      | Completed |
 | ----------------------------------------- | -------------- | ----------- | --------- |
-| 1. Test Infrastructure & Proof-of-Pattern | 0/TBD          | Not started | -         |
+| 1. Test Infrastructure & Proof-of-Pattern | 0/4            | Planned     | -         |
 | 2. Auth & Foundation CRUD                 | 0/TBD          | Not started | -         |
 | 3. RBAC + Users + Domain CRUD             | 0/TBD          | Not started | -         |
 | 4. Complex Workflows & Metrics            | 0/TBD          | Not started | -         |
