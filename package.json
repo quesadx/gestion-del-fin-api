@@ -45,6 +45,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@playwright/test": "^1.58.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
@@ -60,6 +61,7 @@
     "@typescript-eslint/parser": "^8.57.0",
     "cspell": "^9.7.0",
     "dotenv": "^17.3.1",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-define-config": "^2.1.0",
