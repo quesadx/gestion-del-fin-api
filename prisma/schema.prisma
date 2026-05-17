@@ -38,9 +38,11 @@ model admission_requests {
   created_at              DateTime                          @default(now())
   camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ai_profession           professions?                      @relation(fields: [ai_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([camp_id])
   @@index([reviewed_by])
+  @@index([ai_profession_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -52,7 +54,7 @@ model camp_transfer_item {
   person_id        Int?
   quantity         Decimal?                     @db.Decimal(10, 2)
   camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  persons          persons?                     @relation(fields: [person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  persons          persons?                     @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   resource_type    resource_type?               @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([camp_transfer_id])
@@ -138,7 +140,6 @@ model expedition_allocated_resources {
   resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([expedition_id, resource_type_id])
-  @@index([expedition_id])
   @@index([resource_type_id])
 }
 
@@ -150,7 +151,6 @@ model expedition_found_resources {
   resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([expedition_id, resource_type_id])
-  @@index([expedition_id])
   @@index([resource_type_id])
 }
 
@@ -162,7 +162,6 @@ model expedition_members {
 
   @@id([person_id, expedition_id])
   @@index([expedition_id])
-  @@index([person_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -199,7 +198,6 @@ model inventory {
   resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([camp_id, resource_type_id], map: "uq_camp_resource")
-  @@index([camp_id])
   @@index([resource_type_id])
 }
 
@@ -287,6 +285,7 @@ model professions {
   id                                                                                      Int                             @id @default(autoincrement())
   name                                                                                    String                          @unique(map: "professions_name_unique") @db.VarChar(80)
   description                                                                             String?                         @db.Text
+  admission_requests admission_requests[]
   persons                                                                                 persons[]
   from_profession_logs profession_reassignment_log[]   @relation("profession_log_from_profession")
   to_profession_logs   profession_reassignment_log[]   @relation("profession_log_to_profession")
@@ -301,7 +300,6 @@ model professions_resources_amounts {
   resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([professions_id, resource_type_id])
-  @@index([professions_id])
   @@index([resource_type_id])
 }
 
@@ -347,7 +345,6 @@ model role_permissions {
 
   @@id([role_id, permission_id])
   @@index([permission_id])
-  @@index([role_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -365,6 +362,7 @@ model user_achievements {
   achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   users          users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@unique([user_id, achievement_id])
   @@index([achievement_id])
   @@index([user_id])
 }

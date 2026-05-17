@@ -24,7 +24,9 @@ function prepareAdmissionCreateData(
     ai_decision: aiData.ai_decision ?? 'PENDING',
     ai_reasoning: aiData.ai_reasoning.trim(),
     ai_suggested_profession: aiData.ai_suggested_profession.trim(),
-    ai_profession_id: aiData.ai_profession_id,
+    ai_profession: aiData.ai_profession_id
+      ? { connect: { id: aiData.ai_profession_id } }
+      : undefined,
     created_at: new Date(),
   };
 }
