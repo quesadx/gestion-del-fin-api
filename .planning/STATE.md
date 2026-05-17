@@ -5,7 +5,7 @@ milestone_name: milestone
 status: milestone_complete
 stopped_at: Roadmap creation complete — all 102 requirements mapped to 4 phases
 last_updated: "2026-05-17T10:29:41.630Z"
-last_activity: 2026-05-17 - Completed quick task fix-prisma-schema: schema integrity fixes
+last_activity: 2026-05-17 - Completed quick task fix-deferred-schema: all 8 deferred review findings
 progress:
   total_phases: 4
   completed_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-17)
 Phase: 04
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-05-17 - Completed quick task fix-prisma-schema
+Last activity: 2026-05-17 - Completed quick task fix-deferred-schema
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
@@ -78,7 +78,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 20260517 | Fix Prisma schema: cyclic refs, FK actions, snake_case relations, person_status_log enum | 2026-05-17 | `028cd7f` | [fix-prisma-schema](./quick/20260517-fix-prisma-schema/) |
-
+| 20260517-deferred | Fix deferred schema review: datasource, persons→people rename, led_transfers, admission→person link, SetNull fixes, VarChar consistency | 2026-05-17 | `9302b9c` | [fix-deferred-schema](./quick/20260517-fix-deferred-schema/) |
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
