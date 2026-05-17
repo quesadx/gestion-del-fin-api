@@ -399,15 +399,15 @@ model users {
 
 model audit_log {
   id          Int      @id @default(autoincrement())
-  user_id     Int
-  camp_id     Int
+  user_id     Int?
+  camp_id     Int?
   action      String   @db.VarChar(100)
   target_type String   @db.VarChar(80)
   target_id   Int?
   metadata    Json?    @db.JsonB
   created_at  DateTime @default(now())
-  users       users    @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  camps       camps    @relation(fields: [camp_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  users       users?   @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  camps       camps?   @relation(fields: [camp_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([user_id])
   @@index([camp_id])
