@@ -197,7 +197,7 @@ model inventory {
   camp_id          Int
   resource_type_id Int
   quantity         Decimal       @default(0.00) @db.Decimal(12, 2)
-  last_updated     DateTime      @default(now())
+  last_updated     DateTime      @updatedAt
   camps            camps         @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -404,8 +404,8 @@ model audit_log {
   id          Int      @id @default(autoincrement())
   user_id     Int?
   camp_id     Int?
-  action      String   @db.VarChar(100)
-  target_type String   @db.VarChar(80)
+  action      audit_log_action
+  target_type audit_log_target_type
   target_id   Int?
   metadata    Json?    @db.JsonB
   created_at  DateTime @default(now())
@@ -477,4 +477,26 @@ enum admission_requests_final_decision {
   ACCEPTED
   REJECTED
   PENDING
+}
+
+enum audit_log_action {
+  CREATE_CAMP
+  UPDATE_CAMP
+  DELETE_CAMP
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  CREATE_TRANSFER
+  APPROVE_TRANSFER_SOURCE
+  APPROVE_TRANSFER_TARGET
+  COMPLETE_TRANSFER
+  REJECT_TRANSFER
+  LOGIN
+  LOGOUT
+}
+
+enum audit_log_target_type {
+  users
+  camps
+  camp_transfers
 }
