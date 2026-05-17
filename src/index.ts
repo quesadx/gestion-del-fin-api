@@ -6,10 +6,12 @@ import { authMiddleware } from './middlewares/auth.middleware.js';
 import { sessionMiddleware } from './middlewares/session.middleware.js';
 import { campMiddleware } from './middlewares/camp.middleware.js';
 import { swaggerSpec } from './docs/swagger.js';
+import { globalRateLimit } from './middlewares/rateLimit.middleware.js';
 import jobScheduler from './jobs/scheduler.js';
 
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import systemRoutes from './modules/system/system.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
@@ -27,6 +29,15 @@ import rolesRoutes from './modules/roles/roles.routes.js';
 import permissionsRoutes from './modules/permissions/permissions.routes.js';
 const app = express();
 
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
+
 app.get('/', (req, res) => {
   res.json({ message: 'gestion-del-fin-api is alive and kicking!' });
 });
@@ -39,6 +50,9 @@ app.use(
 );
 
 app.use(express.json());
+
+app.set('trust proxy', 1);
+app.use(globalRateLimit);
 
 app.use('/api/system', systemRoutes);
 app.use('/api/auth', authRoutes);

@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { LoginInput } from './auth.schema.js';
 import { signAccessToken } from '../../shared/utils/jwt.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 export const login = async (data: LoginInput) => {
   const user = await prisma.users.findUnique({
@@ -63,14 +64,37 @@ export const login = async (data: LoginInput) => {
     data: { last_activity: new Date() },
   });
 
+  auditLog({
+    userId: user.id,
+    campId: user.camp_id,
+    action: 'LOGIN',
+    targetType: 'users',
+    targetId: user.id,
+  });
+
   return { user: { username: user.username, role: user.roles.name }, token };
 };
 
 export const logout = async (userId: number) => {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { id: true, camp_id: true },
+  });
+
   await prisma.users.update({
     where: { id: userId },
     data: { last_activity: null, session_version: { increment: 1 } },
   });
+
+  if (user) {
+    auditLog({
+      userId,
+      campId: user.camp_id,
+      action: 'LOGOUT',
+      targetType: 'users',
+      targetId: userId,
+    });
+  }
 
   return { message: 'Logged out successfully' };
 };

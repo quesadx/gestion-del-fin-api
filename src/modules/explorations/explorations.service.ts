@@ -595,12 +595,15 @@ export async function getExploration(id: number) {
   return expedition;
 }
 
-export async function getExplorations(page = 1, pageSize = 20) {
+export async function getExplorations(campId: number, page = 1, pageSize = 20) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
+  const where = { camp_id: campId };
+
   const [records, total] = await Promise.all([
     prisma.expeditions.findMany({
+      where,
       skip,
       take: effectiveLimit,
       include: {
@@ -612,7 +615,7 @@ export async function getExplorations(page = 1, pageSize = 20) {
       },
       orderBy: { id: 'desc' },
     }),
-    prisma.expeditions.count(),
+    prisma.expeditions.count({ where }),
   ]);
 
   return {

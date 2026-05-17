@@ -20,8 +20,13 @@ logs/
 
 # Misc
 .DS_Store
-.planning
 
 # Prisma client (generated)
 src/generated/prisma/
 prisma/migrations.lock/
+
+# Test environment
+.env.test
+
+# Generated test auth tokens
+tests/e2e/.auth/

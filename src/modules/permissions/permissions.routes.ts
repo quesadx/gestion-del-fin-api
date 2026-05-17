@@ -9,16 +9,6 @@ import { PERMISSIONS } from '../../shared/constants/permissions.js';
 
 const router = Router();
 
-/**
- * @openapi
- * /api/permissions:
- *   post:
- *     tags: [Permissions]
- *     summary: Create permission
- *     description: Creates a permission definition.
- *     security:
- *       - bearerAuth: []
- */
 router.post(
   '/',
   permissionMiddleware(PERMISSIONS.PERMISSIONS_CREATE),
@@ -26,16 +16,6 @@ router.post(
   permissionsController.createPermissionHandler,
 );
 
-/**
- * @openapi
- * /api/permissions:
- *   get:
- *     tags: [Permissions]
- *     summary: List permissions
- *     description: Returns permission definitions.
- *     security:
- *       - bearerAuth: []
- */
 router.get(
   '/',
   permissionMiddleware(PERMISSIONS.PERMISSIONS_READ),
@@ -43,16 +23,6 @@ router.get(
   permissionsController.getPermissionsHandler,
 );
 
-/**
- * @openapi
- * /api/permissions/{id}:
- *   get:
- *     tags: [Permissions]
- *     summary: Get permission by id
- *     description: Returns one permission by numeric id.
- *     security:
- *       - bearerAuth: []
- */
 router.get(
   '/:id',
   permissionMiddleware(PERMISSIONS.PERMISSIONS_READ),
@@ -60,16 +30,6 @@ router.get(
   permissionsController.getPermissionHandler,
 );
 
-/**
- * @openapi
- * /api/permissions/{id}:
- *   put:
- *     tags: [Permissions]
- *     summary: Update permission
- *     description: Updates permission metadata.
- *     security:
- *       - bearerAuth: []
- */
 router.put(
   '/:id',
   permissionMiddleware(PERMISSIONS.PERMISSIONS_UPDATE),
@@ -77,16 +37,6 @@ router.put(
   permissionsController.updatePermissionHandler,
 );
 
-/**
- * @openapi
- * /api/permissions/{id}:
- *   delete:
- *     tags: [Permissions]
- *     summary: Delete permission
- *     description: Deletes a permission by id.
- *     security:
- *       - bearerAuth: []
- */
 router.delete(
   '/:id',
   permissionMiddleware(PERMISSIONS.PERMISSIONS_DELETE),
