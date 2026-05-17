@@ -625,8 +625,8 @@ export async function getTransfer(id: number) {
     where: { id },
     include: {
       camp_transfer_item: true,
-      camps_camp_transfers_requesting_campTocamps: true,
-      camps_camp_transfers_target_campTocamps: true,
+      requesting_camp_ref: true,
+      target_camp_ref: true,
     },
   });
 
@@ -653,8 +653,8 @@ export async function getTransfers(campId: number, page = 1, pageSize = 20) {
       orderBy: { created_at: 'desc' },
       include: {
         camp_transfer_item: true,
-        camps_camp_transfers_requesting_campTocamps: true,
-        camps_camp_transfers_target_campTocamps: true,
+        requesting_camp_ref: true,
+        target_camp_ref: true,
       },
     }),
     prisma.camp_transfers.count({ where }),

@@ -5,7 +5,7 @@ milestone_name: milestone
 status: milestone_complete
 stopped_at: Roadmap creation complete — all 102 requirements mapped to 4 phases
 last_updated: "2026-05-17T10:29:41.630Z"
-last_activity: 2026-05-17 -- Phase 04 execution started
+last_activity: 2026-05-17 - Completed quick task fix-prisma-schema: schema integrity fixes
 progress:
   total_phases: 4
   completed_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-17)
 Phase: 04
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-05-17
+Last activity: 2026-05-17 - Completed quick task fix-prisma-schema
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
@@ -72,6 +72,12 @@ None yet.
 - [Phase 1]: Rate limiter bypass — `rateLimit.middleware.ts` has no `NODE_ENV=test` bypass. Research flags this as a constraint tension (no production code changes vs. test reliability). Needs resolution during Phase 1 planning.
 - [Phase 1]: `last_activity` strategy — tokens generated in global setup expire after 20 min wall-clock time. Need per-test login or DB manipulation in `beforeEach`. Decision needed during planning.
 - [Phase 4]: AI/ML mocking strategy for admission — Groq SDK and ML microservice (port 8000) need mocking approach. Flagged for research during Phase 4 planning.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 20260517 | Fix Prisma schema: cyclic refs, FK actions, snake_case relations, person_status_log enum | 2026-05-17 | `pending` | [fix-prisma-schema](./quick/20260517-fix-prisma-schema/) |
 
 ## Deferred Items
 

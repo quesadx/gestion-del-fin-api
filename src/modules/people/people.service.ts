@@ -450,10 +450,10 @@ export async function createProfessionReassignment(
         persons: {
           select: { id: true, full_name: true, profession_id: true },
         },
-        professions_profession_reassignment_log_from_profession_idToprofessions: {
+        from_profession: {
           select: { id: true, name: true },
         },
-        professions_profession_reassignment_log_to_profession_idToprofessions: {
+        to_profession: {
           select: { id: true, name: true },
         },
       },
