@@ -30,8 +30,8 @@ Plans:
 
 - [x] 01-01-PLAN.md — Playwright Configuration & Environment Setup (config, .env.test, dependencies)
 - [x] 01-02-PLAN.md — Global Setup, Database Seeding & Teardown (seed data, token generation, cleanup)
-- [ ] 01-03-PLAN.md — Auth Helpers, Fixtures, Assertions & Data Constants (shared test utilities)
-- [ ] 01-04-PLAN.md — System Module Smoke Tests (proof-of-pattern, public endpoints)
+- [x] 01-03-PLAN.md — Auth Helpers, Fixtures, Assertions & Data Constants (shared test utilities)
+- [x] 01-04-PLAN.md — System Module Smoke Tests (proof-of-pattern, public endpoints)
 
 ### Phase 2: Auth & Foundation CRUD
 
