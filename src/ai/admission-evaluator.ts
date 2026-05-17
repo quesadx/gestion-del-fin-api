@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
 
-// Zod parsing to avoid unrreal info, (for prompt injection security)
+// Zod parsing to avoid unreal info, (for prompt injection security)
 const campWeightsSchema = z
   .object({
     weight_technical: z.number().min(0).max(1).optional(),
