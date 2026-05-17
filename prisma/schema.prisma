@@ -118,19 +118,18 @@ model camps {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model contribution_overrides {
-  id               Int            @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   person_id        Int
   resource_type_id Int
-  reason           String         @db.VarChar(255)
-  start_date       DateTime       @default(now()) @db.Date
-  end_date         DateTime?      @db.Date
-  created_by       Int
-  amount           Decimal        @db.Decimal(8, 2)
-  persons          people         @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resourceType     resource_type? @relation(fields: [resource_typeId], references: [id])
-  resource_typeId  Int?
-  users            users?         @relation(fields: [usersId], references: [id])
-  usersId          Int?
+  reason           String    @db.VarChar(255)
+  start_date       DateTime  @default(now()) @db.Date
+  end_date         DateTime? @db.Date
+  created_by       Int?
+  amount           Decimal   @db.Decimal(8, 2)
+
+  persons       people        @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  users         users?        @relation(fields: [created_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([created_by])
   @@index([person_id])
@@ -232,9 +231,9 @@ model person_status_log {
   old_status persons_status
   new_status persons_status
   reason     String?        @db.Text
-  changed_by Int
+  changed_by Int?
   changed_at DateTime       @default(now())
-  users      users          @relation(fields: [changed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  users      users?         @relation(fields: [changed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   persons    people         @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([changed_by])

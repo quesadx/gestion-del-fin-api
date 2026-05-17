@@ -511,7 +511,7 @@ export async function createContributionOverride(
             full_name: true,
           },
         },
-        resourceType: {
+        resource_type: {
           select: {
             id: true,
             name: true,
