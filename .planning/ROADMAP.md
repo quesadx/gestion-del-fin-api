@@ -80,3 +80,13 @@ Plans:
 | 2. Auth & Foundation CRUD                 | 0/TBD          | Not started | -         |
 | 3. RBAC + Users + Domain CRUD             | 0/TBD          | Not started | -         |
 | 4. Complex Workflows & Metrics            | 0/TBD          | Not started | -         |
+
+### Phase 5: Fix all prisma/schema issues based on db-review.md (taking into account that some stuff is partially fixed)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 5 to break down)

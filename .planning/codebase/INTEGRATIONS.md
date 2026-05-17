@@ -1,165 +1,183 @@
-# External Integrations
+# Integrations & External Services
 
 **Analysis Date:** 2026-05-17
 
-## APIs & External Services
+## AI / LLM Service (Groq)
 
-**AI / LLM:**
-- Groq Cloud API — Used to parse camp context prompts into structured weights for the decision tree
-  - SDK/Client: `groq-sdk` 1.1.2 (`src/lib/ai.ts`)
-  - Model: `llama-3.3-70b-versatile`
-  - Auth: `GROQ_API_KEY` (env var)
-  - Purpose: Converts natural-language camp admission priorities into `CampWeights` (skill weights 0–1, strict_health_check, minimum_age)
-  - File: `src/ai/admission-evaluator.ts`, function `parseCampWeights()`
+- **SDK:** `groq-sdk` ^1.1.2
+- **Client instance:** `src/lib/ai.ts` — `new Groq({ apiKey: process.env.GROQ_API_KEY })`
+- **Model:** `llama-3.3-70b-versatile`
+- **Purpose:** Parse camp `ai_context_prompt` (natural language) into structured admission priority weights (`CampWeights` object with fields like `weight_medical`, `strict_health_check`, `minimum_age`)
+- **Files:**
+  - `src/ai/admission-evaluator.ts` — function `parseCampWeights()` (lines 28–77)
+  - `src/lib/ai.ts` — SDK initialization
+- **Config:** `GROQ_API_KEY` environment variable
+- **Security:** Prompt injection countermeasures — sanitizes context (removes `ignore previous instructions`, truncates to 500 chars, Zod-validates JSON response)
+- **Response format:** `response_format: { type: 'json_object' }` for structured parsing
 
-**ML Microservice (Internal HTTP):**
-- Python FastAPI service — Decision tree classifier for admission decisions
-  - Location: `ml-service/` directory
-  - Endpoint: `POST /evaluate` — Accepts age, skills, health_notes, camp_weights → returns decision, confidence, reasoning_path, profession_category
-  - Endpoint: `GET /health` — Returns `{ status: "ok", model_trained: bool }`
-  - Auth: None (internal service, not exposed externally)
-  - Timeout: 5 seconds (`AbortSignal.timeout(5000)`)
-  - Error response: 502 Bad Gateway if unreachable
-  - Client code: `src/ai/admission-evaluator.ts`, function `evaluateWithDecisionTree()`
-  - Config: `ML_SERVICE_URL` env var (default: `http://localhost:8000`)
+## ML Microservice (Internal HTTP)
 
-## Data Storage
+- **Stack:** Python FastAPI 0.115.0 + scikit-learn 1.5.2 (DecisionTreeClassifier)
+- **Location:** `ml-service/` directory (Docker image: `python:3.12-slim`)
+- **Port:** 8000 (internal to Docker Compose network)
 
-**Database:**
-- PostgreSQL 16 — Primary data store
-  - Provider: `postgresql` (in `prisma/schema.prisma` datasource)
-  - Docker: `postgres:16-alpine` image in `docker-compose.yml` (service: `db`)
-  - ORM: Prisma 7.8.0 with `@prisma/adapter-pg` (direct driver, no query engine binary)
-  - Native driver: `pg` 8.12.0
-  - Connection: `DATABASE_URL` env var (constructed from `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` as fallback)
-  - Direct URL: `DATABASE_DIRECT_URL` for Prisma CLI migrations
-  - Shadow DB: `SHADOW_DATABASE_URL` (optional, for `prisma migrate dev`)
-  - Client init: `src/lib/prisma.ts` — uses `PrismaPg` adapter
-  - Schema: `prisma/schema.prisma` — 20 models, 8 enums, camp-scoped multi-tenant design
+### Endpoints
 
-**File Storage:**
-- Local filesystem only — No S3/blob storage integration detected
+| Endpoint | Method | Purpose | Response |
+|----------|--------|---------|----------|
+| `/evaluate` | POST | Decision tree admission evaluation | `{ decision, confidence, reasoning_path[], profession_category }` |
+| `/health` | GET | Health + model status | `{ status: "ok", model_trained: bool }` |
 
-**Caching:**
-- None — No Redis/Memcached. Session handled via database `session_version` field and JWT expiry.
+### Client Integration
 
-## Authentication & Identity
+- **File:** `src/ai/admission-evaluator.ts` — function `evaluateWithDecisionTree()` (lines 79–112)
+- **Call:** `fetch(\`${ML_SERVICE_URL}/evaluate\`)` with JSON body containing `age`, `skills`, `health_notes`, `camp_weights`
+- **Timeout:** 5 seconds (`AbortSignal.timeout(5000)`)
+- **Error handling:** Throws `AppError('Decision tree service unavailable', 502)` if not OK
+- **Test mode:** When `NODE_ENV === 'test'`, returns hardcoded `ACCEPTED` with profession — no external call
+- **Config:** `ML_SERVICE_URL` env var (default: `http://localhost:8000`)
 
-**Auth Provider:**
-- Custom JWT-based authentication
-  - Implementation: `src/middlewares/auth.middleware.ts` — Verifies `Authorization: Bearer <token>` header
-  - Token library: `jsonwebtoken` 9.0.3
-  - Password hashing: `bcryptjs` 3.0.3
-  - Token payload: `{ userId, campId, role, sessionVersion, isAdmin, iat, exp }`
-  - Token expiry: Configurable via `JWT_EXPIRY` env var (default: "1h")
-  - Session timeout: 20-minute inactivity enforced by `src/middlewares/session.middleware.ts`
-  - Session invalidation: Increments `session_version` on logout
+## Database
+
+- **Type:** PostgreSQL 16
+- **Provider/prisma:** `prisma/schema.prisma` datasource block: `provider = "postgresql"`
+- **Adapter:** `@prisma/adapter-pg` ^7.8.0 (native PostgreSQL driver, no Prisma query engine binary)
+- **Driver:** `pg` ^8.12.0
+- **Connection URLs:**
+  - `DATABASE_URL` — Runtime connection (session pooler format for Supabase)
+  - `DATABASE_DIRECT_URL` — Direct connection for Prisma CLI migrations
+  - `SHADOW_DATABASE_URL` — Optional, for `prisma migrate dev`
+  - Fallback: constructed from `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- **Client init:** `src/lib/prisma.ts` — `PrismaPg` adapter wraps `connectionString`, passed to `PrismaClient`
+- **Generated client:** `src/generated/prisma/` (custom `output` path in schema)
+- **Docker:** `postgres:16-alpine` image in `docker-compose.yml` (service name: `db`)
+- **Health check:** `pg_isready -U postgres`
+
+## Job Scheduler
+
+- **Library:** `node-cron` ^4.2.1
+- **Scheduler:** `src/jobs/scheduler.ts` — start/stop lifecycle, graceful shutdown on SIGINT/SIGTERM
+- **Cron expressions:** Configurable via env vars (`DAILY_RATIONS_CRON`, `DAILY_PRODUCTION_CRON`, `RESOURCE_ALERTS_CRON`)
+
+| Job | File | Default Cron | Purpose |
+|-----|------|-------------|---------|
+| Daily Rations | `src/jobs/daily-rations.job.ts` | `* * * * *` (every minute) | Distributes daily rations per camp: priority order (children → doctors → explorers → rest), consumes inventory, logs alerts |
+| Daily Production | `src/jobs/daily-production.job.ts` | `0 5 * * *` (5 AM daily) | Applies profession-based resource production per camp, handles contribution overrides |
+| Resource Alerts | `src/jobs/resource-alerts.job.ts` | `0 * * * *` (hourly) | Logs WARN/ERROR for resources below minimum stock thresholds |
+
+- **Test mode:** Jobs disabled when `NODE_ENV === 'test'` (see `src/index.ts` line 92–94)
+
+## Logging
+
+- **Library:** Winston ^3.19.0
+- **File:** `src/logger/logger.ts`
+- **Transports:**
+  1. Console — Colorized in dev, JSON in production
+  2. Daily rotate file — `logs/app-YYYY-MM-DD.log` (14-day retention, 20MB max)
+  3. Daily rotate error file — `logs/error-YYYY-MM-DD.log` (30-day retention, error level only)
+- **Level:** Configurable via `LOG_LEVEL` env var (default: `"info"`)
+- **File path:** Configurable via `LOG_FILE` env var (default: `./logs/app.log`)
+- **Audit logging:** Separate pattern in `src/shared/utils/auditLog.ts` — writes to `audit_logs` DB table asynchronously (fire-and-forget, logs error on failure)
+
+## Authentication
+
+- **Type:** Custom JWT-based (no OAuth, no external identity provider)
+- **Token creation:** `src/shared/utils/jwt.ts` — `signAccessToken()` signs with `JWT_SECRET` + configurable `JWT_EXPIRY`
+- **Token verification:** `getAccessTokenPayloadFromHeader()` — extracts Bearer token, verifies signature, validates payload shape
+- **Password hashing:** bcryptjs ^3.0.3
+- **Session management:** `sessionMiddleware` — 20-min inactivity timeout, session_version check from DB, `last_activity` timestamp update on each request
+- **Logout:** Increments `session_version` in DB, invalidating all existing tokens
+
+## API Documentation
+
+- **Spec format:** OpenAPI 3.0 (YAML) at `src/docs/openapi.yaml`
+- **Loader:** `src/docs/swagger.ts` — loads YAML, injects server URL from env, serves at `GET /api/docs`
+- **UI:** `swagger-ui-express` ^5.0.1 at `GET /api/docs`
+- **Raw JSON:** `GET /api/docs.json`
+
+## Rate Limiting (integration via middleware)
+
+- **Library:** `express-rate-limit` ^8.5.2
+- **Files:** `src/middlewares/rateLimit.middleware.ts`
+
+| Limiter | Window | Max Requests | Applied To |
+|---------|--------|-------------|------------|
+| Global | 15 min | 200 | All routes via `app.use(globalRateLimit)` |
+| Login | 15 min (1min in test) | 5 (100 in test) | `POST /api/auth/login` — `loginRateLimit` |
+| Admission | 1 min | 10 | `POST /api/admission` — `admissionRateLimit` |
+
+All limiters are skipped when `NODE_ENV === 'test'`.
+
+## Caching
+
+- **None detected.** No Redis, Memcached, or in-memory cache. Session state is stored in DB (`users.last_activity`, `users.session_version`). No response caching.
+
+## File Storage
+
+- **Local filesystem only.** No S3, GCS, or blob storage. Photo URL fields (`photo_url`, `icon_url`) accept external URLs as strings — no upload handling.
 
 ## Monitoring & Observability
 
-**Error Tracking:**
-- None — No Sentry, Datadog, or similar APM detected
+- **Error tracking:** None — no Sentry, Datadog, or APM integration.
+- **Health endpoint:** `GET /api/system/time` (returns server timestamp for client clock sync, also used as Docker health check)
+- **Server time utility:** `src/shared/utils/server-time.ts` — `now()`, `nowISO()`, `today()` — all server-side dates
 
-**Logs:**
-- Winston 3.19.0 with daily rotate file transport (`src/logger/logger.ts`)
-  - Console transport (colorized in dev, JSON in production)
-  - Daily rotate: `logs/app-YYYY-MM-DD.log` (14-day retention, 20MB max per file)
-  - Error logs: `logs/error-YYYY-MM-DD.log` (30-day retention, error level only)
-  - Level: Controlled by `LOG_LEVEL` env var (default: "info")
-  - File path: Controlled by `LOG_FILE` env var (default: `./logs/app.log`)
+## CI/CD
 
-## CI/CD & Deployment
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) — runs on push/PR to all branches
+  - Steps: checkout → Node 20 setup → npm install → ESLint → Prettier check → cspell → Jest tests
+  - No Docker build, no deployment, no E2E tests in CI
+- **Deployment:** Docker Compose for local dev; Dockerfile multi-stage for production; Railway-compatible (per health check + port 3000)
 
-**Hosting:**
-- Railway-compatible (per Dockerfile health check comments)
-- Docker Compose for local development
+## Environment Variables
 
-**CI Pipeline:**
-- GitHub Actions: `.github/workflows/ci.yml`
-  - Trigger: push/pull_request on all branches
-  - Steps: checkout → setup Node 20 → npm install → ESLint → Prettier check → cspell → Jest tests
-  - No Docker build or deployment steps in CI
+### Required
 
-**Docker:**
-- Root `Dockerfile` — Multi-stage build (builder: compile TS, runner: production deps + dist)
-  - Base: `node:20-alpine`
-  - Exposes port 3000
-  - Startup: `npx prisma generate && npx prisma migrate deploy && npm start`
-  - Health check: `GET /api/system/time` (30s interval)
-- ML Service `ml-service/Dockerfile` — Single-stage Python
-  - Base: `python:3.12-slim`
-  - Exposes port 8000
-  - Startup: `uvicorn main:app --host 0.0.0.0 --port 8000`
-- `docker-compose.yml` — Two services:
-  - `db`: postgres:16-alpine (port 5432, health check via pg_isready)
-  - `ml`: builds from `./ml-service` (port 8000, health check via curl `/health`)
+| Variable | Purpose | Source |
+|----------|---------|--------|
+| `DATABASE_URL` | PostgreSQL connection (runtime) | `.env` |
+| `DATABASE_DIRECT_URL` | PostgreSQL direct connection (migrations) | `.env` |
+| `JWT_SECRET` | JWT signing key (>=32 chars) | `.env` |
+| `JWT_EXPIRY` | Token lifetime (e.g. `"1h"`) | `.env` |
+| `GROQ_API_KEY` | Groq AI API key | `.env` |
+| `ML_SERVICE_URL` | ML microservice URL | `.env` |
+| `CORS_ORIGIN` | Allowed frontend origin | `.env` |
+| `NODE_ENV` | Environment mode | `.env` |
 
-## Environment Configuration
+### Optional
 
-**Required env vars (from `.env.example`):**
-- `NODE_ENV` — "development" | "production"
-- `PORT` — Server port (default: 3000)
-- `DATABASE_URL` — PostgreSQL connection string
-- `DATABASE_DIRECT_URL` — Direct PostgreSQL connection (for Prisma CLI)
-- `JWT_SECRET` — At least 32 characters (validated in production)
-- `JWT_EXPIRY` — Token lifetime string (e.g. "1h")
-- `GROQ_API_KEY` — Groq API key for LLM camp context parsing
-- `ML_SERVICE_URL` — ML microservice URL (default: `http://localhost:8000`)
-- `CORS_ORIGIN` — Frontend origin for CORS (default: `http://localhost:5173`)
-- `LOG_LEVEL` — Winston level: "debug" | "info" | "error"
-- `LOG_FILE` — Log file path (default: `./logs/app.log`)
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `3000` | Server port |
+| `LOG_LEVEL` | `"info"` | Winston log level |
+| `LOG_FILE` | `"./logs/app.log"` | Log file path |
+| `DB_HOST` | `"localhost"` | DB host fallback |
+| `DB_PORT` | `"5432"` | DB port fallback |
+| `DB_USER` | `"postgres"` | DB user fallback |
+| `DB_PASSWORD` | `""` | DB password fallback |
+| `DB_NAME` | `"gestion_del_fin"` | DB name fallback |
+| `SHADOW_DATABASE_URL` | none | Prisma migrate dev shadow DB |
+| `DAILY_RATIONS_CRON` | `"* * * * *"` | Rations job schedule |
+| `DAILY_PRODUCTION_CRON` | `"0 5 * * *"` | Production job schedule |
+| `RESOURCE_ALERTS_CRON` | `"0 * * * *"` | Alerts job schedule |
+| `CHILD_AGE` | `12` | Child age threshold for ration priority |
 
-**Optional env vars:**
-- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — Fallback when `DATABASE_URL` not set
-- `SHADOW_DATABASE_URL` — For `prisma migrate dev`
-- `DAILY_RATIONS_CRON` — Cron expression (default: `* * * * *`)
-- `DAILY_PRODUCTION_CRON` — Cron expression (default: `0 5 * * *`)
-- `RESOURCE_ALERTS_CRON` — Cron expression (default: `0 * * * *`)
-- `CHILD_AGE` — Age threshold for child priority in rations (default: 12)
+### Test-specific (`.env.test`)
 
-**Secrets location:**
-- `.env` file (gitignored) — All secrets
-- `.env.example` — Template without real secrets
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `DATABASE_URL` | `postgresql://.../gestion_del_fin_test` | Test DB |
+| `JWT_SECRET` | `test-jwt-secret-at-least-32-characters-long-for-e2e` | Test signing |
+| `JWT_EXPIRY` | `24h` | Long expiry for tests |
+| `LOG_LEVEL` | `error` | Suppress logs in tests |
+| `GROQ_API_KEY` | `sk-test-mock-key` | Mock key (admission evaluator returns hardcoded in test mode) |
 
 ## Webhooks & Callbacks
 
-**Incoming:**
-- None — No webhook endpoints detected
-
-**Outgoing:**
-- `POST {ML_SERVICE_URL}/evaluate` — Evaluation request from `src/ai/admission-evaluator.ts` to ML microservice (5s timeout)
-- Groq API chat completions — Camp context parsing from `src/ai/admission-evaluator.ts`
-
-## Internal Integration Points
-
-**Rate Limiting:**
-- `express-rate-limit` 8.5.2 — Applied to `POST /api/admission/camps/:campId`
-  - Window: 60 seconds
-  - Max: 10 requests per window
-  - Response: 429 with JSON error body
-  - Implementation: `src/middlewares/rateLimit.middleware.ts`
-  - Applied in: `src/modules/admission/admission.routes.ts` (after validation, before controller)
-
-**Job Scheduler:**
-- `node-cron` 4.2.1 — Three cron jobs registered at startup (`src/index.ts` line 79)
-  - `daily-rations.job.ts` — Distributes daily rations per camp (cron: `* * * * *`)
-  - `daily-production.job.ts` — Applies profession-based resource production (cron: `0 5 * * *`)
-  - `resource-alerts.job.ts` — Logs low-stock alerts per camp (cron: `0 * * * *`)
-  - Scheduler: `src/jobs/scheduler.ts` — start/stop lifecycle, graceful shutdown on SIGINT/SIGTERM
-
-**Swagger Documentation:**
-- `swagger-jsdoc` — Generates OpenAPI spec from JSDoc annotations in route files
-- `swagger-ui-express` — Serves interactive API docs at `GET /api/docs`
-- Raw spec available at `GET /api/docs.json`
-- No `swagger-jsdoc` spec source found as separate file; generated from route comments
-
-**Middleware Chain (from `src/index.ts`):**
-1. `cors` — CORS with credentials (before routes)
-2. `express.json()` — Body parsing
-3. Public routes: `/api/system/*`, `/api/auth/*` (no auth)
-4. Protected routes: `authMiddleware` → `sessionMiddleware` → `campMiddleware` → module routes
-5. Globally: `errorHandler` (last)
-6. Additional per-route: `permissionMiddleware`, `validate`, `admissionRateLimit`
+- **Incoming:** None
+- **Outgoing:**
+  - `{ML_SERVICE_URL}/evaluate` — HTTP POST from admission evaluator
+  - `api.groq.com/openai/v1/chat/completions` — Groq SDK call for context parsing
 
 ---
 

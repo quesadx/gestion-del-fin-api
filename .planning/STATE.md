@@ -73,6 +73,10 @@ None yet.
 - [Phase 1]: `last_activity` strategy — tokens generated in global setup expire after 20 min wall-clock time. Need per-test login or DB manipulation in `beforeEach`. Decision needed during planning.
 - [Phase 4]: AI/ML mocking strategy for admission — Groq SDK and ML microservice (port 8000) need mocking approach. Flagged for research during Phase 4 planning.
 
+### Roadmap Evolution
+
+- Phase 5 added: Fix all prisma/schema issues based on db-review.md (taking into account that some stuff is partially fixed)
+
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |

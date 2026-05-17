@@ -2,215 +2,366 @@
 
 **Analysis Date:** 2026-05-17
 
----
+## Security Concerns
 
-## CRITICAL: Cross-Camp Data Leakage (Unresolved)
+### Admission single-entity endpoints lack camp scoping (cross-camp data leakage)
 
-All three list/read endpoints return records from **all camps** without filtering by the authenticated user's camp. A user from Camp A can see all transfers, users, and expeditions across the entire system.
+**What happens:** `GET /api/admission/:id` (`src/modules/admission/admission.routes.ts:38-43`) and `PATCH /api/admission/:id/review` (`src/modules/admission/admission.routes.ts:45-50`) do not include a campId in the URL path. The `campMiddleware` (`src/middlewares/camp.middleware.ts:84-87`) calls `extractCampIdFromUrl()` — the regex only matches patterns like `admission/camps/<id>`, NOT `admission/<id>`. Since `req.params.campId` is also undefined, camp scoping is silently skipped.
 
-### `getTransfers` — No Camp Filter
+**Files:**
+- `src/modules/admission/admission.routes.ts:38-43` (`GET /:id`) and `:45-50` (`PATCH /:id/review`)
+- `src/middlewares/camp.middleware.ts:84-87` (bypass when extractCampIdFromUrl returns null)
+- `src/modules/admission/admission.service.ts:88-92` — `getAdmissionsById` has NO `campId` filter
+- `src/modules/admission/admission.service.ts:94-124` — `reviewAdmission` does not verify admission belongs to reviewer's camp
 
-- Issue: `prisma.camp_transfers.findMany()` with no `where` clause
-- Files: `src/modules/transfers/transfers.service.ts` line 568
-- Impact: Any authenticated user from any camp can paginate through **all system transfers**, including those involving camps they don't belong to. Leaks inter-camp transfer details, resource movements, and personnel transfers.
-- Fix approach: Add `WHERE requesting_camp = :campId OR target_camp = :campId` to the query, passing `campId` from `req` through the controller. The controller at `transfers.controller.ts:20-25` (`listTransfersHandler`) currently passes no campId to the service.
+**Impact:** Any authenticated user with `ADMISSION_READ` or `ADMISSION_REVIEW` permission can read or review admission requests from ANY camp by numeric ID. With `ADMISSION_REVIEW`, they can also have a person created in ANY camp (via `createPerson(admission.camp_id, ...)` in `reviewAdmission` at line 110-121).
 
-### `getUsers` — No Camp Filter
+**Fix approach:** Add camp ownership checks: in `getAdmissionsById()` require `campId` param with `where: { id, camp_id: campId }`; in `reviewAdmission()` verify `admission.camp_id` matches the reviewer's camp before creating a person.
 
-- Issue: `prisma.users.findMany()` with no `where` clause
-- Files: `src/modules/users/users.service.ts` line 87
-- Impact: Any authenticated user can see all users in the system, including their camp assignments, roles, and activity status. Exposes the full user roster.
-- Fix approach: Add `{ where: { camp_id: campId } }` to the query. Update `users.controller.ts:28-33` (`getUsersHandler`) to extract `campId` from `AuthenticatedRequest` and pass it.
+### Rate limiting applied AFTER permission check on admission endpoint
 
-### `getExplorations` — No Camp Filter
+**What happens:** In `src/modules/admission/admission.routes.ts:13-24`, `permissionMiddleware` (hits DB to verify user permissions) is placed BEFORE `admissionRateLimit`. Every request — even those that would exceed the rate limit — triggers a `prisma.users.findUnique` query.
 
-- Issue: `prisma.expeditions.findMany()` with no `where` clause
-- Files: `src/modules/explorations/explorations.service.ts` line 603
-- Impact: Any authenticated user can see all expeditions across all camps, including destinations, member rosters, and allocated resources.
-- Fix approach: Add `{ where: { camp_id: campId } }` to the query. Update the controller at `explorations.controller.ts` to extract `campId` from `AuthenticatedRequest`.
+**Files:**
+- `src/modules/admission/admission.routes.ts:14-24` (order: perm check → validate → rate limit → handler)
 
----
+**Impact:** An attacker can trigger a DB query per request without hitting the rate limit guard first. With 60 requests per minute, that's 60 unnecessary DB queries before rate limiting kicks in.
 
-## CRITICAL: Zero Test Coverage (Unresolved)
+**Fix approach:** Move `admissionRateLimit` before `permissionMiddleware` in the middleware chain.
 
-- Issue: No executable tests exist in the repository.
-- Files:
-  - `tests/e2e/auth.spec.ts` — `describe.skip` stub
-  - `tests/e2e/people.spec.ts` — `describe.skip` stub
-  - `tests/e2e/resources.spec.ts` — `describe.skip` stub
-  - `tests/unit/jobs/placeholder` — empty placeholder file
-  - `tests/unit/ai/placeholder` — empty placeholder file
-  - No `tests/unit/**/*.spec.ts` files found at all
-- Impact: Any code change can silently break existing functionality. The three unresolved cross-camp data leakage bugs above are evidence that untested endpoints harbor security vulnerabilities.
-- Jest config: `jest.config.ts` matches `tests/unit/**/*.spec.ts` but none exist. `--passWithNoTests` flag in `package.json` masks the problem.
-- Priority: **Highest**. Every unprotected endpoint needs at minimum: 1 happy-path test + 1 cross-camp isolation test.
+### `isAdmin` JWT flag can become stale
 
----
+**What happens:** The `isAdmin` flag is embedded in the JWT at login (`src/modules/auth/auth.service.ts:50-52`) for the full token lifetime (default 24h). If a user's `ADMIN_BYPASS_CAMP_SCOPING` permission is revoked, their JWT retains `isAdmin: true`. The `campMiddleware` (`src/middlewares/camp.middleware.ts:58-61`) bypasses ALL camp-scoping for `isAdmin` users.
 
-## HIGH: Role Middleware Returns 401 Instead of 403 (Unresolved)
+**Files:**
+- `src/modules/auth/auth.service.ts:45-52` (isAdmin baked into JWT)
+- `src/middlewares/camp.middleware.ts:58-61` (admin bypass)
 
-- Issue: `role.middleware.ts` returns `AppError('Unauthorized', 401)` for ALL failure modes — missing user (line 14, 28, 33) AND insufficient role (line 37). An insufficient role should return **403 Forbidden**, not 401 (which implies authentication failure rather than authorization failure).
-- Files: `src/middlewares/role.middleware.ts` lines 14, 28, 33, 37
-- Impact: Confusing error semantics. Clients cannot distinguish "you aren't logged in" from "you don't have permission." Also, `role.middleware.ts` is **dead code** — it is exported but never imported or used by any route. The project uses `permission.middleware.ts` instead.
-- Note: `permission.middleware.ts` **correctly** returns 403 at line 51 for insufficient permissions. However, it still returns 401 at lines 19 and 39 for auth/user-not-found scenarios (which is appropriate for those cases).
+**Impact:** A user whose admin permission is revoked retains unrestricted cross-camp data access until token expiry (up to 24h) or re-login. The code acknowledges this (`src/modules/auth/auth.service.ts:45-48`), noting that `permissionMiddleware` re-checks from DB, so specific actions can't be abused — but the camp-scoping bypass is still active.
 
----
+**Fix approach:** Re-check `ADMIN_BYPASS_CAMP_SCOPING` from DB in `campMiddleware` instead of trusting the JWT flag. Or introduce a short-lived admin token.
 
-## HIGH: Daily Rations Cron Runs Every Minute by Default (Unresolved)
+### Default JWT secret check runs only in production
 
-- Issue: The default cron expression for daily rations is `* * * * *` (every minute).
-- Files: `src/jobs/scheduler.ts` line 7: `const DAILY_RATIONS_CRON = process.env.DAILY_RATIONS_CRON ?? '* * * * *';`
-- Impact: In any environment where `DAILY_RATIONS_CRON` is not explicitly set, the system distributes daily rations **every minute** instead of once per day. This rapidly depletes inventory and generates massive `inventory_log` records. The `daily-production.job.ts` counterpart correctly defaults to `0 5 * * *` (once daily at 5 AM).
-- Fix approach: Change the default to `'0 1 * * *'` (daily at 1 AM) or similar. This was likely intended to be a TODO-override for testing but slipped through.
+**What happens:** `src/index.ts:83-90` validates the JWT secret only when `NODE_ENV === 'production'`. The default secret `dev-only-insecure-jwt-secret-change-me-12345` is silently accepted in development/staging.
 
----
+**Impact:** Developers may deploy staging environments with the default secret if not running with `NODE_ENV=production`. Token-based auth would be trivially forgeable.
 
-## HIGH: Comprehensive Rate Limiting Missing
+**Fix approach:** Run the check in all non-test environments, or hard-reject the default secret regardless of environment.
 
-- Issue: Rate limiting exists only on `POST /api/admission/camps/:campId` (the AI evaluation endpoint). All other endpoints — including auth login, transfers CRUD, user management — have no rate limiting.
-- Files:
-  - `src/middlewares/rateLimit.middleware.ts` — defines `admissionRateLimit` only (10 req/min, MemoryStore)
-  - `src/modules/admission/admission.routes.ts` line 63 — only route that applies it
-- Impact: Auth brute-force, enumeration, and denial-of-service on unprotected endpoints.
-- Additional concern: Uses default `MemoryStore`. State resets on server restart. Acceptable for single-instance deployment but problematic for horizontal scaling.
-- Fix approach: Add `express-rate-limit` middleware at the Express app level in `src/index.ts` for general protection, plus specific stricter limits on auth endpoints. Consider Redis-backed store for multi-instance.
+### Audit log fires-and-forgets with silent failures
+
+**What happens:** `src/shared/utils/auditLog.ts:14-29` uses `.then(() => {}).catch(...)`. If the audit log insert fails, only a Winston log entry is written — no backpressure, retry, or compensation.
+
+**Impact:** Audit trail can have silent gaps. Compliance-sensitive operations (LOGIN, CREATE_CAMP, CREATE_USER) may be unrecorded without detection. Missing action types: people CRUD, profession CRUD, resource CRUD, admission operations, expedition CRUD, inventory adjustments.
+
+**Fix approach:** Consider including audit writes inside transactions where feasible, or implement a retry queue with monitoring.
+
+### Rate limiting entirely bypassed in test mode
+
+**What happens:** All rate limiters (`src/middlewares/rateLimit.middleware.ts:8,20-21,37`) use `skip: () => isTest` where `isTest = process.env.NODE_ENV === 'test'`. Rate limiting is completely disabled in E2E tests.
+
+**Impact:** E2E tests never exercise rate-limit behavior. No regression detection if rate-limit config changes.
+
+**Fix approach:** Use a configurable multiplier for test mode rather than complete skip, or add separate rate-limit integration tests.
 
 ---
 
-## MEDIUM: Helmet Installed but Not Applied (Unresolved)
+## Data Integrity Risks
 
-- Issue: `helmet` v8.1.0 is in `package.json` dependencies but never imported or used in `src/index.ts`.
-- Files: `package.json` line 36, `src/index.ts` (no import or `app.use(helmet())`)
-- Impact: Missing security headers (CSP, X-Frame-Options, X-Content-Type-Options, etc.). The API is vulnerable to basic web security header attacks.
-- Fix approach: Add `import helmet from 'helmet';` and `app.use(helmet());` early in the middleware chain in `src/index.ts`.
+### Admission review creates person without camp verification
 
----
+**What happens:** `src/modules/admission/admission.service.ts:94-124` (`reviewAdmission`) calls `createPerson(admission.camp_id, ...)` without verifying the admission belongs to the reviewer's camp. Combined with missing camp scoping on `PATCH /:id/review`, any user with `ADMISSION_REVIEW` can create persons in arbitrary camps.
 
-## MEDIUM: `isAdmin` Flag Static in JWT Token (Unresolved, by Design)
+**Files:**
+- `src/modules/admission/admission.service.ts:110-121` (person created using `admission.camp_id` — not reviewer's camp)
 
-- Issue: The `isAdmin` flag is computed once at login (`auth.service.ts` lines 49-51) and baked into the JWT. If a user's admin permission is revoked after login, the JWT's `isAdmin` remains `true` until the token expires or the user re-logs.
-- Files:
-  - `src/modules/auth/auth.service.ts` lines 49-51
-  - `src/middlewares/camp.middleware.ts` line 52 (reads `isAdmin` from JWT)
-- Impact: A demoted admin retains camp-scoping bypass for up to the JWT lifetime (default 24h). However, `permission.middleware.ts` re-checks permissions from DB on each request, so no actual data access is leaked — the admin bypass only affects which camp scope is enforced, not which actions can be performed.
-- Mitigation: The code contains a detailed comment at `auth.service.ts:44-48` acknowledging this trade-off. Session version invalidation forces re-login if desired.
-- Recommendation: Add a `POST /api/auth/refresh` endpoint that can regenerate the token with current permissions without requiring re-authentication.
+**Impact:** A Camp A user can review Camp B's admission and have a person created in Camp B. Cross-camp data injection.
 
----
+**Fix approach:** In `reviewAdmission`, verify `admission.camp_id` either matches a `campId` parameter or the reviewer's `campId` from JWT.
 
-## MEDIUM: `camp-rules.ts` Still a TODO Stub (Unresolved)
+### Jobs process camps and resources sequentially — no error isolation
 
-- Issue: File contains only `// TODO: implement` with no implementation.
-- Files: `src/shared/constants/camp-rules.ts`
-- Impact: Unknown. The file is not imported anywhere, so it's dead code. Either it needs to be implemented with camp constraint rules (e.g., max population, resource limits) or removed.
+**What happens:** Daily rations (`src/jobs/daily-rations.job.ts:169-174`) and daily production (`src/jobs/daily-production.job.ts:120-128`) iterate camps with `for...of`/`await`. Within each camp, rations iterate resources. If one camp's processing throws, all subsequent camps are skipped (in rations — production has no error isolation either).
 
----
+**Files:**
+- `src/jobs/daily-rations.job.ts:169-174` (no try/catch per camp)
+- `src/jobs/daily-production.job.ts:120-128` (no try/catch per camp)
 
-## MEDIUM: No General User-Action Audit Trail
+**Impact:** A single camp failure blocks ration/production distribution for ALL remaining camps.
 
-- Issue: No centralized audit logging of user actions (who did what, when, on which resource).
-- Files: Audit-adjacent code exists in `src/modules/inventory/inventory.service.ts` (inventory audit endpoint) and `src/shared/constants/permissions.ts` (`INVENTORY_AUDIT_READ` permission), but these only cover inventory movements.
-- Existing audit-like tables:
-  - `inventory_log` — tracks resource deltas with `logged_by`, `log_type`, timestamp
-  - `person_status_log` — tracks person status changes with `changed_by`, reason
-- Missing: No log of which user created/updated/deleted camps, users, expeditions, transfers, etc. The grading criteria explicitly require an "Audit Trail."
-- Fix approach: Add an `audit_log` table with fields: `actor_id`, `action` (CREATE/UPDATE/DELETE), `entity_type`, `entity_id`, `changes` (JSON diff), `timestamp`. Log via Winston or direct DB write.
+**Fix approach:** Use `Promise.allSettled` or per-camp try/catch with error logging.
 
----
+### Daily rations processes each resource in its own transaction
 
-## MEDIUM: Missing Swagger Documentation for Transfers
+**What happens:** `src/jobs/daily-rations.job.ts:120-127` calls `consumeInventoryWithLog` per resource — each call uses a separate transaction (`src/modules/inventory/inventory.service.ts:131`). If resource A's consumption succeeds but resource B's fails, the camp has partial distribution.
 
-- Issue: The Swagger spec in `src/docs/swagger.ts` does not include a `Transfers` tag. The tags array (lines 106-117) lists: System, Auth, Camps, Resources, People, Inventory, Admission, Users, Professions, Explorations — but no Transfers, Metrics, Roles, or Permissions.
-- Files: `src/docs/swagger.ts` lines 106-117
-- Impact: API consumers cannot discover transfer endpoints via Swagger UI. Incomplete documentation fails the "Documentation" grading criterion.
-- Note: The JSDoc `@openapi` annotations exist in `transfers.routes.ts`, so basic endpoint docs appear — but the `tags` array is missing the Transfers category.
+**Impact:** Inconsistent camp state — some rations distributed, others not. Acceptable for the current "best effort" design but not atomic.
+
+**Fix approach:** Consider wrapping the entire camp's distribution in a single `$transaction` if atomicity is required.
+
+### `updateExploration` (metadata-only) has no transaction
+
+**What happens:** `src/modules/explorations/explorations.service.ts:448-455` updates expedition metadata with a single `prisma.expeditions.update` call. This is atomic at the DB level. Noted for consistency only — low risk.
+
+### Login has race window: token issued before last_activity updated
+
+**What happens:** `src/modules/auth/auth.service.ts:54-65` signs the JWT in memory first, then updates `last_activity` in a separate DB query. If the update fails, a valid token exists without a corresponding `last_activity` record.
+
+**Impact:** A valid token could be issued without being tracked. The client gets an error despite having a valid token.
+
+**Fix approach:** Update `last_activity` first, then sign the token using the updated session data.
 
 ---
 
-## LOW: Groq SDK No Explicit Timeout
+## Performance Bottlenecks
 
-- Issue: The Groq SDK client (`src/lib/ai.ts`) is instantiated without a timeout option: `new Groq({ apiKey: process.env.GROQ_API_KEY })`.
-- Files: `src/lib/ai.ts` line 3
-- Impact: If the Groq API hangs (used in `admission-evaluator.ts:63-67` for `parseCampWeights`), the request blocks indefinitely. The ML service call (`admission-evaluator.ts:88-98`) has a 5-second timeout via `AbortSignal.timeout(5000)`, but the Groq call to parse camp weights has no timeout.
-- Fix approach: Add `timeout: 15000` or similar to the Groq constructor options. Consider a reasonable max (15-30 seconds) for AI response generation.
+### Unpaginated metrics endpoints
 
----
+**What happens:**
+- `GET /api/metrics/expeditions` calls `prisma.expeditions.findMany()` with NO `skip`/`take` (`src/modules/metrics/metrics.service.ts:163`)
+- `GET /api/metrics/resources` loads ALL inventory rows (`src/modules/metrics/metrics.service.ts:62`)
+- `GET /api/metrics/dashboard` loads ALL inventory rows twice (`src/modules/metrics/metrics.service.ts:29-38`)
 
-## NEW ISSUES (Post-Update)
+**Impact:** With large datasets, these endpoints return increasingly large payloads and consume growing memory.
 
-### NEW — Medium: ML Microservice Has No Authentication
+**Fix approach:** Add pagination or `take` limits to all metrics queries.
 
-- Issue: The FastAPI service at `ml-service/main.py` exposes `/evaluate` and `/health` endpoints with no authentication whatsoever.
-- Files: `ml-service/main.py`
-- Impact: Any client with network access to port 8000 can invoke admission evaluations. The service is exposed on the host machine via `docker-compose.yml` port mapping (line 36: `'8000:8000'`).
-- Docker compose: Port 8000 is mapped to the host, not just to the internal Docker network.
-- Fix approach: Add a shared secret or JWT validation to the ML service. Configure the Node.js backend to pass a service token. Alternatively, do not expose port 8000 in production docker-compose (use internal networking).
+### Inventory audit loads all records then paginates in memory
 
-### NEW — Medium: ML Service Dockerfile Runs as Root
+**What happens:** `src/modules/inventory/inventory.service.ts:75-118` (`validateInventoryConsistency`) loads ALL inventory records and log aggregates for a camp. Then `getInventoryAudit` (`:322-369`) paginates the in-memory result.
 
-- Issue: The Dockerfile at `ml-service/Dockerfile` does not create a non-root user. The container runs as root.
-- Files: `ml-service/Dockerfile`
-- Impact: If the ML service is compromised (e.g., via malicious input), the attacker has root access within the container.
-- Fix approach: Add `RUN adduser --disabled-password --gecos '' appuser` and `USER appuser` before the CMD instruction.
+**Impact:** Performance degrades linearly with resource type count.
 
-### NEW — Medium: ML Service Accepts Arbitrary `camp_weights` Dict
+**Fix approach:** Push pagination into the DB queries rather than loading everything into memory.
 
-- Issue: The Pydantic model `AdmissionRequest` (`ml-service/main.py:20`) defines `camp_weights: dict = {}` without any field validation. The Node.js backend sends validated weights (via Zod in `admission-evaluator.ts:13-23`), but the ML service itself has no defense-in-depth.
-- Files: `ml-service/main.py` line 20, `ml-service/decision_tree.py` lines 106-138
-- Impact: A malicious actor bypassing the Node.js API could send arbitrary dict structures to the ML service, potentially causing unexpected behavior or errors.
-- Fix approach: Add a Pydantic model for `CampWeights` with typed fields mirroring the Zod schema in `admission-evaluator.ts` (weight_technical, weight_medical, etc.). Use `model_validate` to reject unknown fields.
+### Daily rations job: O(n*m) sequential transactions
 
-### NEW — Low: `role.middleware.ts` Is Dead Code
+**What happens:** For n camps × m ration resources, `consumeInventoryWithLog` is called n*m times, each opening a separate transaction. With 10 camps and 5 resources, 50 sequential transactions.
 
-- Issue: `role.middleware.ts` is exported but never imported by any route or other middleware. The entire project has migrated to `permission.middleware.ts` for access control.
-- Files: `src/middlewares/role.middleware.ts` (exported, never used)
-- Impact: Confusion for future developers. Dead code adds maintenance burden.
-- Fix approach: Either remove `role.middleware.ts` or mark it as deprecated with a JSDoc comment.
+**Files:**
+- `src/jobs/daily-rations.job.ts:157-159`
 
-### NEW — Low: `createExpedition` Alias in Explorations Service
+**Impact:** Job execution time scales linearly. Each transaction involves multiple round-trips (read, update, insert log).
 
-- Issue: `explorations.service.ts:579` exports `createExpedition` as an alias for `createExploration`. Other functions use "Exploration" naming. Inconsistent internal naming.
-- Files: `src/modules/explorations/explorations.service.ts` line 579
-- Impact: No functional impact. Confusing for developers reading the code.
+### AI admission evaluation blocks the request synchronously
 
-### NEW — Low: `CORS_ORIGIN` Environment Variable Typo-Like Name
+**What happens:** `src/modules/admission/admission.service.ts:51-55` calls `evaluateAdmission` which makes HTTP calls to Groq API (LLM) and the ML decision tree service (5s timeout). Both are synchronous from the request handler's perspective.
 
-- Issue: The environment variable is `CORS_ORIGIN` (not `CORS_ORIGIN`) in `src/index.ts:36` and does not appear in `.env.example`. The `.env.example` file lists no CORS configuration at all.
-- Files: `src/index.ts` line 36, `.env.example` (no CORS entry)
-- Impact: Developers must discover this variable name by reading source code. Not documented.
-- Fix approach: Add `CORS_ORIGIN=http://localhost:5173` to `.env.example`.
+**Files:**
+- `src/ai/admission-evaluator.ts:63-67` (Groq LLM — no timeout set)
+- `src/ai/admission-evaluator.ts:88-98` (ML service — 5s timeout)
+- `src/ai/admission-evaluator.ts:28-77` (parseCampWeights — also calls Groq)
+
+**Impact:** Admission requests can block the Express event loop for several seconds. No fallback path if AI services are slow/down (returns 502 from `admission-evaluator.ts:101`).
+
+**Fix approach:** Consider queue-based processing or add a circuit breaker. Also add `AbortSignal.timeout` to the Groq call.
 
 ---
 
-## Dependency Risks
+## Technical Debt
 
-### `python:3.12-slim` Docker Image
+### Stub file: `camp-rules.ts`
 
-- Risk: No pinned digest/SHA in `ml-service/Dockerfile`. Uses `FROM python:3.12-slim` which floats with the latest 3.12 slim image.
-- Impact: Builds are non-deterministic. A breaking upstream change could break ML service builds.
-- Fix approach: Pin to a digest: `FROM python:3.12-slim@sha256:...`
+**What happens:** `src/shared/constants/camp-rules.ts` contains only `// TODO: implement`. Planned camp-specific business rules never implemented.
 
-### `scikit-learn==1.5.2` and `numpy==1.26.4`
+**Files:**
+- `src/shared/constants/camp-rules.ts:1`
 
-- Risk: These are pinned but `scikit-learn` 1.5.x has known CVEs in older patch versions. Current 1.5.2 may be vulnerable.
-- Impact: Security scanning tools may flag these.
-- Fix approach: Upgrade to latest patch versions of scikit-learn, numpy, and pandas.
+**Impact:** Dead code. Either implement or remove.
+
+### `asNumber()` helper duplicated across 4+ service files
+
+**What happens:** Identical `function asNumber(value: unknown): number { return Number(value); }` defined in:
+- `src/modules/transfers/transfers.service.ts:19-21`
+- `src/modules/explorations/explorations.service.ts:21-23`
+- `src/modules/inventory/inventory.service.ts:8-10`
+- `src/modules/metrics/metrics.service.ts:5-7`
+
+**Impact:** Violates DRY. Changes must be propagated manually.
+
+**Fix approach:** Extract to `src/shared/utils/number.ts`.
+
+### `(tx as unknown as typeof prisma)` cast pattern repeated ~20+ times
+
+**What happens:** Transaction functions use `const client = tx as unknown as typeof prisma` repeatedly across `transfers.service.ts`, `explorations.service.ts`, `inventory.service.ts`, `people.service.ts`.
+
+**Impact:** Verbose boilerplate. A known Prisma limitation when passing transaction clients.
+
+**Fix approach:** Create a typed transaction helper that wraps the cast.
+
+### Controller re-parses request body after middleware validation
+
+**What happens:** `src/modules/admission/admission.controller.ts:33` calls `reviewAdmissionSchema.parse(req.body)` even though the `validate()` middleware already validated it against the same schema (`src/modules/admission/admission.routes.ts:47-48`).
+
+**Impact:** Redundant Zod parse operation on every admission review request.
+
+### `handleUniqueConstraintError` and `handleForeignKeyError` re-throw non-matching errors
+
+**What happens:** `src/shared/utils/handlePrismaError.ts:3-9,11-16` only handles P2002 (unique constraint) and P2003 (foreign key). All other Prisma errors (P2025 not found, etc.) are re-thrown to the caller, where they may or may not be caught. In several services (e.g., `explorations.service.ts:421-423`, `camps.service.ts:43-45`), this catch block wraps the entire function body, so non-P2002 errors propagate up unmodified.
+
+**Impact:** Prisma P2025 errors slip through service-level handling and land in the global error handler (`src/middlewares/error.middleware.ts:46-49`), which maps them to 404. This may mask the actual error context.
+
+### `role.middleware.ts` is dead code
+
+**What happens:** `src/middlewares/role.middleware.ts` is exported but never imported by any route. The project uses `permission.middleware.ts` exclusively for access control.
+
+**Files:**
+- `src/middlewares/role.middleware.ts` (full file, exported but unused)
+
+**Impact:** Dead code. Also has incorrect HTTP semantics — returns 401 for insufficient role instead of 403.
+
+**Fix approach:** Remove `role.middleware.ts`.
+
+### Achievements tables exist in schema with no API
+
+**What happens:** `prisma/schema.prisma` defines `achievements` and `user_achievements` tables (`:11-18`, `:372-382`) but there are no routes, services, or controllers for achievements.
+
+**Impact:** Schema dead weight. Adds migration complexity. Might be planned for future.
+
+### Swagger spec may not resolve in production builds
+
+**What happens:** `src/docs/swagger.ts:6-7` resolves the OpenAPI YAML file relative to `__dirname` at runtime. In development (`tsx watch`), this resolves to `src/docs/openapi.yaml`. In production (compiled to `/dist`), it resolves to `/dist/docs/openapi.yaml` — which won't exist unless the YAML file is explicitly copied.
+
+**Files:**
+- `src/docs/swagger.ts:6-8`
+- `package.json` build script (need to check if YAML is copied)
+
+**Impact:** Swagger UI produces 404 in production.
 
 ---
 
-## Architecture / Code Quality Notes
+## Testing Gaps
 
-### Fragile Camp ID Extraction in `camp.middleware.ts`
+### Zero unit tests
 
-- Issue: The `extractCampIdFromUrl` function (`camp.middleware.ts:26-46`) uses a complex regex to parse camp IDs from URL patterns. Adding new module routes requires updating this regex.
-- Files: `src/middlewares/camp.middleware.ts` lines 26-46
-- Risk: If a new module route pattern is missed in this regex, camp-scoping validation is silently skipped.
-- Safe modification: When adding new camp-scoped routes, always update the regex. Consider refactoring to use a route-param-based approach instead of URL parsing.
+**What happens:**
+- `tests/unit/ai/placeholder` — empty file
+- `tests/unit/jobs/placeholder` — empty file
+- No `tests/unit/**/*.spec.ts` files exist
+- `jest.config.ts` matches `tests/unit/**/*.spec.ts` but none match
 
-### `getCamps` Endpoint Returns All Camps
+**Impact:** Import business logic (status transitions in expeditions, date validation, resource aggregation, permission logic) is only verifiable through slow E2E tests. Service-layer regressions go undetected.
 
-- Issue: `camps.service.ts:64-83` (`getCamps`) returns ALL camps with no filtering. This is by design (camps need to be visible for transfer targeting), but means camp data is not strictly scoped.
-- Note: The swagger docs tag `Camps` exists. This is intentional for the multi-camp system.
+**Fix approach:** Add unit tests for core services: expedition status transitions, inventory math, Prisma error handling, camp member validation.
+
+### No AI mocking strategy
+
+**What happens:** `src/ai/admission-evaluator.ts:143-150` returns hardcoded `ACCEPTED` in test mode. There's no way to test: AI rejection, service failure (502), parsing errors, or non-default decision paths.
+
+**Files:**
+- `tests/e2e/admission.spec.ts` — only tests happy path, no AI-failure scenarios
+- `src/ai/admission-evaluator.ts:143-150` — test mode bypass
+
+**Impact:** The admission flow's error handling is untested. A regression in AI service integration would be caught only in production.
+
+### E2E tests cover only happy path + 401
+
+**What happens:** All E2E test files (`tests/e2e/*.spec.ts`) test CRUD success and unauthenticated (401) rejection. Missing test scenarios:
+- **403 permission denial** — no test verifies that a user without a specific permission gets 403
+- **Session timeout** — no test for 20-min inactivity timeout
+- **Concurrent operations** — no race condition tests for transfers, inventory adjustments
+- **Pagination** — no test that `page` and `pageSize` parameters work
+- **Data integrity** — no test that invalid status transitions return 400
+- **Admin bypass** — no test that admin can cross camps and non-admin cannot
+
+**Impact:** Permission enforcement (the project's primary access control mechanism) has no test coverage.
+
+### No admission-to-person creation verification in E2E
+
+**What happens:** `tests/e2e/admission.spec.ts:74-82` tests that `PATCH /:id/review` with `ACCEPTED` returns success, but does NOT verify that a person was actually created (e.g., by subsequently calling `GET /api/camps/:campId/people`).
+
+**Impact:** The admission review's most important side effect is untested.
+
+### No load/stress testing
+
+**What happens:** The grading criteria (`docs/proyecto-programado.md`) requires stress testing ("Sistema maneja volumen de datos realista sin degradación"), but no load test scripts or tools exist.
+
+**Impact:** No baseline for concurrent capacity. Performance regression goes undetected.
+
+---
+
+## Operational Risks
+
+### AI services have no graceful degradation
+
+**What happens:**
+- Groq API call (`src/ai/admission-evaluator.ts:63-67`) has NO timeout — could hang indefinitely
+- ML service call (`src/ai/admission-evaluator.ts:88-98`) has 5s timeout, but failure returns 502 with no fallback
+- If either service is down, ALL admission requests fail
+
+**Files:**
+- `src/ai/admission-evaluator.ts:63-67` (Groq — no timeout)
+- `src/ai/admission-evaluator.ts:88-101` (ML service — 5s timeout, throws 502)
+- `src/lib/ai.ts:3` (Groq client instantiated at import time)
+
+**Impact:** A single admission request can hang the server if Groq is slow. If ML service is down, no admission requests can be processed at all.
+
+**Fix approach:** Add `timeout` to Groq constructor options. Add a fallback deterministic decision path when AI services are unavailable.
+
+### Groq API key not validated at startup
+
+**What happens:** `src/lib/ai.ts:3` creates the Groq client at module import time. If `GROQ_API_KEY` is missing or invalid, the error surfaces only at runtime when the first admission is evaluated.
+
+**Impact:** A misconfigured deployment starts successfully but silently fails on the first admission request.
+
+**Fix approach:** Validate `GROQ_API_KEY` at startup (format check or test call).
+
+### Logger uses relative path
+
+**What happens:** `src/logger/logger.ts:19` resolves log files as `process.env.LOG_FILE || './logs/app.log'`. If the app is started from a different working directory, logs are written to unexpected locations or silently fail.
+
+**Files:**
+- `src/logger/logger.ts:18-24`
+
+**Impact:** Lost log files in production deployments with different working directories.
+
+**Fix approach:** Use absolute path based on `__dirname` or a well-defined directory.
+
+### Database password defaults to empty string
+
+**What happens:** When using individual DB env vars (not `DATABASE_URL`), `src/lib/prisma.ts:14` defaults `DB_PASSWORD` to `''`. PostgreSQL will attempt password-less authentication.
+
+**Files:**
+- `src/lib/prisma.ts:11-15`
+
+**Impact:** Risk of deploying with no DB password if individual env vars are used.
+
+### No health check beyond server time
+
+**What happens:** The only system endpoint is `GET /api/system/time` (`src/modules/system/system.routes.ts`). There's no health check for DB connectivity, AI service availability, or job scheduler status.
+
+**Impact:** No way to probe whether the service is truly healthy (DB connected, AI service reachable).
+
+### Server time is system-clock dependent
+
+**What happens:** `src/shared/utils/server-time.ts:4-6` returns `new Date()`. All time-dependent operations (session timeouts, rations, expedition dates) depend on accurate server clock.
+
+**Impact:** If server clock drifts (container without NTP), session timeouts, ration scheduling, and date validation operate on incorrect time. By design, but worth noting.
+
+### Swagger YAML path resolution may fail in production
+
+**What happens:** `src/docs/swagger.ts:7` resolves `openapi.yaml` relative to compiled `__dirname`. In production (`/dist/docs/`), the YAML file (in `src/docs/`) is not automatically copied to the dist directory.
+
+**Impact:** Swagger UI returns 404 in production builds.
+
+---
+
+## Fixed Since Previous Audit
+
+The following issues from the previous CONCERNS.md (pre-2026-05-17) have been resolved:
+
+| Old Issue | Current Status |
+|-----------|---------------|
+| Cross-camp data leak in transfers | **FIXED** — `getTransfers()` now filters by `requesting_camp` OR `target_camp` (`src/modules/transfers/transfers.service.ts:638-644`) |
+| Cross-camp data leak in explorations | **FIXED** — `getExplorations()` now filters by `camp_id` (`src/modules/explorations/explorations.service.ts:602`) |
+| Cross-camp data leak in users | **FIXED** — `getUsers()` now filters by `camp_id` (`src/modules/users/users.service.ts:112`) |
+| Helmet not applied | **FIXED** — helmet is imported and configured (`src/index.ts:32-39`) |
+| No general rate limiting | **FIXED** — `globalRateLimit` (200/15min) applied to all routes (`src/index.ts:55`) |
+| No login rate limiting | **FIXED** — `loginRateLimit` (5/15min) applied to POST /auth/login (`src/modules/auth/auth.routes.ts:10`) |
+| E2E tests all skipped | **FIXED** — Real E2E tests exist for all 11 modules (`tests/e2e/*.spec.ts`) |
+| Missing audit trail | **FIXED** — `auditLog()` implemented (`src/shared/utils/auditLog.ts`) with LOGIN/LOGOUT + camp/transfer/user CRUD actions |
+| `CORS_ORIGIN` undocumented | Still undocumented in `.env.example` (low severity) |
 
 ---
 
