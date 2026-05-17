@@ -28,7 +28,7 @@ Build a comprehensive E2E test suite covering all 14 API modules (66+ endpoints)
 
 Plans:
 
-- [ ] 01-01-PLAN.md — Playwright Configuration & Environment Setup (config, .env.test, dependencies)
+- [x] 01-01-PLAN.md — Playwright Configuration & Environment Setup (config, .env.test, dependencies)
 - [ ] 01-02-PLAN.md — Global Setup, Database Seeding & Teardown (seed data, token generation, cleanup)
 - [ ] 01-03-PLAN.md — Auth Helpers, Fixtures, Assertions & Data Constants (shared test utilities)
 - [ ] 01-04-PLAN.md — System Module Smoke Tests (proof-of-pattern, public endpoints)
