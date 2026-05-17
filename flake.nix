@@ -10,6 +10,14 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+        scikit-learn
+        fastapi
+        uvicorn
+        pandas
+        numpy
+        pydantic
+      ]);
     in
     {
       devShells.${system}.default = pkgs.mkShell {
@@ -18,7 +26,7 @@
           openssl
           pkg-config
           prisma-engines_7
-          python3
+          pythonEnv
         ];
 
         shellHook = ''

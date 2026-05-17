@@ -153,3 +153,60 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
 > ```bash
 > npm run format
 > ```
+
+---
+ 
+## ML Service
+ 
+The admission system uses a Python microservice that runs a Decision Tree Classifier. It must be running locally for the admission evaluation to work.
+ 
+> See [ADMISSION_AI.md](./ADMISSION_AI.md) for full documentation on how the AI admission system works.
+ 
+### Running the ML service locally
+ 
+In a separate terminal from your API:
+ 
+```bash
+cd ml-service
+uvicorn main:app --port 8000
+```
+ 
+The service trains the model on startup and prints the decision tree structure. You should see:
+ 
+```
+✓ Decision tree trained successfully
+INFO: Application startup complete.
+```
+ 
+### Verifying the service is up
+ 
+```bash
+curl http://localhost:8000/health
+```
+ 
+Should return:
+ 
+```json
+{ "status": "ok", "model_trained": true }
+```
+ 
+### Environment variable
+ 
+Add this to your `.env`:
+ 
+```env
+ML_SERVICE_URL=http://localhost:8000
+```
+ 
+If the ML service is unreachable, the admission system automatically falls back to a rule-based evaluator. Decisions made in fallback mode are labeled `[FALLBACK MODE]` in the reasoning field.
+ 
+### Re-training the model
+ 
+If you modify the training data in `ml-service/data.py`, verify the model still performs well:
+ 
+```bash
+cd ml-service
+python trainer.py
+```
+ 
+This prints accuracy and a full classification report.
