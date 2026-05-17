@@ -241,7 +241,7 @@ export async function handleResourceOutflow(
         resource_type_id: resourceId,
         logged_by: input.loggedBy,
         log_type: 'EXPEDITION_OUT',
-        delta: -requested,
+        quantity_change: -requested,
         description: `Expedition #${input.expeditionId} resource outflow`,
       },
     });
@@ -291,7 +291,7 @@ export async function handleResourceReturn(
         resource_type_id: resourceId,
         logged_by: input.loggedBy,
         log_type: 'EXPEDITION_IN',
-        delta: amount,
+        quantity_change: amount,
         description: `Expedition #${input.expeditionId} resource return`,
       },
     });

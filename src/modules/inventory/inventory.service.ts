@@ -81,7 +81,7 @@ async function validateInventoryConsistency(campId: number) {
   const logDeltasByResource = await prisma.inventory_logs.groupBy({
     by: ['resource_type_id'],
     where: { camp_id: campId },
-    _sum: { delta: true },
+    _sum: { quantity_change: true },
   });
 
   const inventoryMap = new Map(
@@ -93,9 +93,9 @@ async function validateInventoryConsistency(campId: number) {
 
   const logMap = new Map(
     logDeltasByResource.map(
-      (row: { resource_type_id: number; _sum: { delta: Prisma.Decimal | null } }) => [
+      (row: { resource_type_id: number; _sum: { quantity_change: Prisma.Decimal | null } }) => [
         row.resource_type_id,
-        asNumber(row._sum.delta ?? 0),
+        asNumber(row._sum.quantity_change ?? 0),
       ],
     ),
   );
@@ -156,10 +156,10 @@ export async function consumeInventoryWithLog(
         camp_id: campId,
         resource_type_id: resourceTypeId,
         log_type: inventory_log_log_type.DAILY_RATION,
-        delta: -quantity,
+        quantity_change: -quantity,
         description,
       },
-      select: { delta: true },
+      select: { quantity_change: true },
     });
 
     const currentInventory = await client.inventories.findUnique({
@@ -173,7 +173,7 @@ export async function consumeInventoryWithLog(
     });
 
     return {
-      consumed: -Number(movement.delta),
+      consumed: -Number(movement.quantity_change),
       remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
@@ -227,10 +227,10 @@ export async function increaseInventoryWithLog(
         camp_id: campId,
         resource_type_id: resourceTypeId,
         log_type: inventory_log_log_type.DAILY_GAIN,
-        delta: quantity,
+        quantity_change: quantity,
         description,
       },
-      select: { delta: true },
+      select: { quantity_change: true },
     });
 
     const currentInventory = await client.inventories.findUnique({
@@ -244,7 +244,7 @@ export async function increaseInventoryWithLog(
     });
 
     return {
-      gained: Number(movement.delta),
+      gained: Number(movement.quantity_change),
       remaining: Number(currentInventory?.quantity ?? 0),
     };
   });
@@ -380,7 +380,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
 
     const now = new Date();
     const isManualIn = data.type === 'MANUAL_IN';
-    const delta = isManualIn ? data.quantity : -data.quantity;
+    const quantityChange = isManualIn ? data.quantity : -data.quantity;
 
     if (isManualIn) {
       await client.inventories.upsert({
@@ -428,7 +428,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
         resource_type_id: data.resource_type_id,
         logged_by: userId,
         log_type: data.type,
-        delta,
+        quantity_change: quantityChange,
         description: data.description?.trim(),
       },
       select: {
@@ -437,7 +437,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
         resource_type_id: true,
         logged_by: true,
         log_type: true,
-        delta: true,
+        quantity_change: true,
         logged_at: true,
         description: true,
       },
@@ -459,7 +459,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
     return {
       movement: {
         ...movement,
-        delta: asNumber(movement.delta),
+        quantity_change: asNumber(movement.quantity_change),
       },
       inventory: {
         camp_id: data.camp_id,

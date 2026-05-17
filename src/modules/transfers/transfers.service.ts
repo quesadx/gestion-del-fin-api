@@ -212,7 +212,7 @@ async function applyResourceTransfer(
         resource_type_id: item.resource_type_id,
         logged_by: input.completedBy,
         log_type: 'TRANSFER_OUT',
-        delta: -item.quantity,
+        quantity_change: -item.quantity,
         description: `Transfer #${input.transferId} completed (source outflow)`,
       },
       {
@@ -220,7 +220,7 @@ async function applyResourceTransfer(
         resource_type_id: item.resource_type_id,
         logged_by: input.completedBy,
         log_type: 'TRANSFER_IN',
-        delta: item.quantity,
+        quantity_change: item.quantity,
         description: `Transfer #${input.transferId} completed (target inflow)`,
       },
     );
