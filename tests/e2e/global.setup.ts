@@ -217,7 +217,7 @@ async function globalSetup(): Promise<void> {
 
   // 2 people per camp
   for (const camp of [camp1, camp2]) {
-    await prisma.persons.create({
+    await prisma.people.create({
       data: {
         camp_id: camp.id,
         full_name: `Test Person ${camp.name} A`,
@@ -225,7 +225,7 @@ async function globalSetup(): Promise<void> {
         status: 'HEALTHY',
       },
     });
-    await prisma.persons.create({
+    await prisma.people.create({
       data: {
         camp_id: camp.id,
         full_name: `Test Person ${camp.name} B`,

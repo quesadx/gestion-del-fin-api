@@ -94,7 +94,7 @@ async function ensurePeopleExistInSourceCamp(
   if (personIds.length === 0) return;
 
   const uniqueIds = Array.from(new Set(personIds));
-  const people = await tx.persons.findMany({
+  const people = await tx.people.findMany({
     where: { id: { in: uniqueIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -244,7 +244,7 @@ async function applyPeopleTransfer(
 ) {
   if (input.personIds.length === 0) return;
 
-  const people = await tx.persons.findMany({
+  const people = await tx.people.findMany({
     where: { id: { in: input.personIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -261,7 +261,7 @@ async function applyPeopleTransfer(
       );
     }
 
-    await tx.persons.update({
+    await tx.people.update({
       where: { id: person.id },
       data: {
         camp_id: input.targetCampId,

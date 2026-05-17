@@ -111,7 +111,7 @@ async function validateMembers(tx: Prisma.TransactionClient, campId: number, mem
 
   const client = tx as unknown as typeof prisma;
   const uniqueMemberIds = Array.from(new Set(memberIds));
-  const people = await client.persons.findMany({
+  const people = await client.people.findMany({
     where: { id: { in: uniqueMemberIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -141,7 +141,7 @@ async function changeMemberStatus(
   if (personIds.length === 0) return;
 
   const client = tx as unknown as typeof prisma;
-  const people = await client.persons.findMany({
+  const people = await client.people.findMany({
     where: { id: { in: personIds } },
     select: { id: true, status: true },
   });
@@ -149,7 +149,7 @@ async function changeMemberStatus(
   const updates = people.filter((person: { status: string }) => person.status !== newStatus);
 
   for (const person of updates) {
-    await client.persons.update({
+    await client.people.update({
       where: { id: person.id },
       data: { status: newStatus },
     });

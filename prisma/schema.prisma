@@ -26,12 +26,13 @@ model admission_requests {
   applicant_skills        String?                           @db.Text
   health_notes            String?                           @db.Text
   background_notes        String?                           @db.Text
-  photo_url               String?                           @db.VarChar(255)
+  photo_url               String?                           @db.VarChar(500)
   id_card_url             String?                           @db.VarChar(500)
   ai_decision             admission_requests_ai_decision    @default(PENDING)
   ai_reasoning            String?                           @db.Text
   ai_suggested_profession String?                           @db.VarChar(80)
   ai_profession_id        Int?
+  person_id               Int?
   reviewed_by             Int?
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?
@@ -39,10 +40,12 @@ model admission_requests {
   camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   ai_profession           professions?                      @relation(fields: [ai_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  person                  people?                           @relation(fields: [person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([camp_id])
   @@index([reviewed_by])
   @@index([ai_profession_id])
+  @@index([person_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -54,7 +57,7 @@ model camp_transfer_item {
   person_id        Int?
   quantity         Decimal?                     @db.Decimal(10, 2)
   camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  persons          persons?                     @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  persons          people?                      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   resource_type    resource_type?               @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([camp_transfer_id])
@@ -64,27 +67,27 @@ model camp_transfer_item {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model camp_transfers {
-  id                                             Int                   @id @default(autoincrement())
-  requesting_camp                                Int
-  target_camp                                    Int
-  status                                         camp_transfers_status @default(PENDING)
-  type                                           camp_transfers_type
-  notes                                          String?               @db.Text
-  requested_by                                   Int
-  leader_person_id                               Int?
-  scheduled_delivery_date                        DateTime?
-  approved_by_source                             Int?
-  approved_by_target                             Int?
-  approved_source_at                             DateTime?
-  approved_target_at                             DateTime?
-  created_at                                     DateTime              @default(now())
-  camp_transfer_item                             camp_transfer_item[]
-  approved_by_source_ref users?   @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  approved_by_target_ref users?   @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  requested_by_ref       users    @relation("transfer_requested_by", fields: [requested_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  requesting_camp_ref    camps    @relation("transfer_requesting_camp", fields: [requesting_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  target_camp_ref        camps    @relation("transfer_target_camp", fields: [target_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  leader_person_ref      persons? @relation(fields: [leader_person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  id                      Int                   @id @default(autoincrement())
+  requesting_camp         Int
+  target_camp             Int
+  status                  camp_transfers_status @default(PENDING)
+  type                    camp_transfers_type
+  notes                   String?               @db.Text
+  requested_by            Int
+  leader_person_id        Int?
+  scheduled_delivery_date DateTime?
+  approved_by_source      Int?
+  approved_by_target      Int?
+  approved_source_at      DateTime?
+  approved_target_at      DateTime?
+  created_at              DateTime              @default(now())
+  camp_transfer_item      camp_transfer_item[]
+  approved_by_source_ref  users?                @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  approved_by_target_ref  users?                @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  requested_by_ref        users                 @relation("transfer_requested_by", fields: [requested_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  requesting_camp_ref     camps                 @relation("transfer_requesting_camp", fields: [requesting_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  target_camp_ref         camps                 @relation("transfer_target_camp", fields: [target_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  leader_person_ref       people?               @relation("transfer_leader", fields: [leader_person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([approved_by_source])
   @@index([approved_by_target])
@@ -96,36 +99,38 @@ model camp_transfers {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model camps {
-  id                                                   Int                  @id @default(autoincrement())
-  name                                                 String               @unique(map: "camps_name_unique") @db.VarChar(100)
-  location                                             String?              @db.VarChar(100)
-  status                                               camps_status         @default(ACTIVE)
-  ai_context_prompt                                    String?              @db.Text
-  created_at                                           DateTime             @default(now())
-  admission_requests admission_requests[]
-  audit_log          audit_log[]
-  requesting_transfers camp_transfers[] @relation("transfer_requesting_camp")
-  target_transfers     camp_transfers[] @relation("transfer_target_camp")
+  id                   Int                  @id @default(autoincrement())
+  name                 String               @unique(map: "camps_name_unique") @db.VarChar(100)
+  location             String?              @db.VarChar(100)
+  status               camps_status         @default(ACTIVE)
+  ai_context_prompt    String?              @db.Text
+  created_at           DateTime             @default(now())
+  admission_requests   admission_requests[]
+  audit_log            audit_log[]
+  requesting_transfers camp_transfers[]     @relation("transfer_requesting_camp")
+  target_transfers     camp_transfers[]     @relation("transfer_target_camp")
   expeditions          expeditions[]
-  inventory                                            inventory[]
-  inventory_log                                        inventory_log[]
-  persons                                              persons[]
-  users                                                users[]
+  inventory            inventory[]
+  inventory_log        inventory_log[]
+  persons              people[]
+  users                users[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model contribution_overrides {
-  id               Int           @id @default(autoincrement())
+  id               Int            @id @default(autoincrement())
   person_id        Int
   resource_type_id Int
-  reason           String        @db.VarChar(255)
-  start_date       DateTime      @default(now()) @db.Date
-  end_date         DateTime?     @db.Date
+  reason           String         @db.VarChar(255)
+  start_date       DateTime       @default(now()) @db.Date
+  end_date         DateTime?      @db.Date
   created_by       Int
-  amount           Decimal       @db.Decimal(8, 2)
-  persons          persons       @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  users            users         @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  amount           Decimal        @db.Decimal(8, 2)
+  persons          people         @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resourceType     resource_type? @relation(fields: [resource_typeId], references: [id])
+  resource_typeId  Int?
+  users            users?         @relation(fields: [usersId], references: [id])
+  usersId          Int?
 
   @@index([created_by])
   @@index([person_id])
@@ -158,7 +163,7 @@ model expedition_members {
   expedition_id Int
   person_id     Int
   expeditions   expeditions @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  persons       persons     @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  persons       people      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([person_id, expedition_id])
   @@index([expedition_id])
@@ -222,22 +227,22 @@ model inventory_log {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model person_status_log {
-  id         Int      @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   person_id  Int
   old_status persons_status
   new_status persons_status
-  reason     String?  @db.Text
+  reason     String?        @db.Text
   changed_by Int
-  changed_at DateTime @default(now())
-  users      users    @relation(fields: [changed_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  persons    persons  @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  changed_at DateTime       @default(now())
+  users      users          @relation(fields: [changed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  persons    people         @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([changed_by])
   @@index([person_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model persons {
+model people {
   id                          Int                           @id @default(autoincrement())
   camp_id                     Int
   profession_id               Int
@@ -249,8 +254,9 @@ model persons {
   photo_url                   String?                       @db.VarChar(500)
   status                      persons_status                @default(HEALTHY)
   admitted_at                 DateTime                      @default(now())
+  admission_requests          admission_requests[]
   camp_transfer_item          camp_transfer_item[]
-  camp_transfers              camp_transfers[]
+  led_transfers               camp_transfers[]              @relation("transfer_leader")
   contribution_overrides      contribution_overrides[]
   expedition_members          expedition_members[]
   person_status_log           person_status_log[]
@@ -260,20 +266,21 @@ model persons {
 
   @@index([camp_id])
   @@index([profession_id])
+  @@map("persons")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model profession_reassignment_log {
-  id                                                                      Int         @id @default(autoincrement())
-  person_id                                                               Int
-  from_profession_id                                                      Int
-  to_profession_id                                                        Int
-  reason                                                                  String?     @db.Text
-  start_date                                                              DateTime    @default(now()) @db.Date
-  end_date                                                                DateTime?   @db.Date
-  from_profession professions @relation("profession_log_from_profession", fields: [from_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  persons         persons     @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  to_profession   professions @relation("profession_log_to_profession", fields: [to_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id                 Int         @id @default(autoincrement())
+  person_id          Int
+  from_profession_id Int
+  to_profession_id   Int
+  reason             String?     @db.Text
+  start_date         DateTime    @default(now()) @db.Date
+  end_date           DateTime?   @db.Date
+  from_profession    professions @relation("profession_log_from_profession", fields: [from_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  persons            people      @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  to_profession      professions @relation("profession_log_to_profession", fields: [to_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([from_profession_id])
   @@index([person_id])
@@ -282,14 +289,14 @@ model profession_reassignment_log {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model professions {
-  id                                                                                      Int                             @id @default(autoincrement())
-  name                                                                                    String                          @unique(map: "professions_name_unique") @db.VarChar(80)
-  description                                                                             String?                         @db.Text
-  admission_requests admission_requests[]
-  persons                                                                                 persons[]
-  from_profession_logs profession_reassignment_log[]   @relation("profession_log_from_profession")
-  to_profession_logs   profession_reassignment_log[]   @relation("profession_log_to_profession")
-  professions_resources_amounts                                                           professions_resources_amounts[]
+  id                            Int                             @id @default(autoincrement())
+  name                          String                          @unique(map: "professions_name_unique") @db.VarChar(80)
+  description                   String?                         @db.Text
+  admission_requests            admission_requests[]
+  persons                       people[]
+  from_profession_logs          profession_reassignment_log[]   @relation("profession_log_from_profession")
+  to_profession_logs            profession_reassignment_log[]   @relation("profession_log_to_profession")
+  professions_resources_amounts professions_resources_amounts[]
 }
 
 model professions_resources_amounts {
@@ -322,18 +329,18 @@ model resource_type {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model roles {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique(map: "roles_name_unique") @db.VarChar(60)
-  description String? @db.VarChar(255)
-  users       users[]
+  id               Int                @id @default(autoincrement())
+  name             String             @unique(map: "roles_name_unique") @db.VarChar(60)
+  description      String?            @db.VarChar(255)
+  users            users[]
   role_permissions role_permissions[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model permissions {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique(map: "permissions_name_unique") @db.VarChar(80)
-  description String? @db.VarChar(255)
+  id               Int                @id @default(autoincrement())
+  name             String             @unique(map: "permissions_name_unique") @db.VarChar(80)
+  description      String?            @db.VarChar(255)
   role_permissions role_permissions[]
 }
 
@@ -368,17 +375,17 @@ model user_achievements {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model users {
-  id                                                      Int                      @id @default(autoincrement())
-  camp_id                                                 Int
-  role_id                                                 Int
-  session_version                                         Int                      @default(1)
-  username                                                String                   @unique(map: "username_UNIQUE") @db.VarChar(60)
-  password_hash                                           String                   @db.VarChar(255)
-  is_active                                               Boolean                  @default(true)
-  last_activity                                           DateTime?
-  created_at                                              DateTime                 @default(now())
-  admission_requests                                      admission_requests[]
-  audit_log                                               audit_log[]
+  id                           Int                      @id @default(autoincrement())
+  camp_id                      Int
+  role_id                      Int
+  session_version              Int                      @default(1)
+  username                     String                   @unique(map: "username_UNIQUE") @db.VarChar(60)
+  password_hash                String                   @db.VarChar(255)
+  is_active                    Boolean                  @default(true)
+  last_activity                DateTime?
+  created_at                   DateTime                 @default(now())
+  admission_requests           admission_requests[]
+  audit_log                    audit_log[]
   transfers_approved_by_source camp_transfers[]         @relation("transfer_approved_by_source")
   transfers_approved_by_target camp_transfers[]         @relation("transfer_approved_by_target")
   transfers_requested_by       camp_transfers[]         @relation("transfer_requested_by")

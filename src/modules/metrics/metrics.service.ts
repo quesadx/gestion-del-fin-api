@@ -17,10 +17,10 @@ export async function getDashboard(campId: number) {
     inventoryRows,
     lowResourceRows,
   ] = await Promise.all([
-    prisma.persons.count({ where: { camp_id: campId, status: { not: 'DEAD' } } }),
-    prisma.persons.count({ where: { camp_id: campId, status: 'HEALTHY' } }),
-    prisma.persons.count({ where: { camp_id: campId, status: 'INJURED' } }),
-    prisma.persons.count({ where: { camp_id: campId, status: 'AWAY' } }),
+    prisma.people.count({ where: { camp_id: campId, status: { not: 'DEAD' } } }),
+    prisma.people.count({ where: { camp_id: campId, status: 'HEALTHY' } }),
+    prisma.people.count({ where: { camp_id: campId, status: 'INJURED' } }),
+    prisma.people.count({ where: { camp_id: campId, status: 'AWAY' } }),
     prisma.resource_type.count(),
     prisma.expeditions.count({ where: { camp_id: campId, status: 'ONGOING' } }),
     prisma.camp_transfers.count({
@@ -113,13 +113,13 @@ export async function getLowResourceAlerts(campId: number) {
 
 export async function getPeople(campId: number) {
   const [totalSurvivors, byProfession, byStatus, camp] = await Promise.all([
-    prisma.persons.count({ where: { camp_id: campId, status: { not: 'DEAD' } } }),
-    prisma.persons.groupBy({
+    prisma.people.count({ where: { camp_id: campId, status: { not: 'DEAD' } } }),
+    prisma.people.groupBy({
       by: ['profession_id'],
       where: { camp_id: campId, status: { not: 'DEAD' } },
       _count: true,
     }),
-    prisma.persons.groupBy({
+    prisma.people.groupBy({
       by: ['status'],
       where: { camp_id: campId },
       _count: true,
