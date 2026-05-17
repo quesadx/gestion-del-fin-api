@@ -85,7 +85,7 @@ export async function deleteProfession(id: number) {
 export async function getProfessionResourceAmounts() {
   return prisma.professions_resources_amounts.findMany({
     select: {
-      professions_id: true,
+      profession_id: true,
       resource_type_id: true,
       amount: true,
       professions: {
@@ -102,6 +102,6 @@ export async function getProfessionResourceAmounts() {
         },
       },
     },
-    orderBy: [{ professions_id: 'asc' }, { resource_type_id: 'asc' }],
+    orderBy: [{ profession_id: 'asc' }, { resource_type_id: 'asc' }],
   });
 }
