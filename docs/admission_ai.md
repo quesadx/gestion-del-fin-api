@@ -112,20 +112,18 @@ REJECTED          0.89    1.00      0.94
 
 The model has perfect recall on REJECTED — it never lets through someone who should be rejected. This is the desired behavior for a post-apocalyptic camp security context.
 
-
 ### Installing Python dependencies
- 
+
 **With Nix** — dependencies are provided automatically by the flake.
- 
+
 **Without Nix** — use a virtual environment:
- 
+
 ```bash
 cd ml-service
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
 
 ### Running the trainer
 
