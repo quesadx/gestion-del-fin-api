@@ -16,6 +16,9 @@ import { signAccessToken } from '../../src/shared/utils/jwt';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function globalSetup(): Promise<void> {
   // ─── Phase 1: Clean slate ────────────────────────────────────────────
