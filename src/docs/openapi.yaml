@@ -1,0 +1,872 @@
+openapi: '3.1.1'
+info:
+  title: 'Gestion Del Fin API'
+  version: '1.0.0'
+  description: 'API documentation for Gestion Del Fin — multi-camp zombie survival management system'
+
+servers:
+  - url: 'http://localhost:3000'
+    description: 'Development server'
+
+tags:
+  - name: System
+    description: 'System and health endpoints'
+  - name: Auth
+    description: 'Authentication and session endpoints'
+  - name: Camps
+    description: 'Camp management endpoints'
+  - name: Resources
+    description: 'Resource catalog endpoints'
+  - name: People
+    description: 'People management endpoints'
+  - name: Inventory
+    description: 'Inventory tracking and audit endpoints'
+  - name: Admission
+    description: 'Admission workflow endpoints'
+  - name: Explorations
+    description: 'Exploration lifecycle endpoints'
+  - name: Transfers
+    description: 'Inter-camp transfer workflow endpoints'
+  - name: Users
+    description: 'User management endpoints'
+  - name: Professions
+    description: 'Profession catalog endpoints'
+  - name: Roles
+    description: 'Role management endpoints'
+  - name: Permissions
+    description: 'Permission management endpoints'
+  - name: Metrics
+    description: 'Camp metrics and statistics endpoints'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message, statusCode]
+          properties:
+            message: { type: string, example: 'Validation failed' }
+            statusCode: { type: integer, example: 400 }
+            details: { nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 60, example: 'admin' }
+        password: { type: string, minLength: 1, example: 'my-secure-password' }
+
+    LoginResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          type: object
+          required: [username, role]
+          properties:
+            username: { type: string, example: 'admin' }
+            role: { type: string, example: 'ADMIN' }
+        token:
+          type: string
+          description: 'JWT access token'
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+    SystemTimeResponse:
+      type: object
+      required: [now, iso, today]
+      properties:
+        now: { type: string, example: '14:05:30' }
+        iso: { type: string, format: date-time, example: '2026-04-25T14:05:30.000Z' }
+        today: { type: string, format: date, example: '2026-04-25' }
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data: { type: array, items: {} }
+        pagination:
+          type: object
+          properties:
+            page: { type: integer }
+            pageSize: { type: integer }
+            total: { type: integer }
+            hasNextPage: { type: boolean }
+            totalPages: { type: integer }
+
+paths:
+  # ── System ──
+  /api/system/time:
+    get:
+      tags: [System]
+      summary: 'Get server time snapshot'
+      description: 'Returns current server time in multiple formats.'
+      responses:
+        '200':
+          description: 'Server time returned.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemTimeResponse'
+        '500':
+          description: 'Unexpected server error.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── Auth ──
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: 'Authenticate and get access token'
+      description: 'Validates username/password and returns JWT.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 'Login successful.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Invalid credentials.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 'Too many login attempts.'
+        '500':
+          description: 'Unexpected server error.'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: 'Logout and invalidate session'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 'Logged out successfully.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: 'Logged out successfully' }
+        '401':
+          description: 'Missing or invalid authentication.'
+
+  # ── Camps ──
+  /api/camps:
+    post:
+      tags: [Camps]
+      summary: 'Create camp'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                location: { type: string, maxLength: 100 }
+                status: { type: string, enum: [ACTIVE, ABANDONED] }
+                ai_context_prompt: { type: string }
+      responses:
+        '201': { description: 'Camp created.' }
+        '400':
+          {
+            description: 'Validation failed.',
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+        '409': { description: 'Conflict with existing data.' }
+    get:
+      tags: [Camps]
+      summary: 'List camps'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        '200': { description: 'Camps retrieved.' }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+
+  /api/camps/{id}:
+    get:
+      tags: [Camps]
+      summary: 'Get camp by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Camp retrieved.' }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+        '404': { description: 'Camp not found.' }
+    put:
+      tags: [Camps]
+      summary: 'Update camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+                location: { type: string, maxLength: 100 }
+                status: { type: string, enum: [ACTIVE, ABANDONED] }
+                ai_context_prompt: { type: string }
+      responses:
+        '200': { description: 'Camp updated.' }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+        '404': { description: 'Camp not found.' }
+    delete:
+      tags: [Camps]
+      summary: 'Delete camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '204': { description: 'Camp deleted.' }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+        '404': { description: 'Camp not found.' }
+
+  # ── Resources ──
+  /api/resources:
+    post:
+      tags: [Resources]
+      summary: 'Create resource type'
+      security:
+        - bearerAuth: []
+      responses:
+        '201': { description: 'Resource created.' }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+    get:
+      tags: [Resources]
+      summary: 'List resource types'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Resources retrieved.' }
+
+  /api/resources/{id}:
+    get:
+      tags: [Resources]
+      summary: 'Get resource by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Resource retrieved.' }
+        '404': { description: 'Resource not found.' }
+    put:
+      tags: [Resources]
+      summary: 'Update resource type'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Resource updated.' }
+        '404': { description: 'Resource not found.' }
+    delete:
+      tags: [Resources]
+      summary: 'Delete resource type'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '204': { description: 'Resource deleted.' }
+        '404': { description: 'Resource not found.' }
+
+  # ── People (mounted at /api/camps/{campId}/people) ──
+  /api/camps/{campId}/people:
+    post:
+      tags: [People]
+      summary: 'Create person in camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: 'Person created.' }
+        '401': { description: 'Missing or invalid authentication.' }
+        '403': { description: 'Forbidden.' }
+        '404': { description: 'Camp not found.' }
+    get:
+      tags: [People]
+      summary: 'List people by camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        '200': { description: 'People retrieved.' }
+
+  /api/camps/{campId}/people/{id}:
+    get:
+      tags: [People]
+      summary: 'Get person by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Person retrieved.' }
+        '404': { description: 'Person not found.' }
+    put:
+      tags: [People]
+      summary: 'Update person'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Person updated.' }
+        '404': { description: 'Person not found.' }
+    delete:
+      tags: [People]
+      summary: 'Delete person'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '204': { description: 'Person deleted.' }
+        '404': { description: 'Person not found.' }
+
+  /api/camps/{campId}/people/status-log:
+    post:
+      tags: [People]
+      summary: 'Add person status log'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: 'Status log created.' }
+
+  /api/camps/{campId}/people/profession-reassignments:
+    post:
+      tags: [People]
+      summary: 'Reassign person profession'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: 'Reassignment created.' }
+
+  /api/camps/{campId}/people/contribution-overrides:
+    post:
+      tags: [People]
+      summary: 'Create contribution override'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: 'Override created.' }
+
+  # ── Inventory ──
+  /api/inventory:
+    get:
+      tags: [Inventory]
+      summary: 'Get camp inventory'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Inventory retrieved.' }
+
+  /api/inventory/adjust:
+    post:
+      tags: [Inventory]
+      summary: 'Adjust inventory levels'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Inventory adjusted.' }
+
+  /api/inventory/audit:
+    get:
+      tags: [Inventory]
+      summary: 'Get inventory audit log'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Audit log retrieved.' }
+
+  # ── Admission ──
+  /api/admission/camps/{campId}:
+    post:
+      tags: [Admission]
+      summary: 'Create admission request'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: 'Admission created.' }
+        '429': { description: 'Too many admission requests.' }
+    get:
+      tags: [Admission]
+      summary: 'List admissions by camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Admissions retrieved.' }
+
+  /api/admission/{id}:
+    get:
+      tags: [Admission]
+      summary: 'Get admission by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Admission retrieved.' }
+        '404': { description: 'Admission not found.' }
+
+  /api/admission/{id}/review:
+    patch:
+      tags: [Admission]
+      summary: 'Review admission request'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Admission reviewed.' }
+        '404': { description: 'Admission not found.' }
+
+  # ── Explorations ──
+  /api/expeditions:
+    post:
+      tags: [Explorations]
+      summary: 'Create expedition'
+      security:
+        - bearerAuth: []
+      responses:
+        '201': { description: 'Expedition created.' }
+    get:
+      tags: [Explorations]
+      summary: 'List expeditions'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        '200': { description: 'Expeditions retrieved.' }
+
+  /api/expeditions/{id}:
+    get:
+      tags: [Explorations]
+      summary: 'Get expedition by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Expedition retrieved.' }
+        '404': { description: 'Expedition not found.' }
+    put:
+      tags: [Explorations]
+      summary: 'Update expedition'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Expedition updated.' }
+
+  /api/expeditions/{id}/status:
+    put:
+      tags: [Explorations]
+      summary: 'Update expedition status'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Status updated.' }
+
+  /api/expeditions/{id}/cancel:
+    put:
+      tags: [Explorations]
+      summary: 'Cancel expedition'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Expedition cancelled.' }
+
+  # ── Transfers ──
+  /api/transfers:
+    post:
+      tags: [Transfers]
+      summary: 'Create transfer request'
+      security:
+        - bearerAuth: []
+      responses:
+        '201': { description: 'Transfer created.' }
+    get:
+      tags: [Transfers]
+      summary: 'List transfers'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        '200': { description: 'Transfers retrieved.' }
+
+  /api/transfers/{id}:
+    get:
+      tags: [Transfers]
+      summary: 'Get transfer by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Transfer retrieved.' }
+        '404': { description: 'Transfer not found.' }
+
+  /api/transfers/{id}/schedule:
+    patch:
+      tags: [Transfers]
+      summary: 'Schedule transfer delivery'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Delivery scheduled.' }
+
+  /api/transfers/{id}/approve-source:
+    patch:
+      tags: [Transfers]
+      summary: 'Approve transfer by source camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Transfer approved by source.' }
+
+  /api/transfers/{id}/approve-target:
+    patch:
+      tags: [Transfers]
+      summary: 'Approve transfer by target camp'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Transfer approved by target.' }
+
+  /api/transfers/{id}/complete:
+    patch:
+      tags: [Transfers]
+      summary: 'Complete transfer'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Transfer completed.' }
+
+  /api/transfers/{id}/reject:
+    patch:
+      tags: [Transfers]
+      summary: 'Reject transfer'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Transfer rejected.' }
+
+  # ── Users ──
+  /api/users:
+    post:
+      tags: [Users]
+      summary: 'Create user'
+      security:
+        - bearerAuth: []
+      responses:
+        '201': { description: 'User created.' }
+    get:
+      tags: [Users]
+      summary: 'List users'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        '200': { description: 'Users retrieved.' }
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: 'Get user by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'User retrieved.' }
+        '404': { description: 'User not found.' }
+    put:
+      tags: [Users]
+      summary: 'Update user'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'User updated.' }
+    delete:
+      tags: [Users]
+      summary: 'Deactivate user'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '204': { description: 'User deactivated.' }
+
+  # ── Professions ──
+  /api/professions:
+    post:
+      tags: [Professions]
+      summary: 'Create profession'
+      security:
+        - bearerAuth: []
+      responses:
+        '201': { description: 'Profession created.' }
+    get:
+      tags: [Professions]
+      summary: 'List professions'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Professions retrieved.' }
+
+  /api/professions/{id}:
+    get:
+      tags: [Professions]
+      summary: 'Get profession by id'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 'Profession retrieved.' }
+        '404': { description: 'Profession not found.' }
+
+  # ── Roles ──
+  /api/roles:
+    get:
+      tags: [Roles]
+      summary: 'List roles'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Roles retrieved.' }
+
+  # ── Permissions ──
+  /api/permissions:
+    get:
+      tags: [Permissions]
+      summary: 'List permissions'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Permissions retrieved.' }
+
+  # ── Metrics ──
+  /api/metrics/summary:
+    get:
+      tags: [Metrics]
+      summary: 'Get camp metrics summary'
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: 'Metrics retrieved.' }

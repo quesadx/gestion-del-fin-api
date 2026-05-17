@@ -1,6 +1,7 @@
 import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 import {
   ApproveTransferSourceDto,
   ApproveTransferTargetDto,
@@ -291,54 +292,67 @@ export async function createTransfer(data: CreateTransferDto) {
     .filter((item) => item.item_type === 'PERSON')
     .map((item) => item.person_id as number);
 
-  return prisma.$transaction(async (tx: TransferTransactionClient) => {
-    if (data.requesting_camp === data.target_camp) {
-      throw new AppError('requesting_camp and target_camp must be different', 400);
-    }
+  return prisma
+    .$transaction(async (tx: TransferTransactionClient) => {
+      if (data.requesting_camp === data.target_camp) {
+        throw new AppError('requesting_camp and target_camp must be different', 400);
+      }
 
-    const [requestedBy] = await Promise.all([
-      ensureUserExists(tx, data.requested_by),
-      ensureCampExists(tx, data.requesting_camp),
-      ensureCampExists(tx, data.target_camp),
-      ensureResourceTypesExist(tx, resourceTypeIds),
-      ensurePeopleExistInSourceCamp(tx, personIds, data.requesting_camp),
-    ]);
+      const [requestedBy] = await Promise.all([
+        ensureUserExists(tx, data.requested_by),
+        ensureCampExists(tx, data.requesting_camp),
+        ensureCampExists(tx, data.target_camp),
+        ensureResourceTypesExist(tx, resourceTypeIds),
+        ensurePeopleExistInSourceCamp(tx, personIds, data.requesting_camp),
+      ]);
 
-    if (data.leader_person_id) {
-      await ensurePeopleExistInSourceCamp(tx, [data.leader_person_id], data.requesting_camp);
-    }
-    if (requestedBy.camp_id !== data.requesting_camp) {
-      throw new AppError('requested_by must belong to requesting_camp', 400);
-    }
+      if (data.leader_person_id) {
+        await ensurePeopleExistInSourceCamp(tx, [data.leader_person_id], data.requesting_camp);
+      }
+      if (requestedBy.camp_id !== data.requesting_camp) {
+        throw new AppError('requested_by must belong to requesting_camp', 400);
+      }
 
-    const transfer = await tx.camp_transfers.create({
-      data: {
-        requesting_camp: data.requesting_camp,
-        target_camp: data.target_camp,
-        status: 'PENDING',
-        type: data.type,
-        notes: data.notes?.trim(),
-        requested_by: data.requested_by,
-        leader_person_id: data.leader_person_id,
-        scheduled_delivery_date: scheduledDeliveryDate,
-      },
+      const transfer = await tx.camp_transfers.create({
+        data: {
+          requesting_camp: data.requesting_camp,
+          target_camp: data.target_camp,
+          status: 'PENDING',
+          type: data.type,
+          notes: data.notes?.trim(),
+          requested_by: data.requested_by,
+          leader_person_id: data.leader_person_id,
+          scheduled_delivery_date: scheduledDeliveryDate,
+        },
+      });
+
+      await tx.camp_transfer_item.createMany({
+        data: data.items.map((item) => ({
+          camp_transfer_id: transfer.id,
+          item_type: item.item_type,
+          resource_type_id: item.resource_type_id,
+          person_id: item.person_id,
+          quantity: item.item_type === 'RESOURCE' ? item.quantity : null,
+        })),
+      });
+
+      return tx.camp_transfers.findUnique({
+        where: { id: transfer.id },
+        include: { camp_transfer_item: true },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: data.requested_by,
+          campId: data.requesting_camp,
+          action: 'CREATE_TRANSFER',
+          targetType: 'camp_transfers',
+          targetId: result.id,
+        });
+      }
+      return result;
     });
-
-    await tx.camp_transfer_item.createMany({
-      data: data.items.map((item) => ({
-        camp_transfer_id: transfer.id,
-        item_type: item.item_type,
-        resource_type_id: item.resource_type_id,
-        person_id: item.person_id,
-        quantity: item.item_type === 'RESOURCE' ? item.quantity : null,
-      })),
-    });
-
-    return tx.camp_transfers.findUnique({
-      where: { id: transfer.id },
-      include: { camp_transfer_item: true },
-    });
-  });
 }
 
 export async function scheduleTransferDelivery(
@@ -378,32 +392,48 @@ export async function approveTransferBySource(
   data: ApproveTransferSourceDto,
 ) {
   const scheduledDeliveryDate = parseDateTime(data.scheduled_delivery_date);
+  const approver = await ensureUserExists(
+    prisma as unknown as TransferTransactionClient,
+    approverUserId,
+  );
 
-  return prisma.$transaction(async (tx: TransferTransactionClient) => {
-    const approver = await ensureUserExists(tx, approverUserId);
-    const transfer = await ensureTransferExists(tx, transferId);
+  return prisma
+    .$transaction(async (tx: TransferTransactionClient) => {
+      const transfer = await ensureTransferExists(tx, transferId);
 
-    ensureTransferStatus(transfer, 'PENDING');
+      ensureTransferStatus(transfer, 'PENDING');
 
-    if (approver.camp_id !== transfer.requesting_camp) {
-      throw new AppError('Only requesting camp can approve source stage', 403);
-    }
+      if (approver.camp_id !== transfer.requesting_camp) {
+        throw new AppError('Only requesting camp can approve source stage', 403);
+      }
 
-    const effectiveScheduledDate = scheduledDeliveryDate ?? transfer.scheduled_delivery_date;
-    ensureScheduledDeliveryDateForApproval(effectiveScheduledDate);
+      const effectiveScheduledDate = scheduledDeliveryDate ?? transfer.scheduled_delivery_date;
+      ensureScheduledDeliveryDateForApproval(effectiveScheduledDate);
 
-    return tx.camp_transfers.update({
-      where: { id: transferId },
-      data: {
-        status: 'APPROVED_SOURCE',
-        approved_by_source: approverUserId,
-        approved_source_at: new Date(),
-        scheduled_delivery_date: effectiveScheduledDate,
-        notes: buildNotes(transfer.notes, data.notes),
-      },
-      include: { camp_transfer_item: true },
+      return tx.camp_transfers.update({
+        where: { id: transferId },
+        data: {
+          status: 'APPROVED_SOURCE',
+          approved_by_source: approverUserId,
+          approved_source_at: new Date(),
+          scheduled_delivery_date: effectiveScheduledDate,
+          notes: buildNotes(transfer.notes, data.notes),
+        },
+        include: { camp_transfer_item: true },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: approverUserId,
+          campId: approver.camp_id,
+          action: 'APPROVE_TRANSFER_SOURCE',
+          targetType: 'camp_transfers',
+          targetId: transferId,
+        });
+      }
+      return result;
     });
-  });
 }
 
 export async function approveTransferByTarget(
@@ -411,29 +441,46 @@ export async function approveTransferByTarget(
   approverUserId: number,
   data: ApproveTransferTargetDto,
 ) {
-  return prisma.$transaction(async (tx: TransferTransactionClient) => {
-    const approver = await ensureUserExists(tx, approverUserId);
-    const transfer = await ensureTransferExists(tx, transferId);
+  const approver = await ensureUserExists(
+    prisma as unknown as TransferTransactionClient,
+    approverUserId,
+  );
 
-    ensureTransferStatus(transfer, 'APPROVED_SOURCE');
+  return prisma
+    .$transaction(async (tx: TransferTransactionClient) => {
+      const transfer = await ensureTransferExists(tx, transferId);
 
-    if (approver.camp_id !== transfer.target_camp) {
-      throw new AppError('Only target camp can approve target stage', 403);
-    }
+      ensureTransferStatus(transfer, 'APPROVED_SOURCE');
 
-    ensureScheduledDeliveryDateForApproval(transfer.scheduled_delivery_date);
+      if (approver.camp_id !== transfer.target_camp) {
+        throw new AppError('Only target camp can approve target stage', 403);
+      }
 
-    return tx.camp_transfers.update({
-      where: { id: transferId },
-      data: {
-        status: 'APPROVED_TARGET',
-        approved_by_target: approverUserId,
-        approved_target_at: new Date(),
-        notes: buildNotes(transfer.notes, data.notes),
-      },
-      include: { camp_transfer_item: true },
+      ensureScheduledDeliveryDateForApproval(transfer.scheduled_delivery_date);
+
+      return tx.camp_transfers.update({
+        where: { id: transferId },
+        data: {
+          status: 'APPROVED_TARGET',
+          approved_by_target: approverUserId,
+          approved_target_at: new Date(),
+          notes: buildNotes(transfer.notes, data.notes),
+        },
+        include: { camp_transfer_item: true },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: approverUserId,
+          campId: approver.camp_id,
+          action: 'APPROVE_TRANSFER_TARGET',
+          targetType: 'camp_transfers',
+          targetId: transferId,
+        });
+      }
+      return result;
     });
-  });
 }
 
 export async function completeTransfer(
@@ -442,79 +489,92 @@ export async function completeTransfer(
   data: CompleteTransferDto,
 ) {
   const targetPersonStatus = data.person_status ?? 'HEALTHY';
+  const actor = await ensureUserExists(prisma as unknown as TransferTransactionClient, completedBy);
 
-  return prisma.$transaction(async (tx: TransferTransactionClient) => {
-    const actor = await ensureUserExists(tx, completedBy);
-    const transfer = await ensureTransferExists(tx, transferId);
+  return prisma
+    .$transaction(async (tx: TransferTransactionClient) => {
+      const transfer = await ensureTransferExists(tx, transferId);
 
-    ensureTransferStatus(transfer, 'APPROVED_TARGET');
+      ensureTransferStatus(transfer, 'APPROVED_TARGET');
 
-    if (actor.camp_id !== transfer.requesting_camp && actor.camp_id !== transfer.target_camp) {
-      throw new AppError('Only source or target camp users can complete transfer', 403);
-    }
+      if (actor.camp_id !== transfer.requesting_camp && actor.camp_id !== transfer.target_camp) {
+        throw new AppError('Only source or target camp users can complete transfer', 403);
+      }
 
-    const resourceItems = transfer.camp_transfer_item
-      .filter((item) => item.item_type === 'RESOURCE')
-      .map((item) => {
-        if (item.resource_type_id == null) {
-          throw new AppError('RESOURCE items must include resource_type_id', 400);
-        }
+      const resourceItems = transfer.camp_transfer_item
+        .filter((item) => item.item_type === 'RESOURCE')
+        .map((item) => {
+          if (item.resource_type_id == null) {
+            throw new AppError('RESOURCE items must include resource_type_id', 400);
+          }
 
-        if (item.quantity == null) {
-          throw new AppError('RESOURCE items must include quantity', 400);
-        }
+          if (item.quantity == null) {
+            throw new AppError('RESOURCE items must include quantity', 400);
+          }
 
-        const quantity = asNumber(item.quantity);
-        if (!Number.isFinite(quantity) || quantity <= 0) {
-          throw new AppError('RESOURCE item quantity must be a finite positive number', 400);
-        }
+          const quantity = asNumber(item.quantity);
+          if (!Number.isFinite(quantity) || quantity <= 0) {
+            throw new AppError('RESOURCE item quantity must be a finite positive number', 400);
+          }
 
-        return {
-          resource_type_id: item.resource_type_id,
-          quantity,
-        };
+          return {
+            resource_type_id: item.resource_type_id,
+            quantity,
+          };
+        });
+
+      const personIds = transfer.camp_transfer_item
+        .filter((item) => item.item_type === 'PERSON')
+        .map((item) => {
+          if (item.person_id == null) {
+            throw new AppError('PERSON items must include person_id', 400);
+          }
+
+          return item.person_id;
+        });
+
+      if (personIds.length > 0 && resourceItems.length === 0) {
+        throw new AppError('Person transfer must include travel rations (RESOURCE items)', 400);
+      }
+
+      await applyResourceTransfer(tx, {
+        transferId: transfer.id,
+        sourceCampId: transfer.requesting_camp,
+        targetCampId: transfer.target_camp,
+        completedBy,
+        resourceItems,
       });
 
-    const personIds = transfer.camp_transfer_item
-      .filter((item) => item.item_type === 'PERSON')
-      .map((item) => {
-        if (item.person_id == null) {
-          throw new AppError('PERSON items must include person_id', 400);
-        }
-
-        return item.person_id;
+      await applyPeopleTransfer(tx, {
+        transferId: transfer.id,
+        sourceCampId: transfer.requesting_camp,
+        targetCampId: transfer.target_camp,
+        personIds,
+        personStatus: targetPersonStatus,
+        changedBy: completedBy,
       });
 
-    if (personIds.length > 0 && resourceItems.length === 0) {
-      throw new AppError('Person transfer must include travel rations (RESOURCE items)', 400);
-    }
-
-    await applyResourceTransfer(tx, {
-      transferId: transfer.id,
-      sourceCampId: transfer.requesting_camp,
-      targetCampId: transfer.target_camp,
-      completedBy,
-      resourceItems,
+      return tx.camp_transfers.update({
+        where: { id: transfer.id },
+        data: {
+          status: 'COMPLETED',
+          notes: buildNotes(transfer.notes, data.notes),
+        },
+        include: { camp_transfer_item: true },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: completedBy,
+          campId: actor.camp_id,
+          action: 'COMPLETE_TRANSFER',
+          targetType: 'camp_transfers',
+          targetId: transferId,
+        });
+      }
+      return result;
     });
-
-    await applyPeopleTransfer(tx, {
-      transferId: transfer.id,
-      sourceCampId: transfer.requesting_camp,
-      targetCampId: transfer.target_camp,
-      personIds,
-      personStatus: targetPersonStatus,
-      changedBy: completedBy,
-    });
-
-    return tx.camp_transfers.update({
-      where: { id: transfer.id },
-      data: {
-        status: 'COMPLETED',
-        notes: buildNotes(transfer.notes, data.notes),
-      },
-      include: { camp_transfer_item: true },
-    });
-  });
 }
 
 export async function rejectTransfer(
@@ -522,25 +582,42 @@ export async function rejectTransfer(
   actorUserId: number,
   data: RejectTransferDto,
 ) {
-  return prisma.$transaction(async (tx: TransferTransactionClient) => {
-    const actor = await ensureUserExists(tx, actorUserId);
-    const transfer = await ensureTransferExists(tx, transferId);
+  const actor = await ensureUserExists(prisma as unknown as TransferTransactionClient, actorUserId);
 
-    ensureTransferCanBeRejected(transfer.status);
+  return prisma
+    .$transaction(async (tx: TransferTransactionClient) => {
+      const transfer = await ensureTransferExists(tx, transferId);
 
-    if (actor.camp_id !== transfer.requesting_camp && actor.camp_id !== transfer.target_camp) {
-      throw new AppError('Only source or target camp users can reject transfer', 403);
-    }
+      ensureTransferCanBeRejected(transfer.status);
 
-    return tx.camp_transfers.update({
-      where: { id: transfer.id },
-      data: {
-        status: 'REJECTED',
-        notes: buildNotes(transfer.notes, `Rejected by user ${actorUserId}: ${data.reason.trim()}`),
-      },
-      include: { camp_transfer_item: true },
+      if (actor.camp_id !== transfer.requesting_camp && actor.camp_id !== transfer.target_camp) {
+        throw new AppError('Only source or target camp users can reject transfer', 403);
+      }
+
+      return tx.camp_transfers.update({
+        where: { id: transfer.id },
+        data: {
+          status: 'REJECTED',
+          notes: buildNotes(
+            transfer.notes,
+            `Rejected by user ${actorUserId}: ${data.reason.trim()}`,
+          ),
+        },
+        include: { camp_transfer_item: true },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: actorUserId,
+          campId: actor.camp_id,
+          action: 'REJECT_TRANSFER',
+          targetType: 'camp_transfers',
+          targetId: transferId,
+        });
+      }
+      return result;
     });
-  });
 }
 
 export async function getTransfer(id: number) {
@@ -560,12 +637,17 @@ export async function getTransfer(id: number) {
   return transfer;
 }
 
-export async function getTransfers(page = 1, pageSize = 20) {
+export async function getTransfers(campId: number, page = 1, pageSize = 20) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
+  const where = {
+    OR: [{ requesting_camp: campId }, { target_camp: campId }],
+  };
+
   const [transfers, total] = await Promise.all([
     prisma.camp_transfers.findMany({
+      where,
       skip,
       take: effectiveLimit,
       orderBy: { created_at: 'desc' },
@@ -575,7 +657,7 @@ export async function getTransfers(page = 1, pageSize = 20) {
         camps_camp_transfers_target_campTocamps: true,
       },
     }),
-    prisma.camp_transfers.count(),
+    prisma.camp_transfers.count({ where }),
   ]);
 
   return {

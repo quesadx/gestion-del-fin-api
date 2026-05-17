@@ -101,6 +101,7 @@ model camps {
   ai_context_prompt                                    String?              @db.Text
   created_at                                           DateTime             @default(now())
   admission_requests                                   admission_requests[]
+  audit_log                                            audit_log[]
   camp_transfers_camp_transfers_requesting_campTocamps camp_transfers[]     @relation("camp_transfers_requesting_campTocamps")
   camp_transfers_camp_transfers_target_campTocamps     camp_transfers[]     @relation("camp_transfers_target_campTocamps")
   expeditions                                          expeditions[]
@@ -380,6 +381,7 @@ model users {
   last_activity                                           DateTime?
   created_at                                              DateTime                 @default(now())
   admission_requests                                      admission_requests[]
+  audit_log                                               audit_log[]
   camp_transfers_camp_transfers_approved_by_sourceTousers camp_transfers[]         @relation("camp_transfers_approved_by_sourceTousers")
   camp_transfers_camp_transfers_approved_by_targetTousers camp_transfers[]         @relation("camp_transfers_approved_by_targetTousers")
   camp_transfers_camp_transfers_requested_byTousers       camp_transfers[]         @relation("camp_transfers_requested_byTousers")
@@ -393,6 +395,23 @@ model users {
 
   @@index([camp_id])
   @@index([role_id])
+}
+
+model audit_log {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  camp_id     Int
+  action      String   @db.VarChar(100)
+  target_type String   @db.VarChar(80)
+  target_id   Int?
+  metadata    Json?    @db.JsonB
+  created_at  DateTime @default(now())
+  users       users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  camps       camps    @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@index([camp_id])
+  @@index([created_at])
 }
 
 enum camp_transfer_item_item_type {

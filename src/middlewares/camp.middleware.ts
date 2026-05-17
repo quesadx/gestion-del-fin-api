@@ -67,7 +67,7 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
     });
 
     if (!camp || camp.status !== 'ACTIVE') {
-      throw new AppError('Unauthorized', 401);
+      throw new AppError('Forbidden', 403);
     }
 
     const requestedCampParam = req.params.campId;
@@ -78,12 +78,12 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
         requestedCampId <= 0 ||
         requestedCampId !== campId
       ) {
-        throw new AppError('Unauthorized', 401);
+        throw new AppError('Forbidden', 403);
       }
     } else {
       const requestedCampIdFromUrl = extractCampIdFromUrl(req.originalUrl || req.url);
       if (requestedCampIdFromUrl !== null && requestedCampIdFromUrl !== campId) {
-        throw new AppError('Unauthorized', 401);
+        throw new AppError('Forbidden', 403);
       }
     }
 
