@@ -70,15 +70,15 @@ ml-service/
 
 The classifier is trained on synthetic survivor profiles with known outcomes. Each profile is converted into numeric features:
 
-| Feature | Type | Description |
-|---|---|---|
-| `age` | integer | Applicant age |
-| `has_technical` | 0 or 1 | Has engineering/mechanic skills |
-| `has_medical` | 0 or 1 | Has medical skills |
-| `has_scout` | 0 or 1 | Has scouting/exploration skills |
-| `has_agricultural` | 0 or 1 | Has farming/cooking skills |
-| `has_security` | 0 or 1 | Has combat/security skills |
-| `health_score` | 0.0–1.0 | Derived from health notes |
+| Feature            | Type    | Description                     |
+| ------------------ | ------- | ------------------------------- |
+| `age`              | integer | Applicant age                   |
+| `has_technical`    | 0 or 1  | Has engineering/mechanic skills |
+| `has_medical`      | 0 or 1  | Has medical skills              |
+| `has_scout`        | 0 or 1  | Has scouting/exploration skills |
+| `has_agricultural` | 0 or 1  | Has farming/cooking skills      |
+| `has_security`     | 0 or 1  | Has combat/security skills      |
+| `health_score`     | 0.0–1.0 | Derived from health notes       |
 
 The tree the model learned (printed on startup):
 
@@ -130,6 +130,7 @@ Returns the service status and whether the model is trained.
 Evaluates an applicant profile.
 
 Request:
+
 ```json
 {
   "age": 28,
@@ -144,6 +145,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "decision": "ACCEPTED",
@@ -191,15 +193,17 @@ The `ai_context_prompt` field is free text written by admins. Before sending it 
 3. Validates the Groq output with a strict Zod schema — any field not in the allowed list or any value out of range is rejected
 
 ```typescript
-const campWeightsSchema = z.object({
-  weight_technical:    z.number().min(0).max(1).optional(),
-  weight_medical:      z.number().min(0).max(1).optional(),
-  weight_scout:        z.number().min(0).max(1).optional(),
-  weight_agricultural: z.number().min(0).max(1).optional(),
-  weight_security:     z.number().min(0).max(1).optional(),
-  strict_health_check: z.boolean().optional(),
-  minimum_age:         z.number().int().min(0).max(100).optional(),
-}).strict();
+const campWeightsSchema = z
+  .object({
+    weight_technical: z.number().min(0).max(1).optional(),
+    weight_medical: z.number().min(0).max(1).optional(),
+    weight_scout: z.number().min(0).max(1).optional(),
+    weight_agricultural: z.number().min(0).max(1).optional(),
+    weight_security: z.number().min(0).max(1).optional(),
+    strict_health_check: z.boolean().optional(),
+    minimum_age: z.number().int().min(0).max(100).optional(),
+  })
+  .strict();
 ```
 
 ### Rate limiting
@@ -214,10 +218,10 @@ Calls to the ML service time out after **5 seconds** using `AbortSignal.timeout(
 
 ## Environment variables
 
-| Variable | Description |
-|---|---|
+| Variable         | Description                                                          |
+| ---------------- | -------------------------------------------------------------------- |
 | `ML_SERVICE_URL` | URL of the Python ML microservice (default: `http://localhost:8000`) |
-| `GROQ_API_KEY` | API key for Groq (used only for context parsing) |
+| `GROQ_API_KEY`   | API key for Groq (used only for context parsing)                     |
 
 ---
 
@@ -246,6 +250,7 @@ If accuracy drops significantly, review the new data for inconsistencies.
 If new profession types are added to the system, update two places:
 
 **`ml-service/decision_tree.py`** — add the category to `SKILL_KEYWORDS`:
+
 ```python
 SKILL_KEYWORDS = {
   "technical":    ["engineer", "mechanic", ...],
@@ -255,6 +260,7 @@ SKILL_KEYWORDS = {
 ```
 
 **`src/ai/admission-evaluator.ts`** — add the fallback keyword map:
+
 ```typescript
 const fallbackMap: Record<string, string[]> = {
   technical:    ['engineer', 'mechanic', ...],

@@ -10,15 +10,17 @@ import { z } from 'zod';
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
 
 // Zod parsing to avoid unrreal info, (for prompt injection security)
-const campWeightsSchema = z.object({
-  weight_technical:    z.number().min(0).max(1).optional(),
-  weight_medical:      z.number().min(0).max(1).optional(),
-  weight_scout:        z.number().min(0).max(1).optional(),
-  weight_agricultural: z.number().min(0).max(1).optional(),
-  weight_security:     z.number().min(0).max(1).optional(),
-  strict_health_check: z.boolean().optional(),
-  minimum_age:         z.number().int().min(0).max(100).optional(),
-}).strict();
+const campWeightsSchema = z
+  .object({
+    weight_technical: z.number().min(0).max(1).optional(),
+    weight_medical: z.number().min(0).max(1).optional(),
+    weight_scout: z.number().min(0).max(1).optional(),
+    weight_agricultural: z.number().min(0).max(1).optional(),
+    weight_security: z.number().min(0).max(1).optional(),
+    strict_health_check: z.boolean().optional(),
+    minimum_age: z.number().int().min(0).max(100).optional(),
+  })
+  .strict();
 
 type CampWeights = z.infer<typeof campWeightsSchema>;
 
@@ -120,17 +122,15 @@ function mapCategoryToProfession(
 
   // Fallback keyword map
   const fallbackMap: Record<string, string[]> = {
-    technical:    ['engineer', 'mechanic', 'electrician', 'builder'],
-    medical:      ['doctor', 'nurse', 'medic', 'surgeon'],
-    scout:        ['scout', 'explorer', 'tracker', 'ranger'],
+    technical: ['engineer', 'mechanic', 'electrician', 'builder'],
+    medical: ['doctor', 'nurse', 'medic', 'surgeon'],
+    scout: ['scout', 'explorer', 'tracker', 'ranger'],
     agricultural: ['farmer', 'cook', 'botanist', 'fisher'],
-    security:     ['soldier', 'guard', 'military', 'police'],
+    security: ['soldier', 'guard', 'military', 'police'],
   };
 
   const keywords = fallbackMap[lower] ?? [];
-  const match = professions.find((p) =>
-    keywords.some((kw) => p.name.toLowerCase().includes(kw)),
-  );
+  const match = professions.find((p) => keywords.some((kw) => p.name.toLowerCase().includes(kw)));
 
   return match ?? professions[0] ?? null;
 }
@@ -140,7 +140,6 @@ export async function evaluateAdmission(
   campContext: string,
   professions: { id: number; name: string; description: string | null }[],
 ): Promise<AdmissionAIResult> {
-
   const campWeights = await parseCampWeights(campContext);
 
   const { decision, confidence, reasoningPath, professionCategory } =
@@ -148,10 +147,7 @@ export async function evaluateAdmission(
 
   const profession = mapCategoryToProfession(professionCategory, professions);
 
-  const reasoning = [
-    ...reasoningPath,
-    `Confidence: ${(confidence * 100).toFixed(0)}%`,
-  ].join(' | ');
+  const reasoning = [...reasoningPath, `Confidence: ${(confidence * 100).toFixed(0)}%`].join(' | ');
 
   return admissionAIResultSchema.parse({
     ai_decision: decision,
