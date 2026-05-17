@@ -31,12 +31,14 @@ model admission_requests {
   background_notes        String?                           @db.Text
   photo_url               String?                           @db.VarChar(500)
   id_card_url             String?                           @db.VarChar(500)
+  /// AI's recommended decision (ACCEPTED/REJECTED/PENDING)
   ai_decision             admission_requests_ai_decision    @default(PENDING)
   ai_reasoning            String?                           @db.Text
   ai_suggested_profession String?                           @db.VarChar(80)
   ai_profession_id        Int?
   person_id               Int?
   reviewed_by             Int?
+  /// Human reviewer's final override decision
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?
   created_at              DateTime                          @default(now())
@@ -214,6 +216,7 @@ model inventories {
   id               Int           @id @default(autoincrement())
   camp_id          Int
   resource_type_id Int
+  /// Denormalized snapshot — derived from inventory_log quantity_change deltas for query performance
   quantity         Decimal       @default(0.00) @db.Decimal(12, 2)
   created_at       DateTime      @default(now())
   last_updated     DateTime      @updatedAt
