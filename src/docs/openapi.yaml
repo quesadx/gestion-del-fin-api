@@ -54,16 +54,64 @@ components:
           type: object
           required: [message, statusCode]
           properties:
-            message: { type: string, example: 'Validation failed' }
-            statusCode: { type: integer, example: 400 }
-            details: { nullable: true }
+            message:
+              type: string
+              example: 'Validation failed'
+            statusCode:
+              type: integer
+              example: 400
+            details:
+              nullable: true
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Operation successful'
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 50
+        hasNextPage:
+          type: boolean
+          example: true
+        totalPages:
+          type: integer
+          example: 3
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
 
     LoginRequest:
       type: object
       required: [username, password]
       properties:
-        username: { type: string, minLength: 1, maxLength: 60, example: 'admin' }
-        password: { type: string, minLength: 1, example: 'my-secure-password' }
+        username:
+          type: string
+          minLength: 1
+          maxLength: 60
+          example: 'admin'
+        password:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: 'my-secure-password'
 
     LoginResponse:
       type: object
@@ -73,8 +121,12 @@ components:
           type: object
           required: [username, role]
           properties:
-            username: { type: string, example: 'admin' }
-            role: { type: string, example: 'ADMIN' }
+            username:
+              type: string
+              example: 'admin'
+            role:
+              type: string
+              example: 'ADMIN'
         token:
           type: string
           description: 'JWT access token'
@@ -84,30 +136,1180 @@ components:
       type: object
       required: [now, iso, today]
       properties:
-        now: { type: string, example: '14:05:30' }
-        iso: { type: string, format: date-time, example: '2026-04-25T14:05:30.000Z' }
-        today: { type: string, format: date, example: '2026-04-25' }
+        now:
+          type: string
+          example: '14:05:30'
+        iso:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        today:
+          type: string
+          format: date
+          example: '2026-04-25'
 
-    PaginatedResponse:
+    Camp:
       type: object
       properties:
-        data: { type: array, items: {} }
-        pagination:
-          type: object
-          properties:
-            page: { type: integer }
-            pageSize: { type: integer }
-            total: { type: integer }
-            hasNextPage: { type: boolean }
-            totalPages: { type: integer }
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 'Alpha Base'
+        location:
+          type: string
+          nullable: true
+          example: 'Downtown Shelter'
+        status:
+          type: string
+          enum: [ACTIVE, ABANDONED]
+          example: ACTIVE
+        ai_context_prompt:
+          type: string
+          nullable: true
+          example: 'This camp prioritizes medical personnel...'
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+
+    CreateCampRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: 'Alpha Base'
+        location:
+          type: string
+          maxLength: 100
+          example: 'Downtown Shelter'
+        status:
+          type: string
+          enum: [ACTIVE, ABANDONED]
+          default: ACTIVE
+        ai_context_prompt:
+          type: string
+          example: 'This camp prioritizes medical personnel...'
+
+    UpdateCampRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: 'Alpha Base'
+        location:
+          type: string
+          maxLength: 100
+          example: 'Downtown Shelter'
+        status:
+          type: string
+          enum: [ACTIVE, ABANDONED]
+        ai_context_prompt:
+          type: string
+          example: 'This camp prioritizes medical personnel...'
+
+    ResourceType:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 'Canned Food'
+        unit:
+          type: string
+          example: 'kg'
+        daily_ration:
+          type: number
+          format: float
+          example: 0.5
+        minimum_stock:
+          type: number
+          format: float
+          example: 100
+        auto_daily:
+          type: boolean
+          example: true
+
+    CreateResourceRequest:
+      type: object
+      required: [name, unit, daily_ration, minimum_stock]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: 'Canned Food'
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 20
+          example: 'kg'
+        daily_ration:
+          type: number
+          minimum: 0
+          maximum: 999999.99
+          example: 0.5
+        minimum_stock:
+          type: number
+          minimum: 0
+          maximum: 99999999.99
+          example: 100
+        auto_daily:
+          type: boolean
+          default: false
+
+    UpdateResourceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 20
+        daily_ration:
+          type: number
+          minimum: 0
+          maximum: 999999.99
+        minimum_stock:
+          type: number
+          minimum: 0
+          maximum: 99999999.99
+        auto_daily:
+          type: boolean
+
+    Person:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        camp_id:
+          type: integer
+          example: 1
+        profession_id:
+          type: integer
+          example: 2
+        identification_code:
+          type: string
+          nullable: true
+          example: 'S-001'
+        full_name:
+          type: string
+          example: 'John Doe'
+        age:
+          type: integer
+          nullable: true
+          example: 32
+        blood_type:
+          type: string
+          nullable: true
+          example: 'O+'
+        skills_summary:
+          type: string
+          nullable: true
+          example: 'Medical training, basic combat'
+        photo_url:
+          type: string
+          nullable: true
+          example: 'https://example.com/photo.jpg'
+        status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+          example: HEALTHY
+        admitted_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+
+    CreatePersonRequest:
+      type: object
+      required: [full_name, camp_id, profession_id, admitted_at]
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: 'John Doe'
+        camp_id:
+          type: integer
+          example: 1
+        profession_id:
+          type: integer
+          example: 2
+        admitted_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+          default: HEALTHY
+        age:
+          type: integer
+          minimum: 0
+          maximum: 255
+          example: 32
+        identification_code:
+          type: string
+          maxLength: 20
+          example: 'S-001'
+        blood_type:
+          type: string
+          maxLength: 5
+          example: 'O+'
+        skills_summary:
+          type: string
+          example: 'Medical training, basic combat'
+        photo_url:
+          type: string
+          format: uri
+          maxLength: 500
+
+    UpdatePersonRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        camp_id:
+          type: integer
+        profession_id:
+          type: integer
+        admitted_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+        age:
+          type: integer
+          minimum: 0
+          maximum: 255
+        identification_code:
+          type: string
+          maxLength: 20
+        blood_type:
+          type: string
+          maxLength: 5
+        skills_summary:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+          maxLength: 500
+
+    PersonStatusLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        person_id:
+          type: integer
+        old_status:
+          type: string
+        new_status:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        changed_by:
+          type: integer
+        changed_at:
+          type: string
+          format: date-time
+
+    CreatePersonStatusLogRequest:
+      type: object
+      required: [person_id, new_status]
+      properties:
+        person_id:
+          type: integer
+          example: 1
+        new_status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+        reason:
+          type: string
+          example: 'Wounded during expedition'
+
+    ProfessionReassignmentLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        person_id:
+          type: integer
+        from_profession_id:
+          type: integer
+        to_profession_id:
+          type: integer
+        reason:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+
+    CreateProfessionReassignmentRequest:
+      type: object
+      required: [person_id, from_profession_id, to_profession_id]
+      properties:
+        person_id:
+          type: integer
+          example: 1
+        from_profession_id:
+          type: integer
+          example: 2
+        to_profession_id:
+          type: integer
+          example: 3
+        reason:
+          type: string
+          example: 'Combat skills needed'
+        start_date:
+          type: string
+          format: date
+          example: '2026-04-25'
+        end_date:
+          type: string
+          format: date
+          example: '2026-05-25'
+
+    ContributionOverride:
+      type: object
+      properties:
+        id:
+          type: integer
+        person_id:
+          type: integer
+        resource_type_id:
+          type: integer
+        reason:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        created_by:
+          type: integer
+        amount:
+          type: number
+          format: float
+
+    CreateContributionOverrideRequest:
+      type: object
+      required: [person_id, resource_type_id, reason, amount]
+      properties:
+        person_id:
+          type: integer
+          example: 1
+        resource_type_id:
+          type: integer
+          example: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: 'Medical exemption — reduced ration'
+        amount:
+          type: number
+          minimum: -999999.99
+          maximum: 999999.99
+          example: 0.3
+        start_date:
+          type: string
+          format: date
+          example: '2026-04-25'
+        end_date:
+          type: string
+          format: date
+          example: '2026-05-25'
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        camp_id:
+          type: integer
+        resource_type_id:
+          type: integer
+        quantity:
+          type: number
+          format: float
+          example: 500
+        last_updated:
+          type: string
+          format: date-time
+
+    InventoryLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        camp_id:
+          type: integer
+        resource_type_id:
+          type: integer
+        logged_by:
+          type: integer
+          nullable: true
+        log_type:
+          type: string
+          enum:
+            [
+              DAILY_GAIN,
+              DAILY_RATION,
+              MANUAL_IN,
+              MANUAL_OUT,
+              EXPEDITION_OUT,
+              EXPEDITION_IN,
+              TRANSFER_OUT,
+              TRANSFER_IN,
+            ]
+        delta:
+          type: number
+          format: float
+        logged_at:
+          type: string
+          format: date-time
+        description:
+          type: string
+          nullable: true
+
+    ManualAdjustmentRequest:
+      type: object
+      required: [camp_id, resource_type_id, type, quantity]
+      properties:
+        camp_id:
+          type: integer
+          example: 1
+        resource_type_id:
+          type: integer
+          example: 1
+        type:
+          type: string
+          enum: [MANUAL_IN, MANUAL_OUT]
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 9999999999.99
+          example: 50
+        description:
+          type: string
+          maxLength: 255
+          example: 'Donation received from NGO'
+
+    AdmissionRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        camp_id:
+          type: integer
+        applicant_name:
+          type: string
+        applicant_age:
+          type: integer
+          nullable: true
+        applicant_skills:
+          type: string
+          nullable: true
+        health_notes:
+          type: string
+          nullable: true
+        background_notes:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          nullable: true
+        id_card_url:
+          type: string
+          nullable: true
+        ai_decision:
+          type: string
+          enum: [ACCEPTED, PENDING, REJECTED]
+        ai_reasoning:
+          type: string
+          nullable: true
+        ai_suggested_profession:
+          type: string
+          nullable: true
+        ai_profession_id:
+          type: integer
+          nullable: true
+        reviewed_by:
+          type: integer
+          nullable: true
+        final_decision:
+          type: string
+          enum: [ACCEPTED, REJECTED, PENDING]
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateAdmissionRequest:
+      type: object
+      required: [applicant_name]
+      properties:
+        applicant_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: 'Jane Smith'
+        applicant_age:
+          type: integer
+          minimum: 0
+          maximum: 255
+          example: 28
+        applicant_skills:
+          type: string
+          example: 'Medical training, farming'
+        health_notes:
+          type: string
+          example: 'Minor injury on left leg'
+        background_notes:
+          type: string
+          example: 'Former military medic'
+        photo_url:
+          type: string
+          format: uri
+          maxLength: 255
+        id_card_url:
+          type: string
+          format: uri
+          maxLength: 500
+
+    ReviewAdmissionRequest:
+      type: object
+      required: [final_decision]
+      properties:
+        final_decision:
+          type: string
+          enum: [ACCEPTED, REJECTED]
+
+    Exploration:
+      type: object
+      properties:
+        id:
+          type: integer
+        camp_id:
+          type: integer
+        destination:
+          type: string
+        status:
+          type: string
+          enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+        created_by:
+          type: integer
+        departure_date:
+          type: string
+          format: date
+        expected_return_date:
+          type: string
+          format: date
+        actual_return_date:
+          type: string
+          format: date
+          nullable: true
+        max_return_date:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        allocated_resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllocatedResource'
+        found_resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/FoundResource'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpeditionMember'
+
+    AllocatedResource:
+      type: object
+      properties:
+        expedition_id:
+          type: integer
+        resource_type_id:
+          type: integer
+        amount:
+          type: number
+          format: float
+
+    FoundResource:
+      type: object
+      properties:
+        expedition_id:
+          type: integer
+        resource_type_id:
+          type: integer
+        amount:
+          type: number
+          format: float
+
+    ExpeditionMember:
+      type: object
+      properties:
+        expedition_id:
+          type: integer
+        person_id:
+          type: integer
+
+    CreateExplorationRequest:
+      type: object
+      required:
+        [camp_id, created_by, destination, departure_date, expected_return_date, max_return_date]
+      properties:
+        camp_id:
+          type: integer
+          example: 1
+        created_by:
+          type: integer
+          example: 1
+        destination:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: 'East Sector Mall'
+        departure_date:
+          type: string
+          format: date
+          example: '2026-04-26'
+        expected_return_date:
+          type: string
+          format: date
+          example: '2026-04-28'
+        max_return_date:
+          type: string
+          format: date
+          example: '2026-04-30'
+        actual_return_date:
+          type: string
+          format: date
+          example: '2026-04-27'
+        status:
+          type: string
+          enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+          default: PLANNED
+        notes:
+          type: string
+          example: 'Scout for supplies'
+        members:
+          type: array
+          items:
+            type: object
+            required: [person_id]
+            properties:
+              person_id:
+                type: integer
+        allocated_resources:
+          type: array
+          items:
+            type: object
+            required: [resource_type_id, amount]
+            properties:
+              resource_type_id:
+                type: integer
+              amount:
+                type: number
+                exclusiveMinimum: 0
+
+    UpdateExplorationRequest:
+      type: object
+      properties:
+        camp_id:
+          type: integer
+        created_by:
+          type: integer
+        destination:
+          type: string
+          maxLength: 255
+        departure_date:
+          type: string
+          format: date
+        expected_return_date:
+          type: string
+          format: date
+        max_return_date:
+          type: string
+          format: date
+        actual_return_date:
+          type: string
+          format: date
+        notes:
+          type: string
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              person_id:
+                type: integer
+        allocated_resources:
+          type: array
+          items:
+            type: object
+            properties:
+              resource_type_id:
+                type: integer
+              amount:
+                type: number
+                exclusiveMinimum: 0
+
+    UpdateExplorationStatusRequest:
+      type: object
+      required: [status, changed_by]
+      properties:
+        status:
+          type: string
+          enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+        actual_return_date:
+          type: string
+          format: date
+          description: 'Required if status is RETURNED'
+        notes:
+          type: string
+        changed_by:
+          type: integer
+          example: 1
+        resources_to_return:
+          type: array
+          items:
+            type: object
+            required: [resource_type_id, amount]
+            properties:
+              resource_type_id:
+                type: integer
+              amount:
+                type: number
+        members:
+          type: array
+          items:
+            type: object
+            required: [person_id]
+            properties:
+              person_id:
+                type: integer
+        return_member_status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+
+    DeleteExplorationRequest:
+      type: object
+      required: [changed_by]
+      properties:
+        changed_by:
+          type: integer
+          example: 1
+        return_member_status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+
+    Transfer:
+      type: object
+      properties:
+        id:
+          type: integer
+        requesting_camp:
+          type: integer
+        target_camp:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, APPROVED_SOURCE, APPROVED_TARGET, COMPLETED, REJECTED]
+        type:
+          type: string
+          enum: [RESOURCE, PERSON, MIXED]
+        notes:
+          type: string
+          nullable: true
+        requested_by:
+          type: integer
+        leader_person_id:
+          type: integer
+          nullable: true
+        scheduled_delivery_date:
+          type: string
+          format: date-time
+          nullable: true
+        approved_by_source:
+          type: integer
+          nullable: true
+        approved_by_target:
+          type: integer
+          nullable: true
+        approved_source_at:
+          type: string
+          format: date-time
+          nullable: true
+        approved_target_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransferItem'
+
+    TransferItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        camp_transfer_id:
+          type: integer
+        item_type:
+          type: string
+          enum: [RESOURCE, PERSON]
+        resource_type_id:
+          type: integer
+          nullable: true
+        person_id:
+          type: integer
+          nullable: true
+        quantity:
+          type: number
+          format: float
+          nullable: true
+
+    TransferItemInput:
+      type: object
+      required: [item_type]
+      properties:
+        item_type:
+          type: string
+          enum: [RESOURCE, PERSON]
+        resource_type_id:
+          type: integer
+          description: 'Required if item_type is RESOURCE'
+        person_id:
+          type: integer
+          description: 'Required if item_type is PERSON'
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          description: 'Required if item_type is RESOURCE'
+
+    CreateTransferRequest:
+      type: object
+      required: [requesting_camp, target_camp, type, requested_by, items]
+      properties:
+        requesting_camp:
+          type: integer
+          example: 1
+        target_camp:
+          type: integer
+          example: 2
+        type:
+          type: string
+          enum: [RESOURCE, PERSON, MIXED]
+        notes:
+          type: string
+          example: 'Emergency supply request'
+        requested_by:
+          type: integer
+          example: 1
+        leader_person_id:
+          type: integer
+          example: 5
+        scheduled_delivery_date:
+          type: string
+          format: date-time
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TransferItemInput'
+
+    ScheduleDeliveryRequest:
+      type: object
+      required: [scheduled_delivery_date]
+      properties:
+        scheduled_delivery_date:
+          type: string
+          format: date-time
+          example: '2026-04-28T10:00:00.000Z'
+
+    ApproveTransferSourceRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          example: 'Approved — supplies ready'
+        scheduled_delivery_date:
+          type: string
+          format: date-time
+
+    ApproveTransferTargetRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          example: 'Ready to receive'
+
+    CompleteTransferRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          example: 'Transfer completed successfully'
+        person_status:
+          type: string
+          enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+
+    RejectTransferRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          example: 'Insufficient resources at source camp'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        camp_id:
+          type: integer
+        role_id:
+          type: integer
+        username:
+          type: string
+        is_active:
+          type: boolean
+        last_activity:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required: [username, password, camp_id, role_id]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 60
+          example: 'operator1'
+        password:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: 'secure-password'
+        camp_id:
+          type: integer
+          example: 1
+        role_id:
+          type: integer
+          example: 2
+        is_active:
+          type: boolean
+          default: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          maxLength: 60
+        password:
+          type: string
+          maxLength: 255
+        camp_id:
+          type: integer
+        role_id:
+          type: integer
+        is_active:
+          type: boolean
+
+    Profession:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    CreateProfessionRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: 'Scavenger'
+        description:
+          type: string
+          example: 'Specializes in resource gathering'
+
+    UpdateProfessionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        permission_ids:
+          type: array
+          items:
+            type: integer
+
+    CreateRoleRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z_]+$'
+          minLength: 1
+          maxLength: 60
+          example: 'camp_operator'
+        description:
+          type: string
+          maxLength: 255
+        permission_ids:
+          type: array
+          items:
+            type: integer
+          example: [1, 2, 3]
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z_]+$'
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 255
+        permission_ids:
+          type: array
+          items:
+            type: integer
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    CreatePermissionRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z]+(\.[a-z_]+)+$'
+          minLength: 3
+          maxLength: 80
+          example: 'camps.read'
+        description:
+          type: string
+          maxLength: 255
+
+    UpdatePermissionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z]+(\.[a-z_]+)+$'
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 255
+
+    HealthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'gestion-del-fin-api is alive and kicking!'
 
 paths:
+  # ── Root ──
+  /:
+    get:
+      tags: [System]
+      summary: 'Health check'
+      description: 'Root health check endpoint. Returns a simple message to confirm the API is running.'
+      responses:
+        '200':
+          description: 'API is running.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
   # ── System ──
   /api/system/time:
     get:
       tags: [System]
       summary: 'Get server time snapshot'
-      description: 'Returns current server time in multiple formats.'
+      description: 'Returns current server time in multiple formats (time, ISO datetime, date). Used for client clock sync.'
       responses:
         '200':
           description: 'Server time returned.'
@@ -115,19 +1317,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemTimeResponse'
-        '500':
-          description: 'Unexpected server error.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Auth ──
   /api/auth/login:
     post:
       tags: [Auth]
       summary: 'Authenticate and get access token'
-      description: 'Validates username/password and returns JWT.'
+      description: 'Validates username/password credentials and returns a JWT access token. Rate-limited to 5 attempts per 15 minutes.'
       requestBody:
         required: true
         content:
@@ -148,20 +1344,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: 'Invalid credentials.'
+          description: 'Invalid credentials or inactive account.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: 'Too many login attempts.'
-        '500':
-          description: 'Unexpected server error.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/auth/logout:
     post:
       tags: [Auth]
       summary: 'Logout and invalidate session'
+      description: 'Invalidates the current session by incrementing the session version and clearing last_activity.'
       security:
         - bearerAuth: []
       responses:
@@ -170,17 +1369,20 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message: { type: string, example: 'Logged out successfully' }
+                $ref: '#/components/schemas/MessageResponse'
         '401':
           description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Camps ──
   /api/camps:
     post:
       tags: [Camps]
       summary: 'Create camp'
+      description: 'Creates a new camp. Requires camps.create permission.'
       security:
         - bearerAuth: []
       requestBody:
@@ -188,685 +1390,2854 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string, minLength: 1, maxLength: 100 }
-                location: { type: string, maxLength: 100 }
-                status: { type: string, enum: [ACTIVE, ABANDONED] }
-                ai_context_prompt: { type: string }
+              $ref: '#/components/schemas/CreateCampRequest'
       responses:
-        '201': { description: 'Camp created.' }
+        '201':
+          description: 'Camp created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camp'
         '400':
-          {
-            description: 'Validation failed.',
-            content:
-              { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
-          }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
-        '409': { description: 'Conflict with existing data.' }
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Camp name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Camps]
       summary: 'List camps'
+      description: 'Retrieves a paginated list of all camps. Requires camps.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: query
           name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
         - in: query
           name: pageSize
-          schema: { type: integer, minimum: 1, default: 20 }
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Camps retrieved.' }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
+        '200':
+          description: 'Camps retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/camps/{id}:
     get:
       tags: [Camps]
       summary: 'Get camp by id'
+      description: 'Retrieves a single camp by its ID. Requires camps.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
       responses:
-        '200': { description: 'Camp retrieved.' }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
-        '404': { description: 'Camp not found.' }
+        '200':
+          description: 'Camp retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camp'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Camp not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     put:
       tags: [Camps]
       summary: 'Update camp'
+      description: 'Updates an existing camp. Requires camps.update permission. At least one field must be provided.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name: { type: string, minLength: 1, maxLength: 100 }
-                location: { type: string, maxLength: 100 }
-                status: { type: string, enum: [ACTIVE, ABANDONED] }
-                ai_context_prompt: { type: string }
+              $ref: '#/components/schemas/UpdateCampRequest'
       responses:
-        '200': { description: 'Camp updated.' }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
-        '404': { description: 'Camp not found.' }
+        '200':
+          description: 'Camp updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camp'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Camp not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Camp name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       tags: [Camps]
       summary: 'Delete camp'
+      description: 'Deletes a camp. Requires camps.delete permission. Fails if camp has foreign key references.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
       responses:
-        '204': { description: 'Camp deleted.' }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
-        '404': { description: 'Camp not found.' }
+        '204':
+          description: 'Camp deleted.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Camp not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: 'Foreign key violation — camp has associated records.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── People ──
+  /api/camps/{campId}/people:
+    post:
+      tags: [People]
+      summary: 'Create person in camp'
+      description: 'Creates a new person record within a camp. Requires people.create permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonRequest'
+      responses:
+        '201':
+          description: 'Person created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Camp not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags: [People]
+      summary: 'List people by camp'
+      description: 'Retrieves a paginated list of people within a camp. Requires people.read permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
+      responses:
+        '200':
+          description: 'People retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /api/camps/{campId}/people/{id}:
+    get:
+      tags: [People]
+      summary: 'Get person by id'
+      description: 'Retrieves a single person by ID within a camp. Requires people.read permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Person ID'
+      responses:
+        '200':
+          description: 'Person retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Person not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [People]
+      summary: 'Update person'
+      description: 'Updates a person record. Requires people.update permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Person ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePersonRequest'
+      responses:
+        '200':
+          description: 'Person updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Person not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [People]
+      summary: 'Delete person'
+      description: 'Deletes a person record. Requires people.delete permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Person ID'
+      responses:
+        '204':
+          description: 'Person deleted.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Person not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/camps/{campId}/people/status-log:
+    post:
+      tags: [People]
+      summary: 'Create person status log'
+      description: 'Records a status change for a person (e.g. HEALTHY → INJURED). Requires people.status_log.create permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonStatusLogRequest'
+      responses:
+        '201':
+          description: 'Status log created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonStatusLog'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/camps/{campId}/people/profession-reassignments:
+    post:
+      tags: [People]
+      summary: 'Reassign person profession'
+      description: 'Creates a profession reassignment log entry. Requires people.profession_reassign.create permission. from_profession_id and to_profession_id must be different.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProfessionReassignmentRequest'
+      responses:
+        '201':
+          description: 'Reassignment created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfessionReassignmentLog'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/camps/{campId}/people/contribution-overrides:
+    post:
+      tags: [People]
+      summary: 'Create contribution override'
+      description: "Creates a contribution override for a person's daily resource contribution. Requires people.contribution_override.create permission."
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContributionOverrideRequest'
+      responses:
+        '201':
+          description: 'Override created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributionOverride'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Resources ──
   /api/resources:
     post:
       tags: [Resources]
       summary: 'Create resource type'
+      description: 'Creates a new resource type in the catalog. Requires resources.create permission.'
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResourceRequest'
       responses:
-        '201': { description: 'Resource created.' }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
+        '201':
+          description: 'Resource created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceType'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Resource name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Resources]
       summary: 'List resource types'
+      description: 'Retrieves a paginated list of all resource types. Requires resources.read permission.'
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Resources retrieved.' }
+        '200':
+          description: 'Resources retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/resources/{id}:
     get:
       tags: [Resources]
-      summary: 'Get resource by id'
+      summary: 'Get resource type by id'
+      description: 'Retrieves a single resource type by ID. Requires resources.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Resource type ID'
       responses:
-        '200': { description: 'Resource retrieved.' }
-        '404': { description: 'Resource not found.' }
+        '200':
+          description: 'Resource retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceType'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Resource not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     put:
       tags: [Resources]
       summary: 'Update resource type'
+      description: 'Updates a resource type. Requires resources.update permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Resource type ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResourceRequest'
       responses:
-        '200': { description: 'Resource updated.' }
-        '404': { description: 'Resource not found.' }
+        '200':
+          description: 'Resource updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceType'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Resource not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Resource name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       tags: [Resources]
       summary: 'Delete resource type'
+      description: 'Deletes a resource type. Requires resources.delete permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Resource type ID'
       responses:
-        '204': { description: 'Resource deleted.' }
-        '404': { description: 'Resource not found.' }
-
-  # ── People (mounted at /api/camps/{campId}/people) ──
-  /api/camps/{campId}/people:
-    post:
-      tags: [People]
-      summary: 'Create person in camp'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '201': { description: 'Person created.' }
-        '401': { description: 'Missing or invalid authentication.' }
-        '403': { description: 'Forbidden.' }
-        '404': { description: 'Camp not found.' }
-    get:
-      tags: [People]
-      summary: 'List people by camp'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-        - in: query
-          name: page
-          schema: { type: integer, minimum: 1, default: 1 }
-        - in: query
-          name: pageSize
-          schema: { type: integer, minimum: 1, default: 20 }
-      responses:
-        '200': { description: 'People retrieved.' }
-
-  /api/camps/{campId}/people/{id}:
-    get:
-      tags: [People]
-      summary: 'Get person by id'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '200': { description: 'Person retrieved.' }
-        '404': { description: 'Person not found.' }
-    put:
-      tags: [People]
-      summary: 'Update person'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '200': { description: 'Person updated.' }
-        '404': { description: 'Person not found.' }
-    delete:
-      tags: [People]
-      summary: 'Delete person'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '204': { description: 'Person deleted.' }
-        '404': { description: 'Person not found.' }
-
-  /api/camps/{campId}/people/status-log:
-    post:
-      tags: [People]
-      summary: 'Add person status log'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '201': { description: 'Status log created.' }
-
-  /api/camps/{campId}/people/profession-reassignments:
-    post:
-      tags: [People]
-      summary: 'Reassign person profession'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '201': { description: 'Reassignment created.' }
-
-  /api/camps/{campId}/people/contribution-overrides:
-    post:
-      tags: [People]
-      summary: 'Create contribution override'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: campId
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '201': { description: 'Override created.' }
+        '204':
+          description: 'Resource deleted.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Resource not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Inventory ──
-  /api/inventory:
+  /api/inventory/{campId}:
     get:
       tags: [Inventory]
       summary: 'Get camp inventory'
+      description: 'Retrieves current inventory levels for a camp. Requires inventory.read permission.'
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Inventory retrieved.' }
+        '200':
+          description: 'Inventory retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/inventory/adjust:
-    post:
-      tags: [Inventory]
-      summary: 'Adjust inventory levels'
-      security:
-        - bearerAuth: []
-      responses:
-        '200': { description: 'Inventory adjusted.' }
-
-  /api/inventory/audit:
+  /api/inventory/audit/{campId}:
     get:
       tags: [Inventory]
       summary: 'Get inventory audit log'
+      description: 'Retrieves paginated inventory audit trail for a camp. Requires inventory.audit.read permission.'
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: campId
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Audit log retrieved.' }
+        '200':
+          description: 'Audit log retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/inventory/adjustment:
+    post:
+      tags: [Inventory]
+      summary: 'Adjust inventory manually'
+      description: 'Manually adjusts inventory (MANUAL_IN or MANUAL_OUT). Requires inventory.adjust permission. Non-admin users can only adjust their own camp inventory.'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualAdjustmentRequest'
+      responses:
+        '201':
+          description: 'Inventory adjusted.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryLog'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Admission ──
   /api/admission/camps/{campId}:
     post:
       tags: [Admission]
       summary: 'Create admission request'
+      description: 'Creates a new admission request for a refugee. Triggers AI evaluation. Rate-limited to 10 requests per minute. Requires admission.create permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: campId
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdmissionRequest'
       responses:
-        '201': { description: 'Admission created.' }
-        '429': { description: 'Too many admission requests.' }
+        '201':
+          description: 'Admission request created with AI evaluation.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionRequest'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 'Too many admission requests.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Admission]
-      summary: 'List admissions by camp'
+      summary: 'List admission requests by camp'
+      description: 'Retrieves paginated list of admission requests for a camp. Requires admission.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: campId
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Camp ID'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Admissions retrieved.' }
+        '200':
+          description: 'Admission requests retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/admission/{id}:
     get:
       tags: [Admission]
-      summary: 'Get admission by id'
+      summary: 'Get admission request by id'
+      description: 'Retrieves a single admission request by ID. Requires admission.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Admission request ID'
       responses:
-        '200': { description: 'Admission retrieved.' }
-        '404': { description: 'Admission not found.' }
+        '200':
+          description: 'Admission request retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionRequest'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Admission request not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/admission/{id}/review:
     patch:
       tags: [Admission]
       summary: 'Review admission request'
+      description: 'Manually overrides the AI decision for an admission request (ACCEPTED or REJECTED). Requires admission.review permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Admission request ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewAdmissionRequest'
       responses:
-        '200': { description: 'Admission reviewed.' }
-        '404': { description: 'Admission not found.' }
+        '200':
+          description: 'Admission reviewed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionRequest'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Admission request not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Explorations ──
   /api/expeditions:
     post:
       tags: [Explorations]
       summary: 'Create expedition'
+      description: 'Creates a new expedition with members and allocated resources. Requires expeditions.create permission.'
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExplorationRequest'
       responses:
-        '201': { description: 'Expedition created.' }
+        '201':
+          description: 'Expedition created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exploration'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Explorations]
       summary: 'List expeditions'
+      description: "Retrieves paginated list of expeditions for the authenticated user's camp. Requires expeditions.read permission."
       security:
         - bearerAuth: []
       parameters:
         - in: query
           name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
         - in: query
           name: pageSize
-          schema: { type: integer, minimum: 1, default: 20 }
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Expeditions retrieved.' }
+        '200':
+          description: 'Expeditions retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/expeditions/{id}:
     get:
       tags: [Explorations]
       summary: 'Get expedition by id'
+      description: 'Retrieves a single expedition with its members and resources. Requires expeditions.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Expedition ID'
       responses:
-        '200': { description: 'Expedition retrieved.' }
-        '404': { description: 'Expedition not found.' }
+        '200':
+          description: 'Expedition retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exploration'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Expedition not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     put:
       tags: [Explorations]
       summary: 'Update expedition'
+      description: 'Updates expedition details. Cannot change status — use PATCH /status instead. Requires expeditions.update permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Expedition ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExplorationRequest'
       responses:
-        '200': { description: 'Expedition updated.' }
+        '200':
+          description: 'Expedition updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exploration'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Expedition not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Explorations]
+      summary: 'Delete expedition'
+      description: 'Cancels and cleans up an expedition. Requires expeditions.delete permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Expedition ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteExplorationRequest'
+      responses:
+        '204':
+          description: 'Expedition deleted.'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Expedition not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/expeditions/{id}/status:
-    put:
+    patch:
       tags: [Explorations]
       summary: 'Update expedition status'
+      description: 'Changes expedition status (e.g. PLANNED → ONGOING → RETURNED). Requires expeditions.update_status permission. actual_return_date is required when status is RETURNED.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Expedition ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExplorationStatusRequest'
       responses:
-        '200': { description: 'Status updated.' }
-
-  /api/expeditions/{id}/cancel:
-    put:
-      tags: [Explorations]
-      summary: 'Cancel expedition'
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '200': { description: 'Expedition cancelled.' }
+        '200':
+          description: 'Status updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exploration'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Expedition not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Transfers ──
   /api/transfers:
     post:
       tags: [Transfers]
       summary: 'Create transfer request'
+      description: 'Creates an inter-camp transfer request for resources and/or people. Requires transfers.create permission.'
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
       responses:
-        '201': { description: 'Transfer created.' }
+        '201':
+          description: 'Transfer created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Transfers]
       summary: 'List transfers'
+      description: "Retrieves paginated list of transfers for the authenticated user's camp. Requires transfers.read permission."
       security:
         - bearerAuth: []
       parameters:
         - in: query
           name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
         - in: query
           name: pageSize
-          schema: { type: integer, minimum: 1, default: 20 }
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Transfers retrieved.' }
+        '200':
+          description: 'Transfers retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/transfers/{id}:
     get:
       tags: [Transfers]
       summary: 'Get transfer by id'
+      description: 'Retrieves a single transfer with its items. Requires transfers.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Transfer ID'
       responses:
-        '200': { description: 'Transfer retrieved.' }
-        '404': { description: 'Transfer not found.' }
+        '200':
+          description: 'Transfer retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Transfer not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/transfers/{id}/schedule:
     patch:
       tags: [Transfers]
       summary: 'Schedule transfer delivery'
+      description: 'Sets the scheduled delivery date for a transfer. Requires transfers.schedule permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Transfer ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleDeliveryRequest'
       responses:
-        '200': { description: 'Delivery scheduled.' }
+        '200':
+          description: 'Delivery scheduled.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Transfer not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/transfers/{id}/approve-source:
     patch:
       tags: [Transfers]
       summary: 'Approve transfer by source camp'
+      description: 'Approves the transfer from the requesting (source) camp. Requires transfers.approve_source permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Transfer ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveTransferSourceRequest'
       responses:
-        '200': { description: 'Transfer approved by source.' }
+        '200':
+          description: 'Transfer approved by source.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Transfer not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/transfers/{id}/approve-target:
     patch:
       tags: [Transfers]
       summary: 'Approve transfer by target camp'
+      description: 'Approves the transfer from the target (receiving) camp. Requires transfers.approve_target permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Transfer ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveTransferTargetRequest'
       responses:
-        '200': { description: 'Transfer approved by target.' }
+        '200':
+          description: 'Transfer approved by target.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Transfer not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/transfers/{id}/complete:
     patch:
       tags: [Transfers]
       summary: 'Complete transfer'
+      description: 'Marks a transfer as completed. Deducts resources from source camp and adds to target camp. Requires transfers.complete permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Transfer ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteTransferRequest'
       responses:
-        '200': { description: 'Transfer completed.' }
+        '200':
+          description: 'Transfer completed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Transfer not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/transfers/{id}/reject:
     patch:
       tags: [Transfers]
       summary: 'Reject transfer'
+      description: 'Rejects a transfer request with a required reason. Requires transfers.reject permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Transfer ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectTransferRequest'
       responses:
-        '200': { description: 'Transfer rejected.' }
+        '200':
+          description: 'Transfer rejected.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Transfer not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Users ──
   /api/users:
     post:
       tags: [Users]
       summary: 'Create user'
+      description: 'Creates a new system user. Requires users.create permission.'
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
       responses:
-        '201': { description: 'User created.' }
+        '201':
+          description: 'User created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Username already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Users]
       summary: 'List users'
+      description: 'Retrieves paginated list of users. Admins see all users; non-admins see only their camp users. Requires users.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: query
           name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
         - in: query
           name: pageSize
-          schema: { type: integer, minimum: 1, default: 20 }
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Users retrieved.' }
+        '200':
+          description: 'Users retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/users/{id}:
     get:
       tags: [Users]
       summary: 'Get user by id'
+      description: 'Retrieves a single user by ID. Requires users.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'User ID'
       responses:
-        '200': { description: 'User retrieved.' }
-        '404': { description: 'User not found.' }
+        '200':
+          description: 'User retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'User not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     put:
       tags: [Users]
       summary: 'Update user'
+      description: 'Updates a user record. Requires users.update permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'User ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
       responses:
-        '200': { description: 'User updated.' }
+        '200':
+          description: 'User updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'User not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Username already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       tags: [Users]
       summary: 'Deactivate user'
+      description: 'Deactivates a user (sets is_active to false). Requires users.delete permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'User ID'
       responses:
-        '204': { description: 'User deactivated.' }
+        '204':
+          description: 'User deactivated.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'User not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Professions ──
   /api/professions:
     post:
       tags: [Professions]
       summary: 'Create profession'
+      description: 'Creates a new profession in the catalog. Requires professions.create permission.'
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProfessionRequest'
       responses:
-        '201': { description: 'Profession created.' }
+        '201':
+          description: 'Profession created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profession'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Profession name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Professions]
       summary: 'List professions'
+      description: 'Retrieves paginated list of all professions. Requires professions.read permission.'
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Professions retrieved.' }
+        '200':
+          description: 'Professions retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/professions/{id}:
     get:
       tags: [Professions]
       summary: 'Get profession by id'
+      description: 'Retrieves a single profession by ID. Requires professions.read permission.'
       security:
         - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Profession ID'
       responses:
-        '200': { description: 'Profession retrieved.' }
-        '404': { description: 'Profession not found.' }
+        '200':
+          description: 'Profession retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profession'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Profession not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Professions]
+      summary: 'Update profession'
+      description: 'Updates a profession. Requires professions.update permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Profession ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfessionRequest'
+      responses:
+        '200':
+          description: 'Profession updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profession'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Profession not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Profession name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Professions]
+      summary: 'Delete profession'
+      description: 'Deletes a profession. Requires professions.delete permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Profession ID'
+      responses:
+        '204':
+          description: 'Profession deleted.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Profession not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Roles ──
   /api/roles:
+    post:
+      tags: [Roles]
+      summary: 'Create role'
+      description: 'Creates a new role with optional permission assignments. Requires roles.create permission.'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: 'Role created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Role name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Roles]
       summary: 'List roles'
+      description: 'Retrieves paginated list of all roles. Requires roles.read permission.'
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Roles retrieved.' }
+        '200':
+          description: 'Roles retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/roles/{id}:
+    get:
+      tags: [Roles]
+      summary: 'Get role by id'
+      description: 'Retrieves a single role by ID. Requires roles.read permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Role ID'
+      responses:
+        '200':
+          description: 'Role retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Role not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Roles]
+      summary: 'Update role'
+      description: 'Updates a role and its permission assignments. Requires roles.update permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Role ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: 'Role updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Role not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Role name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Roles]
+      summary: 'Delete role'
+      description: 'Deletes a role. Requires roles.delete permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Role ID'
+      responses:
+        '204':
+          description: 'Role deleted.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Role not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Permissions ──
   /api/permissions:
+    post:
+      tags: [Permissions]
+      summary: 'Create permission'
+      description: 'Creates a new permission. Name must use dot-delimited segments (e.g. "camps.read"). Requires permissions.create permission.'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionRequest'
+      responses:
+        '201':
+          description: 'Permission created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Permission name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     get:
       tags: [Permissions]
       summary: 'List permissions'
+      description: 'Retrieves paginated list of all permissions. Requires permissions.read permission.'
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 'Page number'
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 'Items per page (max 100)'
       responses:
-        '200': { description: 'Permissions retrieved.' }
+        '200':
+          description: 'Permissions retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/permissions/{id}:
+    get:
+      tags: [Permissions]
+      summary: 'Get permission by id'
+      description: 'Retrieves a single permission by ID. Requires permissions.read permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Permission ID'
+      responses:
+        '200':
+          description: 'Permission retrieved.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Permission not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Permissions]
+      summary: 'Update permission'
+      description: 'Updates a permission. Requires permissions.update permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Permission ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePermissionRequest'
+      responses:
+        '200':
+          description: 'Permission updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          description: 'Validation failed.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Permission not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 'Permission name already exists.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Permissions]
+      summary: 'Delete permission'
+      description: 'Deletes a permission. Requires permissions.delete permission.'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 'Permission ID'
+      responses:
+        '204':
+          description: 'Permission deleted.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Permission not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ── Metrics ──
-  /api/metrics/summary:
+  /api/metrics/dashboard:
     get:
       tags: [Metrics]
-      summary: 'Get camp metrics summary'
+      summary: 'Get camp dashboard metrics'
+      description: "Returns dashboard-level summary metrics for the authenticated user's camp. Requires metrics.dashboard permission."
       security:
         - bearerAuth: []
       responses:
-        '200': { description: 'Metrics retrieved.' }
+        '200':
+          description: 'Dashboard metrics retrieved.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  people:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      healthy:
+                        type: integer
+                      sick:
+                        type: integer
+                      injured:
+                        type: integer
+                      away:
+                        type: integer
+                      dead:
+                        type: integer
+                  resources:
+                    type: object
+                    properties:
+                      total_types:
+                        type: integer
+                      low_stock:
+                        type: array
+                        items:
+                          type: object
+                  expeditions:
+                    type: object
+                    properties:
+                      active:
+                        type: integer
+                      planned:
+                        type: integer
+                      completed:
+                        type: integer
+                  transfers:
+                    type: object
+                    properties:
+                      pending:
+                        type: integer
+                      in_transit:
+                        type: integer
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/metrics/resources:
+    get:
+      tags: [Metrics]
+      summary: 'Get resource metrics'
+      description: "Returns resource-related metrics for the authenticated user's camp. Requires metrics.resources permission."
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 'Resource metrics retrieved.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/metrics/people:
+    get:
+      tags: [Metrics]
+      summary: 'Get people metrics'
+      description: "Returns people-related metrics for the authenticated user's camp. Requires metrics.people permission."
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 'People metrics retrieved.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/metrics/expeditions:
+    get:
+      tags: [Metrics]
+      summary: 'Get expedition metrics'
+      description: "Returns expedition-related metrics for the authenticated user's camp. Requires metrics.expeditions permission."
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 'Expedition metrics retrieved.'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
