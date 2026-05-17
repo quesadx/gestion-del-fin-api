@@ -109,7 +109,7 @@ export async function getUsers(campId: number, page = 1, pageSize = 20) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
-  const where = { camp_id: campId };
+  const where = campId ? { camp_id: campId } : {};
 
   const [records, total] = await Promise.all([
     prisma.users.findMany({

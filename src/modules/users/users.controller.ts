@@ -33,6 +33,7 @@ export async function getUsersHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  const result = await getUsers(authReq.user.campId, page, pageSize);
+  const campId = authReq.user.isAdmin ? 0 : authReq.user.campId;
+  const result = await getUsers(campId, page, pageSize);
   return res.json(result);
 }
