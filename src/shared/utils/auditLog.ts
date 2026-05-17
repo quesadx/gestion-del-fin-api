@@ -12,7 +12,7 @@ interface AuditLogParams {
 }
 
 export function auditLog(params: AuditLogParams): void {
-  prisma.audit_log
+  prisma.audit_logs
     .create({
       data: {
         user_id: params.userId,

@@ -76,7 +76,7 @@ async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionI
 
 async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceTypeId: number) {
   const client = tx as unknown as typeof prisma;
-  const resourceType = await client.resource_type.findUnique({
+  const resourceType = await client.resource_types.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -203,7 +203,7 @@ export async function updatePerson(
       });
 
       if (data.status && data.status !== currentPerson.status) {
-        await client.person_status_log.create({
+        await client.person_status_logs.create({
           data: {
             person_id: id,
             old_status: currentPerson.status,
@@ -333,7 +333,7 @@ export async function createPersonStatusLog(
       data: { status: data.new_status },
     });
 
-    return client.person_status_log.create({
+    return client.person_status_logs.create({
       data: {
         person_id: data.person_id,
         old_status: person.status,
@@ -399,7 +399,7 @@ export async function createProfessionReassignment(
     const todayStr = new Date().toISOString().slice(0, 10);
     const today = new Date(`${todayStr}T00:00:00.000Z`);
 
-    const activeReassignment = await client.profession_reassignment_log.findFirst({
+    const activeReassignment = await client.profession_reassignment_logs.findFirst({
       where: {
         person_id: data.person_id,
         OR: [{ end_date: null }, { end_date: { gte: today } }],
@@ -437,7 +437,7 @@ export async function createProfessionReassignment(
       data: { profession_id: data.to_profession_id },
     });
 
-    const log = await client.profession_reassignment_log.create({
+    const log = await client.profession_reassignment_logs.create({
       data: {
         person_id: data.person_id,
         from_profession_id: data.from_profession_id,

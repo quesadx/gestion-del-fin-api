@@ -21,16 +21,16 @@ export async function getDashboard(campId: number) {
     prisma.people.count({ where: { camp_id: campId, status: 'HEALTHY' } }),
     prisma.people.count({ where: { camp_id: campId, status: 'INJURED' } }),
     prisma.people.count({ where: { camp_id: campId, status: 'AWAY' } }),
-    prisma.resource_type.count(),
+    prisma.resource_types.count(),
     prisma.expeditions.count({ where: { camp_id: campId, status: 'ONGOING' } }),
     prisma.camp_transfers.count({
       where: { requesting_camp: campId, status: 'PENDING' },
     }),
-    prisma.inventory.findMany({
+    prisma.inventories.findMany({
       where: { camp_id: campId },
       select: { quantity: true },
     }),
-    prisma.inventory.findMany({
+    prisma.inventories.findMany({
       where: { camp_id: campId },
       select: {
         quantity: true,
@@ -59,7 +59,7 @@ export async function getDashboard(campId: number) {
 }
 
 export async function getResources(campId: number) {
-  const inventoryRows = await prisma.inventory.findMany({
+  const inventoryRows = await prisma.inventories.findMany({
     where: { camp_id: campId },
     select: {
       resource_type_id: true,

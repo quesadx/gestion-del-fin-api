@@ -120,7 +120,7 @@ async function globalSetup(): Promise<void> {
   console.log('Setup: role_permissions mapped');
 
   // 2e. Resource types
-  const rations = await prisma.resource_type.create({
+  const rations = await prisma.resource_types.create({
     data: {
       name: 'Standard Rations',
       unit: 'kg',
@@ -129,7 +129,7 @@ async function globalSetup(): Promise<void> {
       auto_daily: true,
     },
   });
-  const water = await prisma.resource_type.create({
+  const water = await prisma.resource_types.create({
     data: {
       name: 'Purified Water',
       unit: 'Liters',
@@ -138,7 +138,7 @@ async function globalSetup(): Promise<void> {
       auto_daily: true,
     },
   });
-  const antibiotics = await prisma.resource_type.create({
+  const antibiotics = await prisma.resource_types.create({
     data: {
       name: 'Antibiotics',
       unit: 'Doses',
@@ -204,7 +204,7 @@ async function globalSetup(): Promise<void> {
   // Inventory entries for each camp+resource combo
   for (const camp of [camp1, camp2]) {
     for (const resource of [rations, water, antibiotics]) {
-      await prisma.inventory.create({
+      await prisma.inventories.create({
         data: {
           camp_id: camp.id,
           resource_type_id: resource.id,

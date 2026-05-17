@@ -49,7 +49,7 @@ model admission_requests {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model camp_transfer_item {
+model camp_transfer_items {
   id               Int                          @id @default(autoincrement())
   camp_transfer_id Int
   item_type        camp_transfer_item_item_type
@@ -58,11 +58,12 @@ model camp_transfer_item {
   quantity         Decimal?                     @db.Decimal(10, 2)
   camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   persons          people?                      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  resource_type    resource_type?               @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types?              @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([camp_transfer_id])
   @@index([person_id])
   @@index([resource_type_id])
+  @@map("camp_transfer_item")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -81,7 +82,7 @@ model camp_transfers {
   approved_source_at      DateTime?
   approved_target_at      DateTime?
   created_at              DateTime              @default(now())
-  camp_transfer_item      camp_transfer_item[]
+  camp_transfer_items     camp_transfer_items[]
   approved_by_source_ref  users?                @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
   approved_by_target_ref  users?                @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
   requested_by_ref        users                 @relation("transfer_requested_by", fields: [requested_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -106,12 +107,12 @@ model camps {
   ai_context_prompt    String?              @db.Text
   created_at           DateTime             @default(now())
   admission_requests   admission_requests[]
-  audit_log            audit_log[]
+  audit_logs           audit_logs[]
   requesting_transfers camp_transfers[]     @relation("transfer_requesting_camp")
   target_transfers     camp_transfers[]     @relation("transfer_target_camp")
   expeditions          expeditions[]
-  inventory            inventory[]
-  inventory_log        inventory_log[]
+  inventories          inventories[]
+  inventory_logs       inventory_logs[]
   persons              people[]
   users                users[]
 }
@@ -128,7 +129,7 @@ model contribution_overrides {
   amount           Decimal   @db.Decimal(8, 2)
 
   persons       people        @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users         users?        @relation(fields: [created_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([created_by])
@@ -141,7 +142,7 @@ model expedition_allocated_resources {
   resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
   expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([expedition_id, resource_type_id])
   @@index([resource_type_id])
@@ -152,7 +153,7 @@ model expedition_found_resources {
   resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
   expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([expedition_id, resource_type_id])
   @@index([resource_type_id])
@@ -192,21 +193,22 @@ model expeditions {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model inventory {
+model inventories {
   id               Int           @id @default(autoincrement())
   camp_id          Int
   resource_type_id Int
   quantity         Decimal       @default(0.00) @db.Decimal(12, 2)
   last_updated     DateTime      @updatedAt
   camps            camps         @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([camp_id, resource_type_id], map: "uq_camp_resource")
   @@index([resource_type_id])
+  @@map("inventory")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model inventory_log {
+model inventory_logs {
   id               Int                    @id @default(autoincrement())
   camp_id          Int
   resource_type_id Int
@@ -216,16 +218,17 @@ model inventory_log {
   logged_at        DateTime               @default(now())
   description      String?                @db.VarChar(255)
   camps            camps                  @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type    resource_type          @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types         @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users            users?                 @relation(fields: [logged_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([camp_id])
   @@index([logged_by])
   @@index([resource_type_id])
+  @@map("inventory_log")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model person_status_log {
+model person_status_logs {
   id         Int            @id @default(autoincrement())
   person_id  Int
   old_status persons_status
@@ -238,6 +241,7 @@ model person_status_log {
 
   @@index([changed_by])
   @@index([person_id])
+  @@map("person_status_log")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -254,14 +258,14 @@ model people {
   status                      persons_status                @default(HEALTHY)
   admitted_at                 DateTime                      @default(now())
   admission_requests          admission_requests[]
-  camp_transfer_item          camp_transfer_item[]
+  camp_transfer_items         camp_transfer_items[]
   led_transfers               camp_transfers[]              @relation("transfer_leader")
   contribution_overrides      contribution_overrides[]
   expedition_members          expedition_members[]
-  person_status_log           person_status_log[]
+  person_status_logs          person_status_logs[]
   camps                       camps                         @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   professions                 professions                   @relation(fields: [profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  profession_reassignment_log profession_reassignment_log[]
+  profession_reassignment_logs profession_reassignment_logs[]
 
   @@index([camp_id])
   @@index([profession_id])
@@ -269,7 +273,7 @@ model people {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model profession_reassignment_log {
+model profession_reassignment_logs {
   id                 Int         @id @default(autoincrement())
   person_id          Int
   from_profession_id Int
@@ -284,6 +288,7 @@ model profession_reassignment_log {
   @@index([from_profession_id])
   @@index([person_id])
   @@index([to_profession_id])
+  @@map("profession_reassignment_log")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -293,8 +298,8 @@ model professions {
   description                   String?                         @db.Text
   admission_requests            admission_requests[]
   persons                       people[]
-  from_profession_logs          profession_reassignment_log[]   @relation("profession_log_from_profession")
-  to_profession_logs            profession_reassignment_log[]   @relation("profession_log_to_profession")
+  from_profession_logs          profession_reassignment_logs[]  @relation("profession_log_from_profession")
+  to_profession_logs            profession_reassignment_logs[]  @relation("profession_log_to_profession")
   professions_resources_amounts professions_resources_amounts[]
 }
 
@@ -303,27 +308,29 @@ model professions_resources_amounts {
   resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
   professions      professions   @relation(fields: [professions_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([professions_id, resource_type_id])
   @@index([resource_type_id])
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model resource_type {
+model resource_types {
   id                             Int                              @id @default(autoincrement())
   name                           String                           @unique(map: "resource_type_name_unique") @db.VarChar(80)
   unit                           String                           @db.VarChar(20)
   daily_ration                   Decimal                          @db.Decimal(8, 2)
   minimum_stock                  Decimal                          @db.Decimal(10, 2)
   auto_daily                     Boolean                          @default(false)
-  camp_transfer_item             camp_transfer_item[]
+  camp_transfer_items            camp_transfer_items[]
   contribution_overrides         contribution_overrides[]
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
-  inventory                      inventory[]
-  inventory_log                  inventory_log[]
+  inventories                    inventories[]
+  inventory_logs                 inventory_logs[]
   professions_resources_amounts  professions_resources_amounts[]
+
+  @@map("resource_type")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -354,10 +361,12 @@ model role_permissions {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model system_config {
+model system_configs {
   id          Int      @id @default(1)
   version     String?  @db.VarChar(20)
   server_time DateTime
+
+  @@map("system_config")
 }
 
 model user_achievements {
@@ -384,14 +393,14 @@ model users {
   last_activity                DateTime?
   created_at                   DateTime                 @default(now())
   admission_requests           admission_requests[]
-  audit_log                    audit_log[]
+  audit_logs                   audit_logs[]
   transfers_approved_by_source camp_transfers[]         @relation("transfer_approved_by_source")
   transfers_approved_by_target camp_transfers[]         @relation("transfer_approved_by_target")
   transfers_requested_by       camp_transfers[]         @relation("transfer_requested_by")
   contribution_overrides       contribution_overrides[]
   expeditions                  expeditions[]
-  inventory_log                inventory_log[]
-  person_status_log            person_status_log[]
+  inventory_logs               inventory_logs[]
+  person_status_logs           person_status_logs[]
   user_achievements            user_achievements[]
   camps                        camps                    @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   roles                        roles                    @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -400,7 +409,7 @@ model users {
   @@index([role_id])
 }
 
-model audit_log {
+model audit_logs {
   id          Int      @id @default(autoincrement())
   user_id     Int?
   camp_id     Int?
@@ -415,6 +424,7 @@ model audit_log {
   @@index([user_id])
   @@index([camp_id])
   @@index([created_at])
+  @@map("audit_log")
 }
 
 enum camp_transfer_item_item_type {

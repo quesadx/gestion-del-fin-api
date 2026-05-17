@@ -35,7 +35,7 @@ async function ensureCampExists(tx: InventoryTransactionClient, campId: number) 
 
 async function ensureResourceExists(tx: InventoryTransactionClient, resourceTypeId: number) {
   const client = tx as unknown as typeof prisma;
-  const resource = await client.resource_type.findUnique({
+  const resource = await client.resource_types.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -73,12 +73,12 @@ export async function logLowResourceAlerts(campId: number) {
 }
 
 async function validateInventoryConsistency(campId: number) {
-  const inventoryRecords = await prisma.inventory.findMany({
+  const inventoryRecords = await prisma.inventories.findMany({
     where: { camp_id: campId },
     select: { resource_type_id: true, quantity: true },
   });
 
-  const logDeltasByResource = await prisma.inventory_log.groupBy({
+  const logDeltasByResource = await prisma.inventory_logs.groupBy({
     by: ['resource_type_id'],
     where: { camp_id: campId },
     _sum: { delta: true },
@@ -132,7 +132,7 @@ export async function consumeInventoryWithLog(
     const client = tx as unknown as typeof prisma;
     const now = new Date();
 
-    const updateResult = await client.inventory.updateMany({
+    const updateResult = await client.inventories.updateMany({
       where: {
         camp_id: campId,
         resource_type_id: resourceTypeId,
@@ -151,7 +151,7 @@ export async function consumeInventoryWithLog(
       );
     }
 
-    const movement = await client.inventory_log.create({
+    const movement = await client.inventory_logs.create({
       data: {
         camp_id: campId,
         resource_type_id: resourceTypeId,
@@ -162,7 +162,7 @@ export async function consumeInventoryWithLog(
       select: { delta: true },
     });
 
-    const currentInventory = await client.inventory.findUnique({
+    const currentInventory = await client.inventories.findUnique({
       where: {
         camp_id_resource_type_id: {
           camp_id: campId,
@@ -200,7 +200,7 @@ export async function increaseInventoryWithLog(
     const client = tx as unknown as typeof prisma;
     const now = new Date();
 
-    const updateResult = await client.inventory.updateMany({
+    const updateResult = await client.inventories.updateMany({
       where: {
         camp_id: campId,
         resource_type_id: resourceTypeId,
@@ -212,7 +212,7 @@ export async function increaseInventoryWithLog(
     });
 
     if (updateResult.count === 0) {
-      await client.inventory.create({
+      await client.inventories.create({
         data: {
           camp_id: campId,
           resource_type_id: resourceTypeId,
@@ -222,7 +222,7 @@ export async function increaseInventoryWithLog(
       });
     }
 
-    const movement = await client.inventory_log.create({
+    const movement = await client.inventory_logs.create({
       data: {
         camp_id: campId,
         resource_type_id: resourceTypeId,
@@ -233,7 +233,7 @@ export async function increaseInventoryWithLog(
       select: { delta: true },
     });
 
-    const currentInventory = await client.inventory.findUnique({
+    const currentInventory = await client.inventories.findUnique({
       where: {
         camp_id_resource_type_id: {
           camp_id: campId,
@@ -263,8 +263,8 @@ export async function getCampInventory(campId: number, page = 1, pageSize = 20) 
   const skip = (page - 1) * effectiveLimit;
 
   const [total, inventoryRecords] = await Promise.all([
-    prisma.inventory.count({ where: { camp_id: campId } }),
-    prisma.inventory.findMany({
+    prisma.inventories.count({ where: { camp_id: campId } }),
+    prisma.inventories.findMany({
       where: { camp_id: campId },
       skip,
       take: effectiveLimit,
@@ -332,7 +332,7 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
   const total = consistency.length;
 
   const paginatedIds = resourceTypeIds.slice(skip, skip + effectiveLimit);
-  const resources = await prisma.resource_type.findMany({
+  const resources = await prisma.resource_types.findMany({
     where: { id: { in: paginatedIds } },
     select: { id: true, name: true, unit: true },
   });
@@ -383,7 +383,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
     const delta = isManualIn ? data.quantity : -data.quantity;
 
     if (isManualIn) {
-      await client.inventory.upsert({
+      await client.inventories.upsert({
         where: {
           camp_id_resource_type_id: {
             camp_id: data.camp_id,
@@ -402,7 +402,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
         },
       });
     } else {
-      const updateResult = await client.inventory.updateMany({
+      const updateResult = await client.inventories.updateMany({
         where: {
           camp_id: data.camp_id,
           resource_type_id: data.resource_type_id,
@@ -422,7 +422,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       }
     }
 
-    const movement = await client.inventory_log.create({
+    const movement = await client.inventory_logs.create({
       data: {
         camp_id: data.camp_id,
         resource_type_id: data.resource_type_id,
@@ -443,7 +443,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       },
     });
 
-    const currentInventory = await client.inventory.findUnique({
+    const currentInventory = await client.inventories.findUnique({
       where: {
         camp_id_resource_type_id: {
           camp_id: data.camp_id,
