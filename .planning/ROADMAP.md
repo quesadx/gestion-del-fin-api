@@ -80,7 +80,7 @@ Plans:
 | 2. Auth & Foundation CRUD                 | 0/TBD          | Not started | -         |
 | 3. RBAC + Users + Domain CRUD             | 0/TBD          | Not started | -         |
 | 4. Complex Workflows & Metrics            | 0/TBD          | Not started | -         |
-| 5. Fix all prisma/schema issues           | 0/2            | Planned     | -         |
+| 5. Fix all prisma/schema issues           | 1/2            | In progress | -         |
 
 ### Phase 5: Fix all prisma/schema issues based on db-review.md (taking into account that some stuff is partially fixed)
 
@@ -90,5 +90,5 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Rename professions_id → profession_id in schema, TypeScript code, and migration
+- [x] 05-01-PLAN.md — Rename professions_id → profession_id in schema, TypeScript code, and migration
 - [ ] 05-02-PLAN.md — Add map: names to all 40 @@index directives, add 4 date-column indexes, migration, and E2E regression tests
