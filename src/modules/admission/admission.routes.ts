@@ -6,6 +6,7 @@ import { validate } from '../../middlewares/validate.middleware.js';
 import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
+import { admissionRateLimit } from '../../middlewares/rateLimit.middleware.js';
 
 const router = Router();
 
@@ -59,6 +60,7 @@ router.post(
       body: createAdmissionSchema,
     }),
   ),
+  admissionRateLimit,
   admissionController.createAdmissionHandler,
 );
 

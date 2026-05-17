@@ -44,15 +44,12 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
   });
   if (!professions) throw new AppError(`Professions not found`, 404);
 
-  const professionList = professions
-    .map((p) => `- [ID: ${p.id}] ${p.name}: ${p.description ?? 'No description'}`)
-    .join('\n');
-
   const campContext = camp.ai_context_prompt;
+
   const aiResult = await evaluateAdmission(
     data,
     campContext ?? 'No context defined for this camp',
-    professionList,
+    professions,
   );
 
   return prisma.admission_requests.create({

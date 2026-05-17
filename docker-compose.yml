@@ -29,6 +29,17 @@ services:
       retries: 5
       start_period: 30s
 
+  ml:
+    build: ./ml-service
+    container_name: gestion-del-fin-ml
+    ports:
+      - '8000:8000'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8000/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 volumes:
   # This is a named volume that can be used to persist data across container restarts.
   # It is not used in this configuration, but it can be useful for storing database data or other persistent data.
