@@ -14,8 +14,9 @@ model achievements {
   description       String?             @db.VarChar(255)
   icon_url          String              @db.VarChar(500)
   trigger_rule      String              @db.VarChar(100)
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
   user_achievements user_achievements[]
 }
 
@@ -59,8 +60,9 @@ model camp_transfer_items {
   resource_type_id Int?
   person_id        Int?
   quantity         Decimal?                     @db.Decimal(10, 2)
-  created_at       DateTime                     @default(now())
-  updated_at       DateTime                     @updatedAt
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
   camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   persons          people?                      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   resource_type    resource_types?              @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -111,6 +113,7 @@ model camps {
   status               camps_status         @default(ACTIVE)
   ai_context_prompt    String?              @db.Text
   created_at           DateTime             @default(now())
+  deleted_at            DateTime?
   admission_requests   admission_requests[]
   audit_logs           audit_logs[]
   requesting_transfers camp_transfers[]     @relation("transfer_requesting_camp")
@@ -134,6 +137,7 @@ model contribution_overrides {
   amount           Decimal   @db.Decimal(8, 2)
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
+  deleted_at       DateTime?
 
   persons       people        @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -192,6 +196,7 @@ model expeditions {
   max_return_date                DateTime                         @db.Date
   notes                          String?                          @db.Text
   created_at                     DateTime                         @default(now())
+  deleted_at                      DateTime?
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
   expedition_members             expedition_members[]
@@ -212,6 +217,7 @@ model inventories {
   quantity         Decimal       @default(0.00) @db.Decimal(12, 2)
   created_at       DateTime      @default(now())
   last_updated     DateTime      @updatedAt
+  deleted_at        DateTime?
   camps            camps         @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -273,6 +279,7 @@ model people {
   status                      persons_status                @default(HEALTHY)
   admitted_at                 DateTime                      @default(now())
   updated_at                   DateTime                      @updatedAt
+  deleted_at                   DateTime?
   admission_requests          admission_requests[]
   camp_transfer_items         camp_transfer_items[]
   led_transfers               camp_transfers[]              @relation("transfer_leader")
@@ -316,6 +323,7 @@ model professions {
   description                   String?                         @db.Text
   created_at                    DateTime                        @default(now())
   updated_at                    DateTime                        @updatedAt
+  deleted_at                    DateTime?
   admission_requests            admission_requests[]
   persons                       people[]
   from_profession_logs          profession_reassignment_logs[]  @relation("profession_log_from_profession")
@@ -345,6 +353,7 @@ model resource_types {
   auto_daily                     Boolean                          @default(false)
   created_at                     DateTime                         @default(now())
   updated_at                     DateTime                         @updatedAt
+  deleted_at                     DateTime?
   camp_transfer_items            camp_transfer_items[]
   contribution_overrides         contribution_overrides[]
   expedition_allocated_resources expedition_allocated_resources[]
@@ -363,6 +372,7 @@ model roles {
   description      String?            @db.VarChar(255)
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
   users            users[]
   role_permissions role_permissions[]
 }
@@ -374,6 +384,7 @@ model permissions {
   description      String?            @db.VarChar(255)
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
   role_permissions role_permissions[]
 }
 
