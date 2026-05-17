@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('System endpoints', () => {
   test.describe('GET /api/system/time', () => {
     test('should return 200 and server timestamp', async ({ request }) => {
-      const resp = await request.get('/system/time');
+      const resp = await request.get('/api/system/time');
 
       // Status check
       expect(resp.status()).toBe(200);
@@ -23,7 +23,7 @@ test.describe('System endpoints', () => {
 
     test('should not require authentication', async ({ request }) => {
       // No Authorization header — should still succeed
-      const resp = await request.get('/system/time');
+      const resp = await request.get('/api/system/time');
       expect(resp.status()).toBe(200);
     });
   });

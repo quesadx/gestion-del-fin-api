@@ -10,17 +10,22 @@
  * 6. Write tokens to tests/e2e/.auth/tokens.json
  */
 
-import { prisma } from '../../src/lib/prisma';
-import { PERMISSIONS } from '../../src/shared/constants/permissions';
-import { signAccessToken } from '../../src/shared/utils/jwt';
-import bcrypt from 'bcryptjs';
-import fs from 'fs';
+import { config } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load .env.test BEFORE Prisma so setup connects to the test database, not Supabase
+config({ path: path.resolve(__dirname, '../../.env.test') });
+
 async function globalSetup(): Promise<void> {
+  const { prisma } = await import('../../src/lib/prisma.js');
+  const { PERMISSIONS } = await import('../../src/shared/constants/permissions.js');
+  const { signAccessToken } = await import('../../src/shared/utils/jwt.js');
+  const bcrypt = (await import('bcryptjs')).default;
+  const fsMod = await import('fs');
+
   // ─── Phase 1: Clean slate ────────────────────────────────────────────
   const tableNames = [
     'user_achievements',
@@ -51,7 +56,7 @@ async function globalSetup(): Promise<void> {
 
   for (const table of tableNames) {
     try {
-      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`);
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" RESTART IDENTITY CASCADE;`);
     } catch (err) {
       console.warn(`Could not truncate ${table}:`, (err as Error).message);
     }
@@ -163,6 +168,7 @@ async function globalSetup(): Promise<void> {
     { username: 'worker_user_2', role: workerRole, camp: camp2, isAdmin: false },
     { username: 'resource_mgr_1', role: resourceMgrRole, camp: camp1, isAdmin: false },
     { username: 'travel_coord_1', role: travelCoordRole, camp: camp1, isAdmin: false },
+    { username: 'e2e_auth_test', role: workerRole, camp: camp1, isAdmin: false },
   ];
 
   const createdUsers: Record<
@@ -253,11 +259,15 @@ async function globalSetup(): Promise<void> {
   }
 
   const authDir = path.join(__dirname, '.auth');
-  if (!fs.existsSync(authDir)) {
-    fs.mkdirSync(authDir, { recursive: true });
+  if (!fsMod.existsSync(authDir)) {
+    fsMod.mkdirSync(authDir, { recursive: true });
   }
-  fs.writeFileSync(path.join(authDir, 'tokens.json'), JSON.stringify(tokens, null, 2));
+  fsMod.writeFileSync(path.join(authDir, 'tokens.json'), JSON.stringify(tokens, null, 2));
   console.log(`Setup complete: ${Object.keys(tokens).length} tokens generated`);
+
+  // Verify tokens file was written
+  const writtenTokens = JSON.parse(fsMod.readFileSync(path.join(authDir, 'tokens.json'), 'utf8'));
+  console.log(`Tokens file has ${Object.keys(writtenTokens).length} entries`);
 }
 
 export default globalSetup;

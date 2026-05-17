@@ -5,12 +5,12 @@ let transferId: number;
 
 test.describe('POST /api/transfers', () => {
   test('creates a resource transfer from camp 1 to camp 2', async ({ adminRequest }) => {
-    const resRes = await adminRequest.get('/resources');
+    const resRes = await adminRequest.get('/api/resources');
     const resData = await resRes.json();
     const resourceId = resData.data[0].id;
 
     const data = await expectCreated(
-      adminRequest.post('/transfers', {
+      adminRequest.post('/api/transfers', {
         data: {
           requesting_camp: 1,
           target_camp: 2,
@@ -27,7 +27,7 @@ test.describe('POST /api/transfers', () => {
   });
 
   test('returns 400 when requesting_camp equals target_camp', async ({ adminRequest }) => {
-    const res = await adminRequest.post('/transfers', {
+    const res = await adminRequest.post('/api/transfers', {
       data: {
         requesting_camp: 1,
         target_camp: 1,
@@ -40,7 +40,7 @@ test.describe('POST /api/transfers', () => {
   });
 
   test('returns 400 when items array is empty', async ({ adminRequest }) => {
-    const res = await adminRequest.post('/transfers', {
+    const res = await adminRequest.post('/api/transfers', {
       data: {
         requesting_camp: 1,
         target_camp: 2,
@@ -53,7 +53,7 @@ test.describe('POST /api/transfers', () => {
   });
 
   test('returns 400 when required fields missing', async ({ adminRequest }) => {
-    const res = await adminRequest.post('/transfers', {
+    const res = await adminRequest.post('/api/transfers', {
       data: { type: 'RESOURCE' },
     });
     await expectError(res, 400);
@@ -62,9 +62,9 @@ test.describe('POST /api/transfers', () => {
   test('returns 401 when unauthenticated', async () => {
     const { request } = await import('@playwright/test');
     const ctx = await request.newContext({
-      baseURL: 'http://localhost:3000/api',
+      baseURL: 'http://localhost:3000',
     });
-    const res = await ctx.post('/transfers', {
+    const res = await ctx.post('/api/transfers', {
       data: {
         requesting_camp: 1,
         target_camp: 2,
@@ -80,16 +80,16 @@ test.describe('POST /api/transfers', () => {
 
 test.describe('GET /api/transfers', () => {
   test('returns list of transfers', async ({ adminRequest }) => {
-    const transfers = await expectDataArray(adminRequest.get('/transfers'), 1);
+    const transfers = await expectDataArray(adminRequest.get('/api/transfers'), 1);
     expect(transfers.length).toBeGreaterThanOrEqual(1);
   });
 
   test('returns 401 when unauthenticated', async () => {
     const { request } = await import('@playwright/test');
     const ctx = await request.newContext({
-      baseURL: 'http://localhost:3000/api',
+      baseURL: 'http://localhost:3000',
     });
-    const res = await ctx.get('/transfers');
+    const res = await ctx.get('/api/transfers');
     await expectError(res, 401);
     await ctx.dispose();
   });
@@ -97,12 +97,12 @@ test.describe('GET /api/transfers', () => {
 
 test.describe('GET /api/transfers/:id', () => {
   test('returns transfer by id', async ({ adminRequest }) => {
-    const data = await expectEntity(adminRequest.get(`/transfers/${transferId}`));
+    const data = await expectEntity(adminRequest.get(`/api/transfers/${transferId}`));
     expect(data).toHaveProperty('id', transferId);
   });
 
   test('returns 404 for non-existent id', async ({ adminRequest }) => {
-    const res = await adminRequest.get('/transfers/99999');
+    const res = await adminRequest.get('/api/transfers/99999');
     await expectError(res, 404);
   });
 });
@@ -110,13 +110,14 @@ test.describe('GET /api/transfers/:id', () => {
 test.describe('Transfer workflow (approve → complete)', () => {
   test('full lifecycle: schedule → approve source → approve target → complete', async ({
     adminRequest,
+    adminCamp2Request,
   }) => {
-    const resRes = await adminRequest.get('/resources');
+    const resRes = await adminRequest.get('/api/resources');
     const resData = await resRes.json();
     const resourceId = resData.data[0].id;
 
     const create = await expectCreated(
-      adminRequest.post('/transfers', {
+      adminRequest.post('/api/transfers', {
         data: {
           requesting_camp: 1,
           target_camp: 2,
@@ -133,22 +134,22 @@ test.describe('Transfer workflow (approve → complete)', () => {
     futureDate.setDate(futureDate.getDate() + 7);
     const deliveryDate = futureDate.toISOString();
 
-    const sched = await adminRequest.patch(`/transfers/${tId}/schedule`, {
+    const sched = await adminRequest.patch(`/api/transfers/${tId}/schedule`, {
       data: { scheduled_delivery_date: deliveryDate },
     });
     expect(sched.ok()).toBeTruthy();
 
-    const appSource = await adminRequest.patch(`/transfers/${tId}/approve-source`, {
+    const appSource = await adminRequest.patch(`/api/transfers/${tId}/approve-source`, {
       data: { notes: 'Source approved' },
     });
     expect(appSource.ok()).toBeTruthy();
 
-    const appTarget = await adminRequest.patch(`/transfers/${tId}/approve-target`, {
+    const appTarget = await adminCamp2Request.patch(`/api/transfers/${tId}/approve-target`, {
       data: { notes: 'Target approved' },
     });
     expect(appTarget.ok()).toBeTruthy();
 
-    const complete = await adminRequest.patch(`/transfers/${tId}/complete`, {
+    const complete = await adminRequest.patch(`/api/transfers/${tId}/complete`, {
       data: { notes: 'Delivery confirmed' },
     });
     expect(complete.ok()).toBeTruthy();
@@ -157,12 +158,12 @@ test.describe('Transfer workflow (approve → complete)', () => {
 
 test.describe('Transfer rejection', () => {
   test('rejects a transfer with reason', async ({ adminRequest }) => {
-    const resRes = await adminRequest.get('/resources');
+    const resRes = await adminRequest.get('/api/resources');
     const resData = await resRes.json();
     const resourceId = resData.data[0].id;
 
     const create = await expectCreated(
-      adminRequest.post('/transfers', {
+      adminRequest.post('/api/transfers', {
         data: {
           requesting_camp: 1,
           target_camp: 2,
@@ -174,14 +175,14 @@ test.describe('Transfer rejection', () => {
     );
     const tId = create.id as number;
 
-    const reject = await adminRequest.patch(`/transfers/${tId}/reject`, {
+    const reject = await adminRequest.patch(`/api/transfers/${tId}/reject`, {
       data: { reason: 'Insufficient resources' },
     });
     expect(reject.ok()).toBeTruthy();
   });
 
   test('returns 400 when reject reason is empty', async ({ adminRequest }) => {
-    const res = await adminRequest.patch(`/transfers/${transferId}/reject`, {
+    const res = await adminRequest.patch(`/api/transfers/${transferId}/reject`, {
       data: { reason: '' },
     });
     await expectError(res, 400);

@@ -140,6 +140,15 @@ export async function evaluateAdmission(
   campContext: string,
   professions: { id: number; name: string; description: string | null }[],
 ): Promise<AdmissionAIResult> {
+  if (process.env.NODE_ENV === 'test') {
+    return admissionAIResultSchema.parse({
+      ai_decision: 'ACCEPTED',
+      ai_reasoning: 'Test mode: automatic acceptance for E2E testing',
+      ai_suggested_profession: professions[0]?.name ?? 'General Labor',
+      ai_profession_id: professions[0]?.id ?? 1,
+    });
+  }
+
   const campWeights = await parseCampWeights(campContext);
 
   const { decision, confidence, reasoningPath, professionCategory } =

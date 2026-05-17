@@ -21,16 +21,16 @@ let expeditionId: number;
 
 test.describe('POST /api/expeditions', () => {
   test('creates an expedition with members and resources', async ({ adminRequest }) => {
-    const peopleRes = await adminRequest.get('/camps/1/people');
+    const peopleRes = await adminRequest.get('/api/camps/1/people');
     const peopleData = await peopleRes.json();
     const personId = peopleData.data[0].id;
 
-    const resRes = await adminRequest.get('/resources');
+    const resRes = await adminRequest.get('/api/resources');
     const resData = await resRes.json();
     const resourceId = resData.data[0].id;
 
     const data = await expectCreated(
-      adminRequest.post('/expeditions', {
+      adminRequest.post('/api/expeditions', {
         data: {
           camp_id: 1,
           created_by: 1,
@@ -51,7 +51,7 @@ test.describe('POST /api/expeditions', () => {
   });
 
   test('returns 400 for invalid dates (departure after return)', async ({ adminRequest }) => {
-    const res = await adminRequest.post('/expeditions', {
+    const res = await adminRequest.post('/api/expeditions', {
       data: {
         camp_id: 1,
         created_by: 1,
@@ -65,7 +65,7 @@ test.describe('POST /api/expeditions', () => {
   });
 
   test('returns 400 when required fields missing', async ({ adminRequest }) => {
-    const res = await adminRequest.post('/expeditions', {
+    const res = await adminRequest.post('/api/expeditions', {
       data: { destination: 'Incomplete' },
     });
     await expectError(res, 400);
@@ -74,9 +74,9 @@ test.describe('POST /api/expeditions', () => {
   test('returns 401 when unauthenticated', async () => {
     const { request } = await import('@playwright/test');
     const ctx = await request.newContext({
-      baseURL: 'http://localhost:3000/api',
+      baseURL: 'http://localhost:3000',
     });
-    const res = await ctx.post('/expeditions', {
+    const res = await ctx.post('/api/expeditions', {
       data: {
         camp_id: 1,
         created_by: 1,
@@ -93,16 +93,16 @@ test.describe('POST /api/expeditions', () => {
 
 test.describe('GET /api/expeditions', () => {
   test('returns list of expeditions', async ({ adminRequest }) => {
-    const expeditions = await expectDataArray(adminRequest.get('/expeditions'), 1);
+    const expeditions = await expectDataArray(adminRequest.get('/api/expeditions'), 1);
     expect(expeditions.length).toBeGreaterThanOrEqual(1);
   });
 
   test('returns 401 when unauthenticated', async () => {
     const { request } = await import('@playwright/test');
     const ctx = await request.newContext({
-      baseURL: 'http://localhost:3000/api',
+      baseURL: 'http://localhost:3000',
     });
-    const res = await ctx.get('/expeditions');
+    const res = await ctx.get('/api/expeditions');
     await expectError(res, 401);
     await ctx.dispose();
   });
@@ -111,12 +111,12 @@ test.describe('GET /api/expeditions', () => {
 test.describe('GET /api/expeditions/:id', () => {
   test('returns expedition by id', async ({ adminRequest }) => {
     const id = expeditionId;
-    const data = await expectEntity(adminRequest.get(`/expeditions/${id}`));
+    const data = await expectEntity(adminRequest.get(`/api/expeditions/${id}`));
     expect(data).toHaveProperty('id', id);
   });
 
   test('returns 404 for non-existent id', async ({ adminRequest }) => {
-    const res = await adminRequest.get('/expeditions/99999');
+    const res = await adminRequest.get('/api/expeditions/99999');
     await expectError(res, 404);
   });
 });
@@ -124,7 +124,7 @@ test.describe('GET /api/expeditions/:id', () => {
 test.describe('PATCH /api/expeditions/:id/status', () => {
   test('departs expedition (PLANNED → ONGOING)', async ({ adminRequest }) => {
     const create = await expectCreated(
-      adminRequest.post('/expeditions', {
+      adminRequest.post('/api/expeditions', {
         data: {
           camp_id: 1,
           created_by: 1,
@@ -137,7 +137,7 @@ test.describe('PATCH /api/expeditions/:id/status', () => {
     );
     const expId = create.id as number;
 
-    const res = await adminRequest.patch(`/expeditions/${expId}/status`, {
+    const res = await adminRequest.patch(`/api/expeditions/${expId}/status`, {
       data: { status: 'ONGOING', changed_by: 1 },
     });
     expect(res.ok()).toBeTruthy();
@@ -145,7 +145,7 @@ test.describe('PATCH /api/expeditions/:id/status', () => {
 
   test('returns expedition (ONGOING → RETURNED)', async ({ adminRequest }) => {
     const create = await expectCreated(
-      adminRequest.post('/expeditions', {
+      adminRequest.post('/api/expeditions', {
         data: {
           camp_id: 1,
           created_by: 1,
@@ -158,11 +158,11 @@ test.describe('PATCH /api/expeditions/:id/status', () => {
     );
     const expId = create.id as number;
 
-    await adminRequest.patch(`/expeditions/${expId}/status`, {
+    await adminRequest.patch(`/api/expeditions/${expId}/status`, {
       data: { status: 'ONGOING', changed_by: 1 },
     });
 
-    const res = await adminRequest.patch(`/expeditions/${expId}/status`, {
+    const res = await adminRequest.patch(`/api/expeditions/${expId}/status`, {
       data: {
         status: 'RETURNED',
         changed_by: 1,
@@ -174,7 +174,7 @@ test.describe('PATCH /api/expeditions/:id/status', () => {
 
   test('returns 400 when RETURNED without actual_return_date', async ({ adminRequest }) => {
     const create = await expectCreated(
-      adminRequest.post('/expeditions', {
+      adminRequest.post('/api/expeditions', {
         data: {
           camp_id: 1,
           created_by: 1,
@@ -187,11 +187,11 @@ test.describe('PATCH /api/expeditions/:id/status', () => {
     );
     const expId = create.id as number;
 
-    await adminRequest.patch(`/expeditions/${expId}/status`, {
+    await adminRequest.patch(`/api/expeditions/${expId}/status`, {
       data: { status: 'ONGOING', changed_by: 1 },
     });
 
-    const res = await adminRequest.patch(`/expeditions/${expId}/status`, {
+    const res = await adminRequest.patch(`/api/expeditions/${expId}/status`, {
       data: { status: 'RETURNED', changed_by: 1 },
     });
     await expectError(res, 400);
@@ -201,7 +201,7 @@ test.describe('PATCH /api/expeditions/:id/status', () => {
 test.describe('DELETE /api/expeditions/:id', () => {
   test('returns success on delete', async ({ adminRequest }) => {
     const create = await expectCreated(
-      adminRequest.post('/expeditions', {
+      adminRequest.post('/api/expeditions', {
         data: {
           camp_id: 1,
           created_by: 1,
@@ -213,7 +213,7 @@ test.describe('DELETE /api/expeditions/:id', () => {
       }),
     );
     const expId = create.id as number;
-    const res = await adminRequest.delete(`/expeditions/${expId}`, {
+    const res = await adminRequest.delete(`/api/expeditions/${expId}`, {
       data: { changed_by: 1 },
     });
     expect(res.ok()).toBeTruthy();
@@ -222,7 +222,7 @@ test.describe('DELETE /api/expeditions/:id', () => {
 
 test.describe('Camp-scoped access', () => {
   test('admin_camp2 can see different expeditions', async ({ adminCamp2Request }) => {
-    const res = await adminCamp2Request.get('/expeditions');
+    const res = await adminCamp2Request.get('/api/expeditions');
     expect(res.ok()).toBeTruthy();
   });
 });

@@ -7,8 +7,10 @@ export default defineConfig({
   retries: 0,
   timeout: 15_000,
   expect: { timeout: 5_000 },
+  globalSetup: './tests/e2e/global.setup.ts',
+  globalTeardown: './tests/e2e/global.teardown.ts',
   use: {
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'http://localhost:3000',
     extraHTTPHeaders: { 'Content-Type': 'application/json' },
   },
   webServer: {
@@ -22,18 +24,8 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'setup',
-      testMatch: /global\.setup\.ts/,
-      teardown: 'teardown',
-    },
-    {
-      name: 'teardown',
-      testMatch: /global\.teardown\.ts/,
-    },
-    {
       name: 'e2e',
       testMatch: '*.spec.ts',
-      dependencies: ['setup'],
     },
   ],
 });

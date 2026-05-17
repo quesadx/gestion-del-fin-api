@@ -19,7 +19,7 @@ function createAuthContext(
   token: string,
 ): Promise<APIRequestContext> {
   return playwright.request.newContext({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'http://localhost:3000',
     extraHTTPHeaders: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
