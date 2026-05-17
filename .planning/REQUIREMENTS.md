@@ -179,26 +179,27 @@ Deferred to future release. Not in current roadmap.
 | Requirement               | Phase   | Status  |
 | ------------------------- | ------- | ------- |
 | INFRA-01 through INFRA-08 | Phase 1 | Pending |
-| SYST-01, SYST-02          | Phase 2 | Pending |
+| SYST-01, SYST-02          | Phase 1 | Pending |
 | AUTH-01 through AUTH-06   | Phase 2 | Pending |
-| CAMP-01 through CAMP-12   | Phase 3 | Pending |
-| PROF-01 through PROF-07   | Phase 3 | Pending |
-| RESC-01 through RESC-07   | Phase 3 | Pending |
-| ROLE-01 through ROLE-06   | Phase 4 | Pending |
-| PERM-01 through PERM-06   | Phase 4 | Pending |
-| USER-01 through USER-06   | Phase 4 | Pending |
-| PEOP-01 through PEOP-09   | Phase 5 | Pending |
-| INVT-01 through INVT-05   | Phase 5 | Pending |
-| EXPL-01 through EXPL-08   | Phase 6 | Pending |
-| TRAN-01 through TRAN-09   | Phase 6 | Pending |
-| ADMN-01 through ADMN-06   | Phase 6 | Pending |
-| METR-01 through METR-05   | Phase 7 | Pending |
+| CAMP-01 through CAMP-12   | Phase 2 | Pending |
+| PROF-01 through PROF-07   | Phase 2 | Pending |
+| RESC-01 through RESC-07   | Phase 2 | Pending |
+| ROLE-01 through ROLE-06   | Phase 3 | Pending |
+| PERM-01 through PERM-06   | Phase 3 | Pending |
+| USER-01 through USER-06   | Phase 3 | Pending |
+| PEOP-01 through PEOP-09   | Phase 3 | Pending |
+| INVT-01 through INVT-05   | Phase 3 | Pending |
+| EXPL-01 through EXPL-08   | Phase 4 | Pending |
+| TRAN-01 through TRAN-09   | Phase 4 | Pending |
+| ADMN-01 through ADMN-06   | Phase 4 | Pending |
+| METR-01 through METR-05   | Phase 4 | Pending |
 
 **Coverage:**
 
 - v1 requirements: 102 total
 - Mapped to phases: 102
 - Unmapped: 0 ✓
+- Phases: 4 (coarse granularity — compressed from 7 research-recommended phases)
 
 ---
 
