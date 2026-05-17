@@ -14,7 +14,7 @@ export default defineConfig({
   webServer: {
     command: 'npx dotenv -e .env.test -- tsx src/index.ts',
     url: 'http://localhost:3000/api/system/time',
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 30_000,
     env: {
       NODE_ENV: 'test',
