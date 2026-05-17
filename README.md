@@ -160,7 +160,7 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
 
 The admission system uses a Python microservice that runs a Decision Tree Classifier. It must be running locally for the admission evaluation to work.
 
-> See [ADMISSION_AI.md](./ADMISSION_AI.md) for full documentation on how the AI admission system works.
+> See [admission_ai.md](./docs/admission_ai.md) for full documentation on how the AI admission system works.
 
 ### Running the ML service locally
 
