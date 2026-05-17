@@ -14,6 +14,8 @@ model achievements {
   description       String?             @db.VarChar(255)
   icon_url          String              @db.VarChar(500)
   trigger_rule      String              @db.VarChar(100)
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
   user_achievements user_achievements[]
 }
 
@@ -57,6 +59,8 @@ model camp_transfer_items {
   resource_type_id Int?
   person_id        Int?
   quantity         Decimal?                     @db.Decimal(10, 2)
+  created_at       DateTime                     @default(now())
+  updated_at       DateTime                     @updatedAt
   camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   persons          people?                      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   resource_type    resource_types?              @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -128,6 +132,8 @@ model contribution_overrides {
   end_date         DateTime? @db.Date
   created_by       Int?
   amount           Decimal   @db.Decimal(8, 2)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
 
   persons       people        @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -142,6 +148,7 @@ model expedition_allocated_resources {
   expedition_id    Int
   resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
+  created_at       DateTime      @default(now())
   expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -153,6 +160,7 @@ model expedition_found_resources {
   expedition_id    Int
   resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
+  created_at       DateTime      @default(now())
   expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -163,6 +171,7 @@ model expedition_found_resources {
 model expedition_members {
   expedition_id Int
   person_id     Int
+  created_at    DateTime      @default(now())
   expeditions   expeditions @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   persons       people      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -201,6 +210,7 @@ model inventories {
   camp_id          Int
   resource_type_id Int
   quantity         Decimal       @default(0.00) @db.Decimal(12, 2)
+  created_at       DateTime      @default(now())
   last_updated     DateTime      @updatedAt
   camps            camps         @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -219,6 +229,7 @@ model inventory_logs {
   log_type         inventory_log_log_type
   quantity_change  Decimal                @db.Decimal(12, 2)
   logged_at        DateTime               @default(now())
+  created_at       DateTime               @default(now())
   description      String?                @db.VarChar(255)
   camps            camps                  @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_types         @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -261,6 +272,7 @@ model people {
   photo_url                   String?                       @db.VarChar(500)
   status                      persons_status                @default(HEALTHY)
   admitted_at                 DateTime                      @default(now())
+  updated_at                   DateTime                      @updatedAt
   admission_requests          admission_requests[]
   camp_transfer_items         camp_transfer_items[]
   led_transfers               camp_transfers[]              @relation("transfer_leader")
@@ -285,6 +297,8 @@ model profession_reassignment_logs {
   reason             String?     @db.Text
   start_date         DateTime    @default(now()) @db.Date
   end_date           DateTime?   @db.Date
+  created_at         DateTime    @default(now())
+  updated_at         DateTime    @updatedAt
   from_profession    professions @relation("profession_log_from_profession", fields: [from_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   persons            people      @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   to_profession      professions @relation("profession_log_to_profession", fields: [to_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -300,6 +314,8 @@ model professions {
   id                            Int                             @id @default(autoincrement())
   name                          String                          @unique(map: "professions_name_unique") @db.VarChar(80)
   description                   String?                         @db.Text
+  created_at                    DateTime                        @default(now())
+  updated_at                    DateTime                        @updatedAt
   admission_requests            admission_requests[]
   persons                       people[]
   from_profession_logs          profession_reassignment_logs[]  @relation("profession_log_from_profession")
@@ -311,6 +327,7 @@ model professions_resources_amounts {
   profession_id    Int
   resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
+  created_at       DateTime      @default(now())
   professions      professions   @relation(fields: [profession_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -326,6 +343,8 @@ model resource_types {
   daily_ration                   Decimal                          @db.Decimal(8, 2)
   minimum_stock                  Decimal                          @db.Decimal(10, 2)
   auto_daily                     Boolean                          @default(false)
+  created_at                     DateTime                         @default(now())
+  updated_at                     DateTime                         @updatedAt
   camp_transfer_items            camp_transfer_items[]
   contribution_overrides         contribution_overrides[]
   expedition_allocated_resources expedition_allocated_resources[]
@@ -342,6 +361,8 @@ model roles {
   id               Int                @id @default(autoincrement())
   name             String             @unique(map: "roles_name_unique") @db.VarChar(60)
   description      String?            @db.VarChar(255)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
   users            users[]
   role_permissions role_permissions[]
 }
@@ -351,12 +372,15 @@ model permissions {
   id               Int                @id @default(autoincrement())
   name             String             @unique(map: "permissions_name_unique") @db.VarChar(80)
   description      String?            @db.VarChar(255)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
   role_permissions role_permissions[]
 }
 
 model role_permissions {
   role_id       Int
   permission_id Int
+  created_at    DateTime    @default(now())
   roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -369,6 +393,7 @@ model system_configs {
   id          Int      @id @default(1)
   version     String?  @db.VarChar(20)
   server_time DateTime
+  created_at  DateTime @default(now())
 
   @@map("system_config")
 }
@@ -378,6 +403,7 @@ model user_achievements {
   user_id        Int
   achievement_id Int
   earned_at      DateTime     @default(now())
+  created_at     DateTime     @default(now())
   achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   users          users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
