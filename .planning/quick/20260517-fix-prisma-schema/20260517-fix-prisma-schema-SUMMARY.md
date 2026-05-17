@@ -27,7 +27,11 @@ Cleaned up auto-generated Prisma relation field names in:
 ### 4. person_status_log Enum Fix
 - `old_status` and `new_status` changed from `String @db.VarChar(20/45)` to `persons_status` enum — eliminates transitive dependency on raw strings
 
-### 5. Code Updates
+### 5. audit_log Nullable Fix (post-review)
+- Code review identified: `audit_log.user_id` and `camp_id` were `Int` (NOT NULL) but had `onDelete: SetNull` — a Prisma schema validation error
+- Changed both to `Int?` and relation fields to optional (`users?`, `camps?`)
+
+### 6. Code Updates
 - `transfers.service.ts`: Updated `include` fields to match new relation names
 - `people.service.ts`: Updated `include` fields to match new relation names
 

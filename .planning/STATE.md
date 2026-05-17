@@ -77,7 +77,7 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 20260517 | Fix Prisma schema: cyclic refs, FK actions, snake_case relations, person_status_log enum | 2026-05-17 | `5632e67` | [fix-prisma-schema](./quick/20260517-fix-prisma-schema/) |
+| 20260517 | Fix Prisma schema: cyclic refs, FK actions, snake_case relations, person_status_log enum | 2026-05-17 | `028cd7f` | [fix-prisma-schema](./quick/20260517-fix-prisma-schema/) |
 
 ## Deferred Items
 
