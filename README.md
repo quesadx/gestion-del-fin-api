@@ -162,6 +162,21 @@ The admission system uses a Python microservice that runs a Decision Tree Classi
 
 > See [admission_ai.md](./docs/admission_ai.md) for full documentation on how the AI admission system works.
 
+
+### Installing Python dependencies
+ 
+**With Nix** — dependencies are provided automatically by the flake, no extra steps needed.
+ 
+**Without Nix** — install manually using a virtual environment:
+ 
+```bash
+cd ml-service
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+
 ### Running the ML service locally
 
 In a separate terminal from your API:
