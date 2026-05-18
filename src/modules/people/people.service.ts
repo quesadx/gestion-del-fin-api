@@ -222,7 +222,15 @@ export async function updatePerson(
 }
 
 export async function getPerson(campId: number, id: number) {
-  const person = await prisma.persons.findUnique({ where: { id }, include: personInclude });
+  const person = await prisma.persons.findUnique({
+    where: { id },
+    include: {
+      ...personInclude,
+      person_status_log: {
+        orderBy: { changed_at: 'desc' },
+      },
+    },
+  });
   if (!person) {
     throw new AppError(`Person not found: ${id}`, 404);
   }
