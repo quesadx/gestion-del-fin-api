@@ -448,7 +448,7 @@ async function main() {
         resource_type_id: item.resource_type_id,
         logged_by: adminUser.id,
         log_type: 'MANUAL_IN',
-        delta: item.quantity,
+        quantity_change: item.quantity,
         description: 'Seed: opening inventory balance',
       })),
     }),
@@ -478,7 +478,7 @@ async function main() {
         resource_type_id: item.resource_type_id,
         logged_by: standardUser.id,
         log_type: 'MANUAL_IN',
-        delta: item.quantity,
+        quantity_change: item.quantity,
         description: 'Seed: opening inventory balance',
       })),
     }),
@@ -626,7 +626,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-12',
+        quantity_change: '-12',
         description: `Seed: Expedition #${plannedExpedition.id} resource outflow`,
       },
       {
@@ -634,7 +634,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-20',
+        quantity_change: '-20',
         description: `Seed: Expedition #${plannedExpedition.id} resource outflow`,
       },
       {
@@ -642,7 +642,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-18',
+        quantity_change: '-18',
         description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
       },
       {
@@ -650,7 +650,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-30',
+        quantity_change: '-30',
         description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
       },
       {
@@ -658,7 +658,7 @@ async function main() {
         resource_type_id: medsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-5',
+        quantity_change: '-5',
         description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
       },
       {
@@ -666,7 +666,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-15',
+        quantity_change: '-15',
         description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
       },
       {
@@ -674,7 +674,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-25',
+        quantity_change: '-25',
         description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
       },
       {
@@ -682,7 +682,7 @@ async function main() {
         resource_type_id: medsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-2',
+        quantity_change: '-2',
         description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
       },
       {
@@ -690,7 +690,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_IN',
-        delta: '5',
+        quantity_change: '5',
         description: `Seed: Expedition #${returnedExpedition.id} resource return`,
       },
       {
@@ -698,7 +698,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_IN',
-        delta: '10',
+        quantity_change: '10',
         description: `Seed: Expedition #${returnedExpedition.id} resource return`,
       },
     ],

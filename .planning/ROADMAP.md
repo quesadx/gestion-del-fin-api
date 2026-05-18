@@ -80,3 +80,18 @@ Plans:
 | 2. Auth & Foundation CRUD                 | 0/TBD          | Not started | -         |
 | 3. RBAC + Users + Domain CRUD             | 0/TBD          | Not started | -         |
 | 4. Complex Workflows & Metrics            | 0/TBD          | Not started | -         |
+| 5. Fix all prisma/schema issues           | 3/3            | Complete    | 2026-05-17 |
+
+### Phase 5: Fix all prisma/schema issues based on db-review.md (taking into account that some stuff is partially fixed)
+
+**Goal:** Resolve remaining db-review.md findings: rename inconsistent FK column (professions_id → profession_id), add explicit map: names to all 40 @@index directives to eliminate duplicate index names across tables, and add 4 new indexes on frequently-queried date columns — all verified with zero E2E regressions.
+**Requirements**: D-02, D-03, D-04, D-05, D-06, D-07 (from CONTEXT.md locked decisions)
+**Depends on:** Phase 4
+**Plans:** 3/3 plans executed
+**Status:** Complete (2026-05-17)
+**Verification:** Passed — 7/7 must-haves, zero E2E regressions
+
+Plans:
+- [x] 05-01-PLAN.md — Rename professions_id → profession_id in schema, TypeScript code, and migration
+- [x] 05-02-PLAN.md — Add map: names to all 40 @@index directives, add 4 date-column indexes, migration, and E2E regression tests
+- [x] 05-03-PLAN.md — Rename delta→quantity_change, add audit timestamps to 18 tables, add soft-delete to 10 domain entities

@@ -173,6 +173,11 @@ components:
           type: string
           format: date-time
           example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     CreateCampRequest:
       type: object
@@ -237,6 +242,19 @@ components:
         auto_daily:
           type: boolean
           example: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     CreateResourceRequest:
       type: object
@@ -331,6 +349,15 @@ components:
           type: string
           format: date-time
           example: '2026-04-25T14:05:30.000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     CreatePersonRequest:
       type: object
@@ -560,6 +587,15 @@ components:
         last_updated:
           type: string
           format: date-time
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     InventoryLog:
       type: object
@@ -586,12 +622,17 @@ components:
               TRANSFER_OUT,
               TRANSFER_IN,
             ]
-        delta:
+        quantity_change:
           type: number
           format: float
+          description: 'Quantity change amount (positive = gain, negative = consumption)'
         logged_at:
           type: string
           format: date-time
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
         description:
           type: string
           nullable: true
@@ -745,6 +786,11 @@ components:
         created_at:
           type: string
           format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
         allocated_resources:
           type: array
           items:
@@ -1174,6 +1220,19 @@ components:
         description:
           type: string
           nullable: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     CreateProfessionRequest:
       type: object
@@ -1211,6 +1270,19 @@ components:
           type: array
           items:
             type: integer
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     CreateRoleRequest:
       type: object
@@ -1256,6 +1328,19 @@ components:
         description:
           type: string
           nullable: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Soft delete timestamp (null = active)'
 
     CreatePermissionRequest:
       type: object

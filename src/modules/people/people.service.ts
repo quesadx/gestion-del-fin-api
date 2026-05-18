@@ -76,7 +76,7 @@ async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionI
 
 async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceTypeId: number) {
   const client = tx as unknown as typeof prisma;
-  const resourceType = await client.resource_type.findUnique({
+  const resourceType = await client.resource_types.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -95,7 +95,7 @@ async function ensureUserExistsTx(tx: PeopleTransactionClient, userId: number) {
 }
 
 async function ensurePersonBelongsToCamp(campId: number, personId: number) {
-  const person = await prisma.persons.findUnique({
+  const person = await prisma.people.findUnique({
     where: { id: personId },
     select: { id: true, camp_id: true },
   });
@@ -159,7 +159,7 @@ export async function createPerson(campId: number, data: CreatePersonDto, tx?: T
   const client = tx ?? prisma;
 
   try {
-    return await client.persons.create({
+    return await client.people.create({
       data: preparePersonCreateData({ ...data, camp_id: campId }),
       include: personInclude,
     });
@@ -187,7 +187,7 @@ export async function updatePerson(
       const client = tx as unknown as typeof prisma;
       await ensureUserExistsTx(tx, changedBy);
 
-      const currentPerson = await client.persons.findUnique({
+      const currentPerson = await client.people.findUnique({
         where: { id },
         select: { id: true, status: true },
       });
@@ -196,14 +196,14 @@ export async function updatePerson(
         throw new AppError(`Person not found: ${id}`, 404);
       }
 
-      const updatedPerson = await client.persons.update({
+      const updatedPerson = await client.people.update({
         where: { id },
         data: preparePersonUpdateData({ ...data, camp_id: campId }),
         include: personInclude,
       });
 
       if (data.status && data.status !== currentPerson.status) {
-        await client.person_status_log.create({
+        await client.person_status_logs.create({
           data: {
             person_id: id,
             old_status: currentPerson.status,
@@ -222,7 +222,7 @@ export async function updatePerson(
 }
 
 export async function getPerson(campId: number, id: number) {
-  const person = await prisma.persons.findUnique({ where: { id }, include: personInclude });
+  const person = await prisma.people.findUnique({ where: { id }, include: personInclude });
   if (!person) {
     throw new AppError(`Person not found: ${id}`, 404);
   }
@@ -241,13 +241,13 @@ export async function getPeople(campId: number, page = 1, pageSize = 20) {
   const skip = (page - 1) * effectiveLimit;
 
   const [records, total] = await Promise.all([
-    prisma.persons.findMany({
+    prisma.people.findMany({
       where: { camp_id: campId },
       skip,
       take: effectiveLimit,
       include: personInclude,
     }),
-    prisma.persons.count({ where: { camp_id: campId } }),
+    prisma.people.count({ where: { camp_id: campId } }),
   ]);
 
   return {
@@ -265,7 +265,7 @@ export async function getPeople(campId: number, page = 1, pageSize = 20) {
 export async function getActivePeopleWithProfessionsByCamp(campId: number) {
   await ensureCampExists(campId);
 
-  return prisma.persons.findMany({
+  return prisma.people.findMany({
     where: { camp_id: campId, status: { not: persons_status.DEAD } },
     include: { professions: true },
     orderBy: [{ id: 'asc' }],
@@ -296,7 +296,7 @@ export async function deletePerson(campId: number, id: number) {
   await ensurePersonBelongsToCamp(campId, id);
 
   try {
-    await prisma.persons.delete({ where: { id } });
+    await prisma.people.delete({ where: { id } });
   } catch (error: any) {
     handleForeignKeyError(error);
   }
@@ -311,7 +311,7 @@ export async function createPersonStatusLog(
     const client = tx as unknown as typeof prisma;
     await ensureUserExistsTx(tx, userId);
 
-    const person = await client.persons.findUnique({
+    const person = await client.people.findUnique({
       where: { id: data.person_id },
       select: { id: true, camp_id: true, status: true },
     });
@@ -328,12 +328,12 @@ export async function createPersonStatusLog(
       throw new AppError('new_status must be different from current status', 400);
     }
 
-    await client.persons.update({
+    await client.people.update({
       where: { id: data.person_id },
       data: { status: data.new_status },
     });
 
-    return client.person_status_log.create({
+    return client.person_status_logs.create({
       data: {
         person_id: data.person_id,
         old_status: person.status,
@@ -366,7 +366,7 @@ export async function createProfessionReassignment(
 ) {
   return prisma.$transaction(async (tx: PeopleTransactionClient) => {
     const client = tx as unknown as typeof prisma;
-    const person = await client.persons.findUnique({
+    const person = await client.people.findUnique({
       where: { id: data.person_id },
       select: {
         id: true,
@@ -399,7 +399,7 @@ export async function createProfessionReassignment(
     const todayStr = new Date().toISOString().slice(0, 10);
     const today = new Date(`${todayStr}T00:00:00.000Z`);
 
-    const activeReassignment = await client.profession_reassignment_log.findFirst({
+    const activeReassignment = await client.profession_reassignment_logs.findFirst({
       where: {
         person_id: data.person_id,
         OR: [{ end_date: null }, { end_date: { gte: today } }],
@@ -414,7 +414,7 @@ export async function createProfessionReassignment(
       );
     }
 
-    const targetActiveCount = await client.persons.count({
+    const targetActiveCount = await client.people.count({
       where: {
         camp_id: person.camp_id,
         profession_id: data.to_profession_id,
@@ -432,12 +432,12 @@ export async function createProfessionReassignment(
     const startDate = parseDateOnly(data.start_date, 'start_date');
     const endDate = parseDateOnly(data.end_date, 'end_date');
 
-    await client.persons.update({
+    await client.people.update({
       where: { id: data.person_id },
       data: { profession_id: data.to_profession_id },
     });
 
-    const log = await client.profession_reassignment_log.create({
+    const log = await client.profession_reassignment_logs.create({
       data: {
         person_id: data.person_id,
         from_profession_id: data.from_profession_id,
@@ -450,10 +450,10 @@ export async function createProfessionReassignment(
         persons: {
           select: { id: true, full_name: true, profession_id: true },
         },
-        professions_profession_reassignment_log_from_profession_idToprofessions: {
+        from_profession: {
           select: { id: true, name: true },
         },
-        professions_profession_reassignment_log_to_profession_idToprofessions: {
+        to_profession: {
           select: { id: true, name: true },
         },
       },
@@ -478,7 +478,7 @@ export async function createContributionOverride(
       ensureUserExistsTx(tx, userId),
     ]);
 
-    const person = await client.persons.findUnique({
+    const person = await client.people.findUnique({
       where: { id: data.person_id },
       select: { id: true, camp_id: true },
     });

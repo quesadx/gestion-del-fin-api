@@ -11,6 +11,9 @@ const roleSelect = {
   id: true,
   name: true,
   description: true,
+  created_at: true,
+  updated_at: true,
+  deleted_at: true,
   role_permissions: {
     select: { permissions: { select: { id: true, name: true, description: true } } },
   },
@@ -20,6 +23,9 @@ const RoleWithPermissionsSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string().nullable(),
+  created_at: z.date(),
+  updated_at: z.date(),
+  deleted_at: z.date().nullable(),
   role_permissions: z.array(
     z.object({
       permissions: z.object({
@@ -58,6 +64,9 @@ function mapRole(role: RoleWithPermissions) {
     id: role.id,
     name: role.name,
     description: role.description,
+    created_at: role.created_at,
+    updated_at: role.updated_at,
+    deleted_at: role.deleted_at,
     permissions: role.role_permissions.map((entry) => entry.permissions),
   };
 }

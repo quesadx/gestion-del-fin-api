@@ -39,7 +39,7 @@ function buildProfessionTotals(
   const totals = new Map<number, number>();
 
   for (const amount of professionResourceAmounts) {
-    const activeCount = activePeopleByProfession.get(amount.professions_id) ?? 0;
+    const activeCount = activePeopleByProfession.get(amount.profession_id) ?? 0;
 
     if (activeCount === 0) {
       continue;
@@ -75,7 +75,7 @@ async function processCampProduction(
 
   const activeProfessionIds = new Set(people.map((person) => person.profession_id));
   const professionResourceAmountsForCamp = professionResourceAmounts.filter(
-    (amount: ProfessionResourceAmount) => activeProfessionIds.has(amount.professions_id),
+    (amount: ProfessionResourceAmount) => activeProfessionIds.has(amount.profession_id),
   );
 
   if (professionResourceAmountsForCamp.length === 0 && activeOverrides.length === 0) {

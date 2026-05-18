@@ -82,7 +82,7 @@ export async function getCamp(id: number) {
 
 export async function getAllCamps() {
   return prisma.camps.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, created_at: true, deleted_at: true },
     orderBy: { id: 'asc' },
   });
 }

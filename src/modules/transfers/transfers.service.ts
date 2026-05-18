@@ -13,7 +13,7 @@ import {
 
 type TransferTransactionClient = Prisma.TransactionClient;
 type TransferWithItems = Prisma.camp_transfersGetPayload<{
-  include: { camp_transfer_item: true };
+  include: { camp_transfer_items: true };
 }>;
 
 function asNumber(value: unknown): number {
@@ -62,7 +62,7 @@ async function ensureTransferExists(
 ): Promise<TransferWithItems> {
   const transfer = await tx.camp_transfers.findUnique({
     where: { id: transferId },
-    include: { camp_transfer_item: true },
+    include: { camp_transfer_items: true },
   });
 
   if (!transfer) {
@@ -76,7 +76,7 @@ async function ensureResourceTypesExist(tx: TransferTransactionClient, resourceT
   if (resourceTypeIds.length === 0) return;
 
   const uniqueIds = Array.from(new Set(resourceTypeIds));
-  const resources = await tx.resource_type.findMany({
+  const resources = await tx.resource_types.findMany({
     where: { id: { in: uniqueIds } },
     select: { id: true },
   });
@@ -94,7 +94,7 @@ async function ensurePeopleExistInSourceCamp(
   if (personIds.length === 0) return;
 
   const uniqueIds = Array.from(new Set(personIds));
-  const people = await tx.persons.findMany({
+  const people = await tx.people.findMany({
     where: { id: { in: uniqueIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -166,10 +166,10 @@ async function applyResourceTransfer(
       .entries(),
   ).map(([resource_type_id, quantity]) => ({ resource_type_id, quantity }));
 
-  const logEntries: Prisma.inventory_logCreateManyInput[] = [];
+  const logEntries: Prisma.inventory_logsCreateManyInput[] = [];
 
   for (const item of aggregatedResourceItems) {
-    const updateResult = await tx.inventory.updateMany({
+    const updateResult = await tx.inventories.updateMany({
       where: {
         camp_id: input.sourceCampId,
         resource_type_id: item.resource_type_id,
@@ -188,7 +188,7 @@ async function applyResourceTransfer(
       );
     }
 
-    await tx.inventory.upsert({
+    await tx.inventories.upsert({
       where: {
         camp_id_resource_type_id: {
           camp_id: input.targetCampId,
@@ -212,7 +212,7 @@ async function applyResourceTransfer(
         resource_type_id: item.resource_type_id,
         logged_by: input.completedBy,
         log_type: 'TRANSFER_OUT',
-        delta: -item.quantity,
+        quantity_change: -item.quantity,
         description: `Transfer #${input.transferId} completed (source outflow)`,
       },
       {
@@ -220,14 +220,14 @@ async function applyResourceTransfer(
         resource_type_id: item.resource_type_id,
         logged_by: input.completedBy,
         log_type: 'TRANSFER_IN',
-        delta: item.quantity,
+        quantity_change: item.quantity,
         description: `Transfer #${input.transferId} completed (target inflow)`,
       },
     );
   }
 
   if (logEntries.length > 0) {
-    await tx.inventory_log.createMany({ data: logEntries });
+    await tx.inventory_logs.createMany({ data: logEntries });
   }
 }
 
@@ -244,7 +244,7 @@ async function applyPeopleTransfer(
 ) {
   if (input.personIds.length === 0) return;
 
-  const people = await tx.persons.findMany({
+  const people = await tx.people.findMany({
     where: { id: { in: input.personIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -261,7 +261,7 @@ async function applyPeopleTransfer(
       );
     }
 
-    await tx.persons.update({
+    await tx.people.update({
       where: { id: person.id },
       data: {
         camp_id: input.targetCampId,
@@ -270,7 +270,7 @@ async function applyPeopleTransfer(
     });
 
     if (person.status !== input.personStatus) {
-      await tx.person_status_log.create({
+      await tx.person_status_logs.create({
         data: {
           person_id: person.id,
           old_status: person.status,
@@ -326,7 +326,7 @@ export async function createTransfer(data: CreateTransferDto) {
         },
       });
 
-      await tx.camp_transfer_item.createMany({
+      await tx.camp_transfer_items.createMany({
         data: data.items.map((item) => ({
           camp_transfer_id: transfer.id,
           item_type: item.item_type,
@@ -338,7 +338,7 @@ export async function createTransfer(data: CreateTransferDto) {
 
       return tx.camp_transfers.findUnique({
         where: { id: transfer.id },
-        include: { camp_transfer_item: true },
+        include: { camp_transfer_items: true },
       });
     })
     .then((result) => {
@@ -381,7 +381,7 @@ export async function scheduleTransferDelivery(
     return tx.camp_transfers.update({
       where: { id: transferId },
       data: { scheduled_delivery_date: scheduledDeliveryDate },
-      include: { camp_transfer_item: true },
+      include: { camp_transfer_items: true },
     });
   });
 }
@@ -419,7 +419,7 @@ export async function approveTransferBySource(
           scheduled_delivery_date: effectiveScheduledDate,
           notes: buildNotes(transfer.notes, data.notes),
         },
-        include: { camp_transfer_item: true },
+        include: { camp_transfer_items: true },
       });
     })
     .then((result) => {
@@ -466,7 +466,7 @@ export async function approveTransferByTarget(
           approved_target_at: new Date(),
           notes: buildNotes(transfer.notes, data.notes),
         },
-        include: { camp_transfer_item: true },
+        include: { camp_transfer_items: true },
       });
     })
     .then((result) => {
@@ -501,7 +501,7 @@ export async function completeTransfer(
         throw new AppError('Only source or target camp users can complete transfer', 403);
       }
 
-      const resourceItems = transfer.camp_transfer_item
+      const resourceItems = transfer.camp_transfer_items
         .filter((item) => item.item_type === 'RESOURCE')
         .map((item) => {
           if (item.resource_type_id == null) {
@@ -523,7 +523,7 @@ export async function completeTransfer(
           };
         });
 
-      const personIds = transfer.camp_transfer_item
+      const personIds = transfer.camp_transfer_items
         .filter((item) => item.item_type === 'PERSON')
         .map((item) => {
           if (item.person_id == null) {
@@ -560,7 +560,7 @@ export async function completeTransfer(
           status: 'COMPLETED',
           notes: buildNotes(transfer.notes, data.notes),
         },
-        include: { camp_transfer_item: true },
+        include: { camp_transfer_items: true },
       });
     })
     .then((result) => {
@@ -603,7 +603,7 @@ export async function rejectTransfer(
             `Rejected by user ${actorUserId}: ${data.reason.trim()}`,
           ),
         },
-        include: { camp_transfer_item: true },
+        include: { camp_transfer_items: true },
       });
     })
     .then((result) => {
@@ -624,9 +624,7 @@ export async function getTransfer(id: number) {
   const transfer = await prisma.camp_transfers.findUnique({
     where: { id },
     include: {
-      camp_transfer_item: true,
-      camps_camp_transfers_requesting_campTocamps: true,
-      camps_camp_transfers_target_campTocamps: true,
+      camp_transfer_items: true,
     },
   });
 
@@ -652,9 +650,9 @@ export async function getTransfers(campId: number, page = 1, pageSize = 20) {
       take: effectiveLimit,
       orderBy: { created_at: 'desc' },
       include: {
-        camp_transfer_item: true,
-        camps_camp_transfers_requesting_campTocamps: true,
-        camps_camp_transfers_target_campTocamps: true,
+        camp_transfer_items: true,
+        requesting_camp_ref: true,
+        target_camp_ref: true,
       },
     }),
     prisma.camp_transfers.count({ where }),

@@ -111,7 +111,7 @@ async function validateMembers(tx: Prisma.TransactionClient, campId: number, mem
 
   const client = tx as unknown as typeof prisma;
   const uniqueMemberIds = Array.from(new Set(memberIds));
-  const people = await client.persons.findMany({
+  const people = await client.people.findMany({
     where: { id: { in: uniqueMemberIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -141,7 +141,7 @@ async function changeMemberStatus(
   if (personIds.length === 0) return;
 
   const client = tx as unknown as typeof prisma;
-  const people = await client.persons.findMany({
+  const people = await client.people.findMany({
     where: { id: { in: personIds } },
     select: { id: true, status: true },
   });
@@ -149,12 +149,12 @@ async function changeMemberStatus(
   const updates = people.filter((person: { status: string }) => person.status !== newStatus);
 
   for (const person of updates) {
-    await client.persons.update({
+    await client.people.update({
       where: { id: person.id },
       data: { status: newStatus },
     });
 
-    await client.person_status_log.create({
+    await client.person_status_logs.create({
       data: {
         person_id: person.id,
         old_status: person.status,
@@ -182,7 +182,7 @@ export async function handleResourceOutflow(
 
   if (resourceIds.length === 0) return;
 
-  const inventoryRows = await client.inventory.findMany({
+  const inventoryRows = await client.inventories.findMany({
     where: {
       camp_id: input.campId,
       resource_type_id: { in: resourceIds },
@@ -217,7 +217,7 @@ export async function handleResourceOutflow(
   for (const resourceId of resourceIds) {
     const requested = aggregatedResources.get(resourceId)!;
 
-    const updateResult = await client.inventory.updateMany({
+    const updateResult = await client.inventories.updateMany({
       where: {
         camp_id: input.campId,
         resource_type_id: resourceId,
@@ -235,13 +235,13 @@ export async function handleResourceOutflow(
         400,
       );
     }
-    await client.inventory_log.create({
+    await client.inventory_logs.create({
       data: {
         camp_id: input.campId,
         resource_type_id: resourceId,
         logged_by: input.loggedBy,
         log_type: 'EXPEDITION_OUT',
-        delta: -requested,
+        quantity_change: -requested,
         description: `Expedition #${input.expeditionId} resource outflow`,
       },
     });
@@ -267,7 +267,7 @@ export async function handleResourceReturn(
   for (const resourceId of resourceIds) {
     const amount = aggregatedResources.get(resourceId)!;
 
-    await client.inventory.upsert({
+    await client.inventories.upsert({
       where: {
         camp_id_resource_type_id: {
           camp_id: input.campId,
@@ -285,13 +285,13 @@ export async function handleResourceReturn(
       },
     });
 
-    await client.inventory_log.create({
+    await client.inventory_logs.create({
       data: {
         camp_id: input.campId,
         resource_type_id: resourceId,
         logged_by: input.loggedBy,
         log_type: 'EXPEDITION_IN',
-        delta: amount,
+        quantity_change: amount,
         description: `Expedition #${input.expeditionId} resource return`,
       },
     });
