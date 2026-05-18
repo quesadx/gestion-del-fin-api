@@ -15,12 +15,29 @@ import {
 } from './people.schema.js';
 import { TransactionClient } from '../../generated/prisma/internal/prismaNamespace.js';
 
-const personInclude = { camps: true, professions: true };
 const ACTIVE_PERSON_STATUS_SET = new Set<persons_status>(
   Object.values(persons_status).filter((status) => status !== persons_status.DEAD),
 );
 
 type PeopleTransactionClient = Prisma.TransactionClient;
+
+const personInclude = {
+  camps: true,
+  professions: true,
+  admission_requests: true,
+  camp_transfer_items: true,
+  led_transfers: true,
+  contribution_overrides: {
+    include: { resource_type: true, users: true },
+  },
+  expedition_members: true,
+  person_status_logs: {
+    include: { users: { select: { id: true, username: true } } },
+  },
+  profession_reassignment_logs: {
+    include: { from_profession: true, to_profession: true },
+  },
+};
 
 function parseDate(dateStr?: string) {
   if (!dateStr) return undefined;
