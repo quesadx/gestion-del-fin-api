@@ -25,6 +25,9 @@ logs/
 src/generated/prisma/
 prisma/migrations.lock/
 
+# Prisma deploy stuff
+!prisma.config.js
+
 # Test environment
 .env.test
 
