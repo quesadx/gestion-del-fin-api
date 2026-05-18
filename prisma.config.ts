@@ -1,11 +1,5 @@
 import { defineConfig } from 'prisma/config';
 
-// Only load dotenv in non-production environments
-if (process.env.NODE_ENV !== 'production') {
-  const { config } = await import('dotenv');
-  config();
-}
-
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
