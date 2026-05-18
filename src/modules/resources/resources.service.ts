@@ -97,6 +97,8 @@ export async function getDailyRationResources(campId: number) {
           camp_id: true,
           resource_type_id: true,
           quantity: true,
+          created_at: true,
+          deleted_at: true,
         },
       },
     },

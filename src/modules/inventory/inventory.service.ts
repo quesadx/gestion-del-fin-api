@@ -271,12 +271,17 @@ export async function getCampInventory(campId: number, page = 1, pageSize = 20) 
       select: {
         resource_type_id: true,
         quantity: true,
+        created_at: true,
+        deleted_at: true,
         resource_type: {
           select: {
             id: true,
             name: true,
             unit: true,
             minimum_stock: true,
+            created_at: true,
+            updated_at: true,
+            deleted_at: true,
           },
         },
       },
@@ -288,7 +293,17 @@ export async function getCampInventory(campId: number, page = 1, pageSize = 20) 
       (row: {
         resource_type_id: number;
         quantity: Prisma.Decimal;
-        resource_type: { id: number; name: string; unit: string; minimum_stock: Prisma.Decimal };
+        created_at: Date;
+        deleted_at: Date | null;
+        resource_type: {
+          id: number;
+          name: string;
+          unit: string;
+          minimum_stock: Prisma.Decimal;
+          created_at: Date;
+          updated_at: Date;
+          deleted_at: Date | null;
+        };
       }) => {
         const quantity = asNumber(row.quantity);
         const minimumStock = asNumber(row.resource_type.minimum_stock);
@@ -300,6 +315,17 @@ export async function getCampInventory(campId: number, page = 1, pageSize = 20) 
           quantity,
           minimum_stock: minimumStock,
           is_below_minimum: quantity < minimumStock,
+          created_at: row.created_at,
+          deleted_at: row.deleted_at,
+          resource_type: {
+            id: row.resource_type.id,
+            name: row.resource_type.name,
+            unit: row.resource_type.unit,
+            minimum_stock: minimumStock,
+            created_at: row.resource_type.created_at,
+            updated_at: row.resource_type.updated_at,
+            deleted_at: row.resource_type.deleted_at,
+          },
         };
       },
     )
@@ -439,6 +465,7 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
         log_type: true,
         quantity_change: true,
         logged_at: true,
+        created_at: true,
         description: true,
       },
     });
@@ -453,6 +480,8 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
       select: {
         quantity: true,
         last_updated: true,
+        created_at: true,
+        deleted_at: true,
       },
     });
 
@@ -466,6 +495,8 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
         resource_type_id: data.resource_type_id,
         quantity: asNumber(currentInventory?.quantity ?? 0),
         last_updated: currentInventory?.last_updated ?? now,
+        created_at: currentInventory?.created_at ?? now,
+        deleted_at: currentInventory?.deleted_at ?? null,
       },
     };
   });
