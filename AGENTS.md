@@ -20,7 +20,7 @@ model: claude
 | ----------------- | ------------------------------ | -------------------------------------------------------------------------- |
 | **Runtime**       | Node.js 20+, Express 5.2.1     | `/src/index.ts` is entry; 13 route modules mounted                         |
 | **Language**      | TypeScript (strict mode)       | Compiles to `/dist`, runs via `node` or `tsx watch`                        |
-| **Database**      | MariaDB + Prisma 7.8           | Schema in `/prisma/schema.prisma`; migrations in `/prisma/migrations/`     |
+| **Database**      | PostgreSQL + Prisma 7.8        | Schema in `/prisma/schema.prisma`; migrations in `/prisma/migrations/`     |
 | **Auth**          | JWT (jsonwebtoken), bcryptjs   | 20-min session timeout via `session.middleware.ts`                         |
 | **Validation**    | Zod                            | schemas in `{module}.schema.ts`; applied via `validate(Schema)` middleware |
 | **Logging**       | Winston                        | general logs + daily rotate; audit log captures user actions               |

@@ -4,394 +4,471 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
-}
-
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String? @db.Text
-  published Boolean @default(false)
-  authorId  Int
-  author    User    @relation(fields: [authorId], references: [id])
-
-  @@index([authorId], map: "Post_authorId_fkey")
+  provider = "postgresql"
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model achievements {
-  id                Int                 @id @default(autoincrement()) @db.UnsignedInt
-  name              String              @unique(map: "name_UNIQUE") @db.VarChar(100)
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique(map: "achievements_name_unique") @db.VarChar(100)
   description       String?             @db.VarChar(255)
   icon_url          String              @db.VarChar(500)
   trigger_rule      String              @db.VarChar(100)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
   user_achievements user_achievements[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model admission_requests {
-  id                      Int                               @id @default(autoincrement()) @db.UnsignedInt
-  camp_id                 Int                               @db.UnsignedInt
+  id                      Int                               @id @default(autoincrement())
+  camp_id                 Int
   applicant_name          String                            @db.VarChar(150)
-  applicant_age           Int?                              @db.UnsignedTinyInt
+  applicant_age           Int?
   applicant_skills        String?                           @db.Text
   health_notes            String?                           @db.Text
   background_notes        String?                           @db.Text
-  photo_url               String?                           @db.VarChar(255)
+  photo_url               String?                           @db.VarChar(500)
   id_card_url             String?                           @db.VarChar(500)
+  /// AI's recommended decision (ACCEPTED/REJECTED/PENDING)
   ai_decision             admission_requests_ai_decision    @default(PENDING)
   ai_reasoning            String?                           @db.Text
   ai_suggested_profession String?                           @db.VarChar(80)
-  ai_profession_id        Int?                              @db.UnsignedInt
-  reviewed_by             Int?                              @db.UnsignedInt
+  ai_profession_id        Int?
+  person_id               Int?
+  reviewed_by             Int?
+  /// Human reviewer's final override decision
   final_decision          admission_requests_final_decision @default(PENDING)
-  reviewed_at             DateTime?                         @db.DateTime(0)
-  created_at              DateTime                          @default(now()) @db.DateTime(0)
-  camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_admission_requests_camp_id")
-  users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviewed_by")
+  reviewed_at             DateTime?
+  created_at              DateTime                          @default(now())
+  camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  ai_profession           professions?                      @relation(fields: [ai_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  person                  people?                           @relation(fields: [person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  @@index([camp_id], map: "fk_admission_request_camp_idx")
-  @@index([reviewed_by], map: "fk_user_reviewd_by_idx")
+  @@index([camp_id], map: "admission_requests_camp_id_idx")
+  @@index([reviewed_by], map: "admission_requests_reviewed_by_idx")
+  @@index([ai_profession_id], map: "admission_requests_ai_profession_id_idx")
+  @@index([person_id], map: "admission_requests_person_id_idx")
+  @@index([created_at], map: "admission_requests_created_at_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model camp_transfer_item {
-  id               Int                          @id @default(autoincrement()) @db.UnsignedInt
-  camp_transfer_id Int                          @db.UnsignedInt
+model camp_transfer_items {
+  id               Int                          @id @default(autoincrement())
+  camp_transfer_id Int
   item_type        camp_transfer_item_item_type
-  resource_type_id Int?                         @db.UnsignedInt
-  person_id        Int?                         @db.UnsignedInt
+  resource_type_id Int?
+  person_id        Int?
   quantity         Decimal?                     @db.Decimal(10, 2)
-  camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_camp_transfer_id")
-  persons          persons?                     @relation(fields: [person_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transfer_item_person_id")
-  resource_type    resource_type?               @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transfer_item_resource_type_id")
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
+  camp_transfers   camp_transfers               @relation(fields: [camp_transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  persons          people?                      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  resource_type    resource_types?              @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([camp_transfer_id], map: "fk_camp_transfer_id_idx")
-  @@index([person_id], map: "fk_person_id_idx")
-  @@index([resource_type_id], map: "fk_resource_type_id_idx")
+  @@index([camp_transfer_id], map: "camp_transfer_items_camp_transfer_id_idx")
+  @@index([person_id], map: "camp_transfer_items_person_id_idx")
+  @@index([resource_type_id], map: "camp_transfer_items_resource_type_id_idx")
+  @@map("camp_transfer_item")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model camp_transfers {
-  id                                             Int                   @id @default(autoincrement()) @db.UnsignedInt
-  requesting_camp                                Int                   @db.UnsignedInt
-  target_camp                                    Int                   @db.UnsignedInt
-  status                                         camp_transfers_status @default(PENDING)
-  type                                           camp_transfers_type
-  notes                                          String?               @db.Text
-  requested_by                                   Int                   @db.UnsignedInt
-  leader_person_id                               Int?                  @db.UnsignedInt
-  scheduled_delivery_date                        DateTime?             @db.DateTime(0)
-  approved_by_source                             Int?                  @db.UnsignedInt
-  approved_by_target                             Int?                  @db.UnsignedInt
-  approved_source_at                             DateTime?             @db.DateTime(0)
-  approved_target_at                             DateTime?             @db.DateTime(0)
-  created_at                                     DateTime              @default(now()) @db.DateTime(0)
-  camp_transfer_item                             camp_transfer_item[]
-  users_camp_transfers_approved_by_sourceTousers users?                @relation("camp_transfers_approved_by_sourceTousers", fields: [approved_by_source], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_approved_by_source")
-  users_camp_transfers_approved_by_targetTousers users?                @relation("camp_transfers_approved_by_targetTousers", fields: [approved_by_target], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_approved_by_target")
-  users_camp_transfers_requested_byTousers       users                 @relation("camp_transfers_requested_byTousers", fields: [requested_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_requested_by")
-  camps_camp_transfers_requesting_campTocamps    camps                 @relation("camp_transfers_requesting_campTocamps", fields: [requesting_camp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_requesting_camp")
-  camps_camp_transfers_target_campTocamps        camps                 @relation("camp_transfers_target_campTocamps", fields: [target_camp], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_target_camp")
-  persons                                        persons?              @relation(fields: [leader_person_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transfer_leader_person")
+  id                      Int                   @id @default(autoincrement())
+  requesting_camp         Int
+  target_camp             Int
+  status                  camp_transfers_status @default(PENDING)
+  type                    camp_transfers_type
+  notes                   String?               @db.Text
+  requested_by            Int
+  leader_person_id        Int?
+  scheduled_delivery_date DateTime?
+  approved_by_source      Int?
+  approved_by_target      Int?
+  approved_source_at      DateTime?
+  approved_target_at      DateTime?
+  created_at              DateTime              @default(now())
+  camp_transfer_items     camp_transfer_items[]
+  approved_by_source_ref  users?                @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  approved_by_target_ref  users?                @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  requested_by_ref        users                 @relation("transfer_requested_by", fields: [requested_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  requesting_camp_ref     camps                 @relation("transfer_requesting_camp", fields: [requesting_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  target_camp_ref         camps                 @relation("transfer_target_camp", fields: [target_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  leader_person_ref       people?               @relation("transfer_leader", fields: [leader_person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  @@index([approved_by_source], map: "fk_approved_by_source_idx")
-  @@index([approved_by_target], map: "fk_approved_by_target_idx")
-  @@index([requested_by], map: "fk_requested_by_idx")
-  @@index([requesting_camp], map: "fk_requesting_camp_idx")
-  @@index([target_camp], map: "fk_target_camp_idx")
-  @@index([leader_person_id], map: "fk_transfer_leader_person_idx")
+  @@index([approved_by_source], map: "camp_transfers_approved_by_source_idx")
+  @@index([approved_by_target], map: "camp_transfers_approved_by_target_idx")
+  @@index([requested_by], map: "camp_transfers_requested_by_idx")
+  @@index([requesting_camp], map: "camp_transfers_requesting_camp_idx")
+  @@index([target_camp], map: "camp_transfers_target_camp_idx")
+  @@index([leader_person_id], map: "camp_transfers_leader_person_id_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model camps {
-  id                                                   Int                  @id @default(autoincrement()) @db.UnsignedInt
-  name                                                 String               @unique(map: "name_UNIQUE") @db.VarChar(100)
-  location                                             String?              @db.VarChar(100)
-  status                                               camps_status         @default(ACTIVE)
-  ai_context_prompt                                    String?              @db.Text
-  created_at                                           DateTime             @default(now()) @db.DateTime(0)
-  admission_requests                                   admission_requests[]
-  camp_transfers_camp_transfers_requesting_campTocamps camp_transfers[]     @relation("camp_transfers_requesting_campTocamps")
-  camp_transfers_camp_transfers_target_campTocamps     camp_transfers[]     @relation("camp_transfers_target_campTocamps")
-  expeditions                                          expeditions[]
-  inventory                                            inventory[]
-  inventory_log                                        inventory_log[]
-  persons                                              persons[]
-  users                                                users[]
+  id                   Int                  @id @default(autoincrement())
+  name                 String               @unique(map: "camps_name_unique") @db.VarChar(100)
+  location             String?              @db.VarChar(100)
+  status               camps_status         @default(ACTIVE)
+  ai_context_prompt    String?              @db.Text
+  created_at           DateTime             @default(now())
+  deleted_at            DateTime?
+  admission_requests   admission_requests[]
+  audit_logs           audit_logs[]
+  requesting_transfers camp_transfers[]     @relation("transfer_requesting_camp")
+  target_transfers     camp_transfers[]     @relation("transfer_target_camp")
+  expeditions          expeditions[]
+  inventories          inventories[]
+  inventory_logs       inventory_logs[]
+  persons              people[]
+  users                users[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model contribution_overrides {
-  id               Int           @id @default(autoincrement()) @db.UnsignedInt
-  person_id        Int           @db.UnsignedInt
-  resource_type_id Int           @db.UnsignedInt
-  reason           String        @db.VarChar(255)
-  start_date       DateTime      @default(now()) @db.Date
-  end_date         DateTime?     @db.Date
-  created_by       Int           @db.UnsignedInt
-  amount           Decimal       @db.Decimal(8, 2)
-  persons          persons       @relation(fields: [person_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contribution_overrides_person_id")
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contribution_overrides_resource_type_id")
-  users            users         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_created_by")
+  id               Int       @id @default(autoincrement())
+  person_id        Int
+  resource_type_id Int
+  reason           String    @db.VarChar(255)
+  start_date       DateTime  @default(now()) @db.Date
+  end_date         DateTime? @db.Date
+  created_by       Int?
+  amount           Decimal   @db.Decimal(8, 2)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  deleted_at       DateTime?
 
-  @@index([created_by], map: "fk_created_by_idx")
-  @@index([person_id], map: "fk_person_id_idx")
-  @@index([resource_type_id], map: "fk_resource_type__id_idx")
+  persons       people        @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  users         users?        @relation(fields: [created_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([created_by], map: "contribution_overrides_created_by_idx")
+  @@index([person_id], map: "contribution_overrides_person_id_idx")
+  @@index([resource_type_id], map: "contribution_overrides_resource_type_id_idx")
 }
 
 model expedition_allocated_resources {
-  expedition_id    Int           @db.UnsignedInt
-  resource_type_id Int           @db.UnsignedInt
+  expedition_id    Int
+  resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
-  expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_exp_allocated_expedition_id")
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_exp_allocated_resource_type_id")
+  created_at       DateTime      @default(now())
+  expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([expedition_id, resource_type_id])
-  @@index([expedition_id], map: "fk_expedition_id_idx")
-  @@index([resource_type_id], map: "fk_resource_type_id_idx")
+  @@index([resource_type_id], map: "expedition_allocated_resources_resource_type_id_idx")
 }
 
 model expedition_found_resources {
-  expedition_id    Int           @db.UnsignedInt
-  resource_type_id Int           @db.UnsignedInt
+  expedition_id    Int
+  resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
-  expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_exp_found_expedition_id")
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_exp_found_resource_type_id")
+  created_at       DateTime      @default(now())
+  expeditions      expeditions   @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([expedition_id, resource_type_id])
-  @@index([expedition_id], map: "fk_expedition_id_idx")
-  @@index([resource_type_id], map: "fk_resource_type_id_idx")
+  @@index([resource_type_id], map: "expedition_found_resources_resource_type_id_idx")
 }
 
 model expedition_members {
-  expedition_id Int         @db.UnsignedInt
-  person_id     Int         @db.UnsignedInt
-  expeditions   expeditions @relation(fields: [expedition_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_exp_members_expedition_id")
-  persons       persons     @relation(fields: [person_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_exp_members_person_id")
+  expedition_id Int
+  person_id     Int
+  created_at    DateTime      @default(now())
+  expeditions   expeditions @relation(fields: [expedition_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  persons       people      @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@id([person_id, expedition_id])
-  @@index([expedition_id], map: "fk_expedition_id_idx")
-  @@index([person_id], map: "fk_person_id_idx")
+  @@index([expedition_id], map: "expedition_members_expedition_id_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model expeditions {
-  id                             Int                              @id @default(autoincrement()) @db.UnsignedInt
-  camp_id                        Int                              @db.UnsignedInt
+  id                             Int                              @id @default(autoincrement())
+  camp_id                        Int
   destination                    String                           @db.VarChar(255)
   status                         expeditions_status               @default(PLANNED)
-  created_by                     Int                              @db.UnsignedInt
+  created_by                     Int
   departure_date                 DateTime                         @db.Date
   expected_return_date           DateTime                         @db.Date
   actual_return_date             DateTime?                        @db.Date
   max_return_date                DateTime                         @db.Date
   notes                          String?                          @db.Text
-  created_at                     DateTime                         @default(now()) @db.DateTime(0)
+  created_at                     DateTime                         @default(now())
+  deleted_at                      DateTime?
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
   expedition_members             expedition_members[]
-  camps                          camps                            @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_expeditions_camp_id")
-  users                          users                            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_expeditions_created_by")
+  camps                          camps                            @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  users                          users                            @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([camp_id], map: "fk_camp_id_idx")
-  @@index([created_by], map: "fk_created_by_idx")
+  @@index([camp_id], map: "expeditions_camp_id_idx")
+  @@index([created_by], map: "expeditions_created_by_idx")
+  @@index([departure_date], map: "expeditions_departure_date_idx")
+  @@index([expected_return_date], map: "expeditions_expected_return_date_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model inventory {
-  id               Int           @id @default(autoincrement()) @db.UnsignedInt
-  camp_id          Int           @db.UnsignedInt
-  resource_type_id Int           @db.UnsignedInt
+model inventories {
+  id               Int           @id @default(autoincrement())
+  camp_id          Int
+  resource_type_id Int
+  /// Denormalized snapshot — derived from inventory_log quantity_change deltas for query performance
   quantity         Decimal       @default(0.00) @db.Decimal(12, 2)
-  last_updated     DateTime      @default(now()) @db.DateTime(0)
-  camps            camps         @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_camp_id")
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_resource_type_id")
+  created_at       DateTime      @default(now())
+  last_updated     DateTime      @updatedAt
+  deleted_at        DateTime?
+  camps            camps         @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([camp_id, resource_type_id], map: "uq_camp_resource")
-  @@index([camp_id], map: "fk_camp_idx")
-  @@index([resource_type_id], map: "fk_resource_type_idx")
+  @@index([resource_type_id], map: "inventories_resource_type_id_idx")
+  @@map("inventory")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model inventory_log {
-  id               Int                    @id @default(autoincrement()) @db.UnsignedInt
-  camp_id          Int                    @db.UnsignedInt
-  resource_type_id Int                    @db.UnsignedInt
-  logged_by        Int?                   @db.UnsignedInt
+model inventory_logs {
+  id               Int                    @id @default(autoincrement())
+  camp_id          Int
+  resource_type_id Int
+  logged_by        Int?
   log_type         inventory_log_log_type
-  delta            Decimal                @db.Decimal(12, 2)
-  logged_at        DateTime               @default(now()) @db.DateTime(0)
+  quantity_change  Decimal                @db.Decimal(12, 2)
+  logged_at        DateTime               @default(now())
+  created_at       DateTime               @default(now())
   description      String?                @db.VarChar(255)
-  camps            camps                  @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_log_camp_id")
-  resource_type    resource_type          @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_log_resource_type_id")
-  users            users?                 @relation(fields: [logged_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_logged_by")
+  camps            camps                  @relation(fields: [camp_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type    resource_types         @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  users            users?                 @relation(fields: [logged_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  @@index([camp_id], map: "fk_camp__id_idx")
-  @@index([logged_by], map: "fk_logged_by_idx")
-  @@index([resource_type_id], map: "fk_resource_id_idx")
+  @@index([camp_id], map: "inventory_logs_camp_id_idx")
+  @@index([logged_by], map: "inventory_logs_logged_by_idx")
+  @@index([resource_type_id], map: "inventory_logs_resource_type_id_idx")
+  @@index([logged_at], map: "inventory_logs_logged_at_idx")
+  @@map("inventory_log")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model person_status_log {
-  id         Int      @id @default(autoincrement()) @db.UnsignedInt
-  person_id  Int      @db.UnsignedInt
-  old_status String   @db.VarChar(20)
-  new_status String   @db.VarChar(45)
-  reason     String?  @db.Text
-  changed_by Int      @db.UnsignedInt
-  changed_at DateTime @default(now()) @db.DateTime(0)
-  users      users    @relation(fields: [changed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_changed_by")
-  persons    persons  @relation(fields: [person_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_person_status_log_person_id")
+model person_status_logs {
+  id         Int            @id @default(autoincrement())
+  person_id  Int
+  old_status persons_status
+  new_status persons_status
+  reason     String?        @db.Text
+  changed_by Int?
+  changed_at DateTime       @default(now())
+  users      users?         @relation(fields: [changed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  persons    people         @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@index([changed_by], map: "fk_changed_by_idx")
-  @@index([person_id], map: "fk_person_id_idx")
+  @@index([changed_by], map: "person_status_logs_changed_by_idx")
+  @@index([person_id], map: "person_status_logs_person_id_idx")
+  @@map("person_status_log")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model persons {
-  id                          Int                           @id @default(autoincrement()) @db.UnsignedInt
-  camp_id                     Int                           @db.UnsignedInt
-  profession_id               Int                           @db.UnsignedInt
+model people {
+  id                          Int                           @id @default(autoincrement())
+  camp_id                     Int
+  profession_id               Int
   identification_code         String?                       @unique(map: "identification_code_UNIQUE") @db.VarChar(20)
   full_name                   String                        @db.VarChar(150)
-  age                         Int?                          @db.UnsignedTinyInt
+  age                         Int?
   blood_type                  String?                       @db.VarChar(5)
   skills_summary              String?                       @db.Text
   photo_url                   String?                       @db.VarChar(500)
   status                      persons_status                @default(HEALTHY)
-  admitted_at                 DateTime                      @default(now()) @db.DateTime(0)
-  camp_transfer_item          camp_transfer_item[]
-  camp_transfers              camp_transfers[]
+  admitted_at                 DateTime                      @default(now())
+  updated_at                   DateTime                      @updatedAt
+  deleted_at                   DateTime?
+  admission_requests          admission_requests[]
+  camp_transfer_items         camp_transfer_items[]
+  led_transfers               camp_transfers[]              @relation("transfer_leader")
   contribution_overrides      contribution_overrides[]
   expedition_members          expedition_members[]
-  person_status_log           person_status_log[]
-  camps                       camps                         @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_camp_id")
-  professions                 professions                   @relation(fields: [profession_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_persons_profession_id")
-  profession_reassignment_log profession_reassignment_log[]
+  person_status_logs          person_status_logs[]
+  camps                       camps                         @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  professions                 professions                   @relation(fields: [profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  profession_reassignment_logs profession_reassignment_logs[]
 
-  @@index([camp_id], map: "fk_person_camp__id_idx")
-  @@index([profession_id], map: "fk_persons_profession_id_idx")
+  @@index([camp_id], map: "people_camp_id_idx")
+  @@index([profession_id], map: "people_profession_id_idx")
+  @@map("persons")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model profession_reassignment_log {
-  id                                                                      Int         @id @default(autoincrement()) @db.UnsignedInt
-  person_id                                                               Int         @db.UnsignedInt
-  from_profession_id                                                      Int         @db.UnsignedInt
-  to_profession_id                                                        Int         @db.UnsignedInt
-  reason                                                                  String?     @db.Text
-  start_date                                                              DateTime    @default(now()) @db.Date
-  end_date                                                                DateTime?   @db.Date
-  professions_profession_reassignment_log_from_profession_idToprofessions professions @relation("profession_reassignment_log_from_profession_idToprofessions", fields: [from_profession_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_from_profession_id")
-  persons                                                                 persons     @relation(fields: [person_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reassignment_log_person_id")
-  professions_profession_reassignment_log_to_profession_idToprofessions   professions @relation("profession_reassignment_log_to_profession_idToprofessions", fields: [to_profession_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_to_profession_id")
+model profession_reassignment_logs {
+  id                 Int         @id @default(autoincrement())
+  person_id          Int
+  from_profession_id Int
+  to_profession_id   Int
+  reason             String?     @db.Text
+  start_date         DateTime    @default(now()) @db.Date
+  end_date           DateTime?   @db.Date
+  created_at         DateTime    @default(now())
+  updated_at         DateTime    @updatedAt
+  from_profession    professions @relation("profession_log_from_profession", fields: [from_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  persons            people      @relation(fields: [person_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  to_profession      professions @relation("profession_log_to_profession", fields: [to_profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([from_profession_id], map: "fk_from_profession_id_idx")
-  @@index([person_id], map: "fk_person_id_idx")
-  @@index([to_profession_id], map: "fk_to_profession_id_idx")
+  @@index([from_profession_id], map: "profession_reassignment_logs_from_profession_id_idx")
+  @@index([person_id], map: "profession_reassignment_logs_person_id_idx")
+  @@index([to_profession_id], map: "profession_reassignment_logs_to_profession_id_idx")
+  @@map("profession_reassignment_log")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model professions {
-  id                                                                                      Int                             @id @default(autoincrement()) @db.UnsignedInt
-  name                                                                                    String                          @unique(map: "name_UNIQUE") @db.VarChar(80)
-  description                                                                             String?                         @db.Text
-  persons                                                                                 persons[]
-  profession_reassignment_log_profession_reassignment_log_from_profession_idToprofessions profession_reassignment_log[]   @relation("profession_reassignment_log_from_profession_idToprofessions")
-  profession_reassignment_log_profession_reassignment_log_to_profession_idToprofessions   profession_reassignment_log[]   @relation("profession_reassignment_log_to_profession_idToprofessions")
-  professions_resources_amounts                                                           professions_resources_amounts[]
+  id                            Int                             @id @default(autoincrement())
+  name                          String                          @unique(map: "professions_name_unique") @db.VarChar(80)
+  description                   String?                         @db.Text
+  created_at                    DateTime                        @default(now())
+  updated_at                    DateTime                        @updatedAt
+  deleted_at                    DateTime?
+  admission_requests            admission_requests[]
+  persons                       people[]
+  from_profession_logs          profession_reassignment_logs[]  @relation("profession_log_from_profession")
+  to_profession_logs            profession_reassignment_logs[]  @relation("profession_log_to_profession")
+  professions_resources_amounts professions_resources_amounts[]
 }
 
 model professions_resources_amounts {
-  professions_id   Int           @db.UnsignedInt
-  resource_type_id Int           @db.UnsignedInt
+  profession_id    Int
+  resource_type_id Int
   amount           Decimal       @db.Decimal(12, 2)
-  professions      professions   @relation(fields: [professions_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prof_res_amounts_profession_id")
-  resource_type    resource_type @relation(fields: [resource_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prof_res_amounts_resource_type_id")
+  created_at       DateTime      @default(now())
+  professions      professions   @relation(fields: [profession_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resource_type    resource_types @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@id([professions_id, resource_type_id])
-  @@index([professions_id], map: "fk_profession_type_id_idx")
-  @@index([resource_type_id], map: "fk_resource_type_id_idx")
+  @@id([profession_id, resource_type_id])
+  @@index([resource_type_id], map: "professions_resources_amounts_resource_type_id_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model resource_type {
-  id                             Int                              @id @default(autoincrement()) @db.UnsignedInt
-  name                           String                           @unique(map: "name_UNIQUE") @db.VarChar(80)
+model resource_types {
+  id                             Int                              @id @default(autoincrement())
+  name                           String                           @unique(map: "resource_type_name_unique") @db.VarChar(80)
   unit                           String                           @db.VarChar(20)
   daily_ration                   Decimal                          @db.Decimal(8, 2)
   minimum_stock                  Decimal                          @db.Decimal(10, 2)
   auto_daily                     Boolean                          @default(false)
-  camp_transfer_item             camp_transfer_item[]
+  created_at                     DateTime                         @default(now())
+  updated_at                     DateTime                         @updatedAt
+  deleted_at                     DateTime?
+  camp_transfer_items            camp_transfer_items[]
   contribution_overrides         contribution_overrides[]
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
-  inventory                      inventory[]
-  inventory_log                  inventory_log[]
+  inventories                    inventories[]
+  inventory_logs                 inventory_logs[]
   professions_resources_amounts  professions_resources_amounts[]
+
+  @@map("resource_type")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model roles {
-  id          Int     @id @default(autoincrement()) @db.UnsignedInt
-  name        String  @unique(map: "name_UNIQUE") @db.VarChar(60)
-  description String? @db.VarChar(255)
-  users       users[]
+  id               Int                @id @default(autoincrement())
+  name             String             @unique(map: "roles_name_unique") @db.VarChar(60)
+  description      String?            @db.VarChar(255)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
+  users            users[]
+  role_permissions role_permissions[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model system_config {
-  id          Int      @id @default(1) @db.TinyInt
+model permissions {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique(map: "permissions_name_unique") @db.VarChar(80)
+  description      String?            @db.VarChar(255)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  deleted_at       DateTime?
+  role_permissions role_permissions[]
+}
+
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  created_at    DateTime    @default(now())
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([role_id, permission_id])
+  @@index([permission_id], map: "role_permissions_permission_id_idx")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model system_configs {
+  id          Int      @id @default(1)
   version     String?  @db.VarChar(20)
-  server_time DateTime @db.DateTime(0)
+  server_time DateTime
+  created_at  DateTime @default(now())
+
+  @@map("system_config")
 }
 
 model user_achievements {
-  id             Int          @id @default(autoincrement()) @db.UnsignedInt
-  user_id        Int          @db.UnsignedInt
-  achievement_id Int          @db.UnsignedInt
-  earned_at      DateTime     @default(now()) @db.DateTime(0)
-  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_achivement_id")
-  users          users        @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_id")
+  id             Int          @id @default(autoincrement())
+  user_id        Int
+  achievement_id Int
+  earned_at      DateTime     @default(now())
+  created_at     DateTime     @default(now())
+  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  users          users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@index([achievement_id], map: "fk_achivement_id_idx")
-  @@index([user_id], map: "fk_user_id_idx")
+  @@unique([user_id, achievement_id])
+  @@index([achievement_id], map: "user_achievements_achievement_id_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model users {
-  id                                                      Int                      @id @default(autoincrement()) @db.UnsignedInt
-  camp_id                                                 Int                      @db.UnsignedInt
-  role_id                                                 Int                      @db.UnsignedInt
-  session_version                                         Int                      @default(1) @db.UnsignedInt
-  username                                                String                   @unique(map: "username_UNIQUE") @db.VarChar(60)
-  password_hash                                           String                   @db.VarChar(255)
-  is_active                                               Boolean                  @default(true)
-  last_activity                                           DateTime?                @db.Timestamp(0)
-  created_at                                              DateTime                 @default(now()) @db.DateTime(0)
-  admission_requests                                      admission_requests[]
-  camp_transfers_camp_transfers_approved_by_sourceTousers camp_transfers[]         @relation("camp_transfers_approved_by_sourceTousers")
-  camp_transfers_camp_transfers_approved_by_targetTousers camp_transfers[]         @relation("camp_transfers_approved_by_targetTousers")
-  camp_transfers_camp_transfers_requested_byTousers       camp_transfers[]         @relation("camp_transfers_requested_byTousers")
-  contribution_overrides                                  contribution_overrides[]
-  expeditions                                             expeditions[]
-  inventory_log                                           inventory_log[]
-  person_status_log                                       person_status_log[]
-  user_achievements                                       user_achievements[]
-  camps                                                   camps                    @relation(fields: [camp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_camp_id")
-  roles                                                   roles                    @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
+  id                           Int                      @id @default(autoincrement())
+  camp_id                      Int
+  role_id                      Int
+  session_version              Int                      @default(1)
+  username                     String                   @unique(map: "username_UNIQUE") @db.VarChar(60)
+  password_hash                String                   @db.VarChar(255)
+  is_active                    Boolean                  @default(true)
+  last_activity                DateTime?
+  created_at                   DateTime                 @default(now())
+  admission_requests           admission_requests[]
+  audit_logs                   audit_logs[]
+  transfers_approved_by_source camp_transfers[]         @relation("transfer_approved_by_source")
+  transfers_approved_by_target camp_transfers[]         @relation("transfer_approved_by_target")
+  transfers_requested_by       camp_transfers[]         @relation("transfer_requested_by")
+  contribution_overrides       contribution_overrides[]
+  expeditions                  expeditions[]
+  inventory_logs               inventory_logs[]
+  person_status_logs           person_status_logs[]
+  user_achievements            user_achievements[]
+  camps                        camps                    @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  roles                        roles                    @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([camp_id], map: "fk_users_camp_idx")
-  @@index([role_id], map: "fk_users_role_idx")
+  @@index([camp_id], map: "users_camp_id_idx")
+  @@index([role_id], map: "users_role_id_idx")
+}
+
+model audit_logs {
+  id          Int      @id @default(autoincrement())
+  user_id     Int?
+  camp_id     Int?
+  action      audit_log_action
+  target_type audit_log_target_type
+  target_id   Int?
+  metadata    Json?    @db.JsonB
+  created_at  DateTime @default(now())
+  users       users?   @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  camps       camps?   @relation(fields: [camp_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([user_id], map: "audit_logs_user_id_idx")
+  @@index([camp_id], map: "audit_logs_camp_id_idx")
+  @@index([created_at], map: "audit_logs_created_at_idx")
+  @@map("audit_log")
 }
 
 enum camp_transfer_item_item_type {
@@ -454,4 +531,26 @@ enum admission_requests_final_decision {
   ACCEPTED
   REJECTED
   PENDING
+}
+
+enum audit_log_action {
+  CREATE_CAMP
+  UPDATE_CAMP
+  DELETE_CAMP
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  CREATE_TRANSFER
+  APPROVE_TRANSFER_SOURCE
+  APPROVE_TRANSFER_TARGET
+  COMPLETE_TRANSFER
+  REJECT_TRANSFER
+  LOGIN
+  LOGOUT
+}
+
+enum audit_log_target_type {
+  users
+  camps
+  camp_transfers
 }

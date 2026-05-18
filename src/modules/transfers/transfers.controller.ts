@@ -18,9 +18,10 @@ export async function createTransferHandler(req: Request, res: Response) {
 }
 
 export async function listTransfersHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  const result = await getTransfers(page, pageSize);
+  const result = await getTransfers(authReq.user.campId, page, pageSize);
   return res.json(result);
 }
 

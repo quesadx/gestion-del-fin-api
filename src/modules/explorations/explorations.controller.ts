@@ -8,6 +8,7 @@ import {
   getExplorations,
 } from './explorations.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
+import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 
 export async function createExplorationHandler(req: Request, res: Response) {
   const result = await createExploration(req.body);
@@ -39,8 +40,9 @@ export async function getExplorationHandler(req: Request, res: Response) {
 }
 
 export async function listExplorationsHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  const result = await getExplorations(page, pageSize);
+  const result = await getExplorations(authReq.user.campId, page, pageSize);
   return res.json(result);
 }

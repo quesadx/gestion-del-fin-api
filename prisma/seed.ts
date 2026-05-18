@@ -1,13 +1,13 @@
 import { prisma } from '../src/lib/prisma';
+import { PERMISSIONS } from '../src/shared/constants/permissions';
+import { logger } from '../src/logger/logger';
 
 async function main() {
-  console.log('Starting database seed...');
+  logger.info('Starting database seed...');
 
-  // To deeply avoid issues with foreign keys during the clean phase
-  // we execute raw SQL to disable checks.
-  await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 0;`);
+  // For PostgreSQL, we disable triggers and constraints temporarily
+  logger.info('Cleaning existing data...');
 
-  console.log('Cleaning existing data...');
   const tableNames = [
     'user_achievements',
     'achievements',
@@ -28,27 +28,28 @@ async function main() {
     'professions',
     'resource_type',
     'users',
+    'role_permissions',
+    'permissions',
     'roles',
     'camps',
     'system_config',
-    'Post',
-    'User',
   ];
 
+  // Disable constraints for PostgreSQL
   for (const table of tableNames) {
     try {
-      await prisma.$executeRawUnsafe(`DELETE FROM \`${table}\`;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE \`${table}\` AUTO_INCREMENT = 1;`);
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`);
     } catch (err) {
-      console.warn(`Could not clean table ${table} (maybe it doesn't exist)`);
+      logger.warn(
+        `Could not truncate table ${table} (maybe it doesn't exist): ${(err as any).message}`,
+      );
     }
   }
 
-  await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 1;`);
-  console.log('Database cleaned.');
+  logger.info('Database cleaned.');
 
   // Seed base entities
-  console.log('Seeding base entities...');
+  logger.info('Seeding base entities...');
   const mainCamp = await prisma.camps.create({
     data: {
       name: 'Alpha Outpost',
@@ -83,19 +84,191 @@ async function main() {
     },
   });
 
-  await prisma.roles.create({
+  const resourceManagerRole = await prisma.roles.create({
     data: {
       name: 'resource_manager',
       description: 'Inventory and resource operations manager',
     },
   });
 
-  await prisma.roles.create({
+  const travelCoordinatorRole = await prisma.roles.create({
     data: {
       name: 'travel_coordinator',
       description: 'Expedition and transfer coordination role',
     },
   });
+
+  const permissionDefinitions = Object.values(PERMISSIONS).map((name) => ({
+    name,
+    description: name.replace(/\./g, ' ').replace(/_/g, ' '),
+  }));
+
+  await prisma.permissions.createMany({ data: permissionDefinitions, skipDuplicates: true });
+
+  const permissions = await prisma.permissions.findMany({
+    where: { name: { in: permissionDefinitions.map((entry) => entry.name) } },
+    select: { id: true, name: true },
+  });
+
+  const permissionIdByName = new Map(
+    permissions.map((permission) => [permission.name, permission.id]),
+  );
+  const roleIdByName = new Map<string, number>([
+    [adminRole.name, adminRole.id],
+    [workerRole.name, workerRole.id],
+    [resourceManagerRole.name, resourceManagerRole.id],
+    [travelCoordinatorRole.name, travelCoordinatorRole.id],
+  ]);
+
+  const rolePermissionMap: Record<string, string[]> = {
+    system_admin: [
+      PERMISSIONS.CAMPS_CREATE,
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.CAMPS_UPDATE,
+      PERMISSIONS.CAMPS_DELETE,
+      PERMISSIONS.PEOPLE_CREATE,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PEOPLE_UPDATE,
+      PERMISSIONS.PEOPLE_DELETE,
+      PERMISSIONS.PEOPLE_STATUS_LOG_CREATE,
+      PERMISSIONS.PEOPLE_PROFESSION_REASSIGN,
+      PERMISSIONS.PEOPLE_CONTRIBUTION_OVERRIDE_CREATE,
+      PERMISSIONS.RESOURCES_CREATE,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.RESOURCES_UPDATE,
+      PERMISSIONS.RESOURCES_DELETE,
+      PERMISSIONS.PROFESSIONS_CREATE,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.PROFESSIONS_UPDATE,
+      PERMISSIONS.PROFESSIONS_DELETE,
+      PERMISSIONS.EXPEDITIONS_CREATE,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.EXPEDITIONS_UPDATE,
+      PERMISSIONS.EXPEDITIONS_UPDATE_STATUS,
+      PERMISSIONS.EXPEDITIONS_DELETE,
+      PERMISSIONS.USERS_CREATE,
+      PERMISSIONS.USERS_READ,
+      PERMISSIONS.USERS_UPDATE,
+      PERMISSIONS.USERS_DELETE,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.INVENTORY_AUDIT_READ,
+      PERMISSIONS.INVENTORY_ADJUST,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.ADMISSION_REVIEW,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+      PERMISSIONS.METRICS_DASHBOARD,
+      PERMISSIONS.METRICS_RESOURCES,
+      PERMISSIONS.METRICS_PEOPLE,
+      PERMISSIONS.METRICS_EXPEDITIONS,
+      PERMISSIONS.ROLES_CREATE,
+      PERMISSIONS.ROLES_READ,
+      PERMISSIONS.ROLES_UPDATE,
+      PERMISSIONS.ROLES_DELETE,
+      PERMISSIONS.PERMISSIONS_CREATE,
+      PERMISSIONS.PERMISSIONS_READ,
+      PERMISSIONS.PERMISSIONS_UPDATE,
+      PERMISSIONS.PERMISSIONS_DELETE,
+      PERMISSIONS.ADMIN_BYPASS_CAMP_SCOPING,
+    ],
+    worker: [
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.INVENTORY_ADJUST,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+    ],
+    resource_manager: [
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.RESOURCES_CREATE,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.RESOURCES_UPDATE,
+      PERMISSIONS.RESOURCES_DELETE,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PEOPLE_UPDATE,
+      PERMISSIONS.PEOPLE_STATUS_LOG_CREATE,
+      PERMISSIONS.PEOPLE_PROFESSION_REASSIGN,
+      PERMISSIONS.PEOPLE_CONTRIBUTION_OVERRIDE_CREATE,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.INVENTORY_AUDIT_READ,
+      PERMISSIONS.INVENTORY_ADJUST,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+      PERMISSIONS.METRICS_DASHBOARD,
+      PERMISSIONS.METRICS_RESOURCES,
+      PERMISSIONS.METRICS_PEOPLE,
+      PERMISSIONS.METRICS_EXPEDITIONS,
+    ],
+    travel_coordinator: [
+      PERMISSIONS.CAMPS_READ,
+      PERMISSIONS.RESOURCES_READ,
+      PERMISSIONS.PEOPLE_READ,
+      PERMISSIONS.PROFESSIONS_READ,
+      PERMISSIONS.EXPEDITIONS_CREATE,
+      PERMISSIONS.EXPEDITIONS_READ,
+      PERMISSIONS.EXPEDITIONS_UPDATE,
+      PERMISSIONS.EXPEDITIONS_UPDATE_STATUS,
+      PERMISSIONS.EXPEDITIONS_DELETE,
+      PERMISSIONS.INVENTORY_READ,
+      PERMISSIONS.ADMISSION_CREATE,
+      PERMISSIONS.ADMISSION_READ,
+      PERMISSIONS.TRANSFERS_CREATE,
+      PERMISSIONS.TRANSFERS_READ,
+      PERMISSIONS.TRANSFERS_SCHEDULE,
+      PERMISSIONS.TRANSFERS_APPROVE_SOURCE,
+      PERMISSIONS.TRANSFERS_APPROVE_TARGET,
+      PERMISSIONS.TRANSFERS_COMPLETE,
+      PERMISSIONS.TRANSFERS_REJECT,
+    ],
+  };
+
+  const rolePermissionRows: Array<{ role_id: number; permission_id: number }> = [];
+
+  for (const [roleName, permissionNames] of Object.entries(rolePermissionMap)) {
+    const roleId = roleIdByName.get(roleName);
+    if (!roleId) {
+      throw new Error(`Role not found when assigning permissions: ${roleName}`);
+    }
+
+    for (const permissionName of permissionNames) {
+      const permissionId = permissionIdByName.get(permissionName);
+      if (!permissionId) {
+        throw new Error(`Permission not found when assigning: ${permissionName}`);
+      }
+
+      rolePermissionRows.push({ role_id: roleId, permission_id: permissionId });
+    }
+  }
+
+  if (rolePermissionRows.length > 0) {
+    await prisma.role_permissions.createMany({ data: rolePermissionRows });
+  }
 
   const engineerProfession = await prisma.professions.create({
     data: {
@@ -142,14 +315,14 @@ async function main() {
   });
 
   // Seed dependent entities
-  console.log('Seeding dependent entities...');
+  logger.info('Seeding dependent entities...');
   const adminUser = await prisma.users.upsert({
     where: { username: 'admin_master' },
     create: {
       camp_id: mainCamp.id,
       role_id: adminRole.id,
       username: 'admin_master',
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
       is_active: true,
     },
     update: {
@@ -168,7 +341,7 @@ async function main() {
       camp_id: secondaryCamp.id,
       role_id: workerRole.id,
       username: 'camp_manager',
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du', // bcrypt hash for 'password'
+      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
       is_active: true,
     },
     update: {
@@ -275,7 +448,7 @@ async function main() {
         resource_type_id: item.resource_type_id,
         logged_by: adminUser.id,
         log_type: 'MANUAL_IN',
-        delta: item.quantity,
+        quantity_change: item.quantity,
         description: 'Seed: opening inventory balance',
       })),
     }),
@@ -305,14 +478,14 @@ async function main() {
         resource_type_id: item.resource_type_id,
         logged_by: standardUser.id,
         log_type: 'MANUAL_IN',
-        delta: item.quantity,
+        quantity_change: item.quantity,
         description: 'Seed: opening inventory balance',
       })),
     }),
   ]);
 
   // Seed expeditions module data
-  console.log('Seeding expeditions data...');
+  logger.info('Seeding expeditions data...');
 
   const plannedExpedition = await prisma.expeditions.create({
     data: {
@@ -453,7 +626,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-12',
+        quantity_change: '-12',
         description: `Seed: Expedition #${plannedExpedition.id} resource outflow`,
       },
       {
@@ -461,7 +634,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-20',
+        quantity_change: '-20',
         description: `Seed: Expedition #${plannedExpedition.id} resource outflow`,
       },
       {
@@ -469,7 +642,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-18',
+        quantity_change: '-18',
         description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
       },
       {
@@ -477,7 +650,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-30',
+        quantity_change: '-30',
         description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
       },
       {
@@ -485,7 +658,7 @@ async function main() {
         resource_type_id: medsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-5',
+        quantity_change: '-5',
         description: `Seed: Expedition #${ongoingExpedition.id} resource outflow`,
       },
       {
@@ -493,7 +666,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-15',
+        quantity_change: '-15',
         description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
       },
       {
@@ -501,7 +674,7 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-25',
+        quantity_change: '-25',
         description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
       },
       {
@@ -509,7 +682,7 @@ async function main() {
         resource_type_id: medsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_OUT',
-        delta: '-2',
+        quantity_change: '-2',
         description: `Seed: Expedition #${returnedExpedition.id} resource outflow`,
       },
       {
@@ -517,7 +690,7 @@ async function main() {
         resource_type_id: rationsResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_IN',
-        delta: '5',
+        quantity_change: '5',
         description: `Seed: Expedition #${returnedExpedition.id} resource return`,
       },
       {
@@ -525,14 +698,14 @@ async function main() {
         resource_type_id: waterResource.id,
         logged_by: adminUser.id,
         log_type: 'EXPEDITION_IN',
-        delta: '10',
+        quantity_change: '10',
         description: `Seed: Expedition #${returnedExpedition.id} resource return`,
       },
     ],
   });
 
   // Seed transfers module data
-  console.log('Seeding transfers data...');
+  logger.info('Seeding transfers data...');
 
   const pendingResourceTransfer = await prisma.camp_transfers.create({
     data: {
@@ -666,13 +839,13 @@ async function main() {
     },
   });
 
-  console.log('Seed completed successfully.');
+  logger.info('Seed completed successfully.');
 }
 
 main()
   .catch((e) => {
-    console.error('Error during seeding:');
-    console.error(e);
+    logger.error('Error during seeding:');
+    logger.error(e);
     process.exit(1);
   })
   .finally(async () => {

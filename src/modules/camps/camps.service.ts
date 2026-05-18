@@ -5,6 +5,7 @@ import {
   handleForeignKeyError,
 } from '../../shared/utils/handlePrismaError.js';
 import { CreateCampDto, UpdateCampDto } from './camps.schema.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 function prepareCampCreateData(data: CreateCampDto) {
   return {
@@ -24,25 +25,50 @@ function prepareCampUpdateData(data: UpdateCampDto) {
   };
 }
 
-export async function createCamp(data: CreateCampDto) {
+export async function createCamp(data: CreateCampDto, actorUserId: number, actorCampId: number) {
   try {
-    return await prisma.camps.create({
+    const camp = await prisma.camps.create({
       data: prepareCampCreateData(data),
     });
+
+    auditLog({
+      userId: actorUserId,
+      campId: actorCampId,
+      action: 'CREATE_CAMP',
+      targetType: 'camps',
+      targetId: camp.id,
+    });
+
+    return camp;
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
 }
 
-export async function updateCamp(id: number, data: UpdateCampDto) {
+export async function updateCamp(
+  id: number,
+  data: UpdateCampDto,
+  actorUserId: number,
+  actorCampId: number,
+) {
   const camp = await prisma.camps.findUnique({ where: { id } });
   if (!camp) throw new AppError(`Camp not found: ${id}`, 404);
 
   try {
-    return await prisma.camps.update({
+    const updated = await prisma.camps.update({
       where: { id },
       data: prepareCampUpdateData(data),
     });
+
+    auditLog({
+      userId: actorUserId,
+      campId: actorCampId,
+      action: 'UPDATE_CAMP',
+      targetType: 'camps',
+      targetId: id,
+    });
+
+    return updated;
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
@@ -52,6 +78,13 @@ export async function getCamp(id: number) {
   const camp = await prisma.camps.findUnique({ where: { id } });
   if (!camp) throw new AppError(`Camp not found: ${id}`, 404);
   return camp;
+}
+
+export async function getAllCamps() {
+  return prisma.camps.findMany({
+    select: { id: true, name: true, created_at: true, deleted_at: true },
+    orderBy: { id: 'asc' },
+  });
 }
 
 export async function getCamps(page = 1, pageSize = 20) {
@@ -75,11 +108,19 @@ export async function getCamps(page = 1, pageSize = 20) {
   };
 }
 
-export async function deleteCamp(id: number) {
+export async function deleteCamp(id: number, actorUserId: number, actorCampId: number) {
   const camp = await prisma.camps.findUnique({ where: { id } });
   if (!camp) throw new AppError(`Camp not found: ${id}`, 404);
   try {
     await prisma.camps.delete({ where: { id } });
+
+    auditLog({
+      userId: actorUserId,
+      campId: actorCampId,
+      action: 'DELETE_CAMP',
+      targetType: 'camps',
+      targetId: id,
+    });
   } catch (error: any) {
     handleForeignKeyError(error);
   }

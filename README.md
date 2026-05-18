@@ -2,6 +2,58 @@
 
 Secure API for **Gestión del fin** (EIF209). Handles multi-camp management, resources, AI-driven ingress decisions, and audit logs. Features server-side time consistency, RBAC, 20min session security, and support for resource transfers and expeditions. Built with Node.js and TypeScript. Universidad Nacional 2026.
 
+# Database
+
+This project uses **PostgreSQL** via [Supabase](https://supabase.com) in production, and a local PostgreSQL instance (via Docker Compose) for development.
+
+### Environment variables
+
+Copy `.env.example` and fill in the values:
+
+```bash
+cp .env.example .env
+```
+
+For **local development**, set the database URLs to your local PostgreSQL instance:
+
+```env
+DATABASE_URL="postgresql://postgres:secret@localhost:5432/gestion_del_fin"
+DATABASE_DIRECT_URL="postgresql://postgres:secret@localhost:5432/gestion_del_fin"
+```
+
+For **production (Supabase)**, use the connection strings from your Supabase project dashboard under Project Settings → Database → Connection string:
+
+```env
+DATABASE_URL="postgresql://postgres.xxx:password@aws-x-xx.pooler.supabase.com:5432/postgres"
+DATABASE_DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.co:5432/postgres"
+```
+
+### Migrations
+
+To apply migrations to the **local** database:
+
+```bash
+npx prisma migrate dev
+```
+
+To apply migrations to **Supabase** (production):
+
+```bash
+npx prisma migrate deploy
+```
+
+> Migrations are applied automatically on deploy via Railway.
+
+### Seed
+
+To populate the database with initial data:
+
+```bash
+npx prisma db seed
+```
+
+---
+
 ## Development Setup
 
 This project can be run using either **manual Node setup** (recommended) or **Nix**.
@@ -101,3 +153,73 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
 > ```bash
 > npm run format
 > ```
+
+---
+
+## ML Service
+
+The admission system uses a Python microservice that runs a Decision Tree Classifier. It must be running locally for the admission evaluation to work.
+
+> See [admission_ai.md](./docs/admission_ai.md) for full documentation on how the AI admission system works.
+
+### Installing Python dependencies
+
+**With Nix** — dependencies are provided automatically by the flake, no extra steps needed.
+
+**Without Nix** — install manually using a virtual environment:
+
+```bash
+cd ml-service
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Running the ML service locally
+
+In a separate terminal from your API:
+
+```bash
+cd ml-service
+uvicorn main:app --port 8000
+```
+
+The service trains the model on startup and prints the decision tree structure. You should see:
+
+```
+✓ Decision tree trained successfully
+INFO: Application startup complete.
+```
+
+### Verifying the service is up
+
+```bash
+curl http://localhost:8000/health
+```
+
+Should return:
+
+```json
+{ "status": "ok", "model_trained": true }
+```
+
+### Environment variable
+
+Add this to your `.env`:
+
+```env
+ML_SERVICE_URL=http://localhost:8000
+```
+
+If the ML service is unreachable, the admission system automatically falls back to a rule-based evaluator. Decisions made in fallback mode are labeled `[FALLBACK MODE]` in the reasoning field.
+
+### Re-training the model
+
+If you modify the training data in `ml-service/data.py`, verify the model still performs well:
+
+```bash
+cd ml-service
+python trainer.py
+```
+
+This prints accuracy and a full classification report.

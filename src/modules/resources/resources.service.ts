@@ -28,7 +28,7 @@ function prepareResourceUpdateData(data: UpdateResourceDto) {
 
 export async function createResource(data: CreateResourceDto) {
   try {
-    return await prisma.resource_type.create({
+    return await prisma.resource_types.create({
       data: prepareResourceCreateData(data),
     });
   } catch (error: any) {
@@ -37,11 +37,11 @@ export async function createResource(data: CreateResourceDto) {
 }
 
 export async function updateResource(id: number, data: UpdateResourceDto) {
-  const resource = await prisma.resource_type.findUnique({ where: { id } });
+  const resource = await prisma.resource_types.findUnique({ where: { id } });
   if (!resource) throw new AppError(`Resource not found: ${id}`, 404);
 
   try {
-    return await prisma.resource_type.update({
+    return await prisma.resource_types.update({
       where: { id },
       data: prepareResourceUpdateData(data),
     });
@@ -51,7 +51,7 @@ export async function updateResource(id: number, data: UpdateResourceDto) {
 }
 
 export async function getResource(id: number) {
-  const resource = await prisma.resource_type.findUnique({ where: { id } });
+  const resource = await prisma.resource_types.findUnique({ where: { id } });
   if (!resource) throw new AppError(`Resource not found: ${id}`, 404);
   return resource;
 }
@@ -61,8 +61,8 @@ export async function getResources(page = 1, pageSize = 20) {
   const skip = (page - 1) * effectiveLimit;
 
   const [records, total] = await Promise.all([
-    prisma.resource_type.findMany({ skip, take: effectiveLimit }),
-    prisma.resource_type.count(),
+    prisma.resource_types.findMany({ skip, take: effectiveLimit }),
+    prisma.resource_types.count(),
   ]);
 
   return {
@@ -78,11 +78,29 @@ export async function getResources(page = 1, pageSize = 20) {
 }
 
 export async function deleteResource(id: number) {
-  const resource = await prisma.resource_type.findUnique({ where: { id } });
+  const resource = await prisma.resource_types.findUnique({ where: { id } });
   if (!resource) throw new AppError(`Resource not found: ${id}`, 404);
   try {
-    await prisma.resource_type.delete({ where: { id } });
+    await prisma.resource_types.delete({ where: { id } });
   } catch (error: any) {
     handleForeignKeyError(error);
   }
+}
+
+export async function getDailyRationResources(campId: number) {
+  return await prisma.resource_types.findMany({
+    where: { auto_daily: true },
+    include: {
+      inventories: {
+        where: { camp_id: campId },
+        select: {
+          camp_id: true,
+          resource_type_id: true,
+          quantity: true,
+          created_at: true,
+          deleted_at: true,
+        },
+      },
+    },
+  });
 }
