@@ -1,8 +1,6 @@
-import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 
-// Get DATABASE_URL from environment or construct from individual variables
 const getConnectionUrl = (): string => {
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
@@ -17,7 +15,6 @@ const getConnectionUrl = (): string => {
   return `postgresql://${user}:${password}@${host}:${port}/${database}`;
 };
 
-// Create Prisma Client with PostgreSQL adapter
 const adapter = new PrismaPg({ connectionString: getConnectionUrl() });
 
 export const prisma = new PrismaClient({ adapter });
