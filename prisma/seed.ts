@@ -284,7 +284,7 @@ async function main() {
     },
   });
 
-  const rationsResource = await prisma.resource_type.create({
+  const rationsResource = await prisma.resource_types.create({
     data: {
       name: 'Standard Rations',
       unit: 'kg',
@@ -294,7 +294,7 @@ async function main() {
     },
   });
 
-  const waterResource = await prisma.resource_type.create({
+  const waterResource = await prisma.resource_types.create({
     data: {
       name: 'Purified Water',
       unit: 'Liters',
@@ -304,7 +304,7 @@ async function main() {
     },
   });
 
-  const medsResource = await prisma.resource_type.create({
+  const medsResource = await prisma.resource_types.create({
     data: {
       name: 'Antibiotics',
       unit: 'Doses',
@@ -354,7 +354,7 @@ async function main() {
     },
   });
 
-  const primaryPerson = await prisma.persons.create({
+  const primaryPerson = await prisma.people.create({
     data: {
       camp_id: mainCamp.id,
       profession_id: engineerProfession.id,
@@ -367,7 +367,7 @@ async function main() {
     },
   });
 
-  const secondaryPerson = await prisma.persons.create({
+  const secondaryPerson = await prisma.people.create({
     data: {
       camp_id: secondaryCamp.id,
       profession_id: scoutProfession.id,
@@ -380,7 +380,7 @@ async function main() {
     },
   });
 
-  const tertiaryPerson = await prisma.persons.create({
+  const tertiaryPerson = await prisma.people.create({
     data: {
       camp_id: mainCamp.id,
       profession_id: scoutProfession.id,
@@ -393,7 +393,7 @@ async function main() {
     },
   });
 
-  const quaternaryPerson = await prisma.persons.create({
+  const quaternaryPerson = await prisma.people.create({
     data: {
       camp_id: mainCamp.id,
       profession_id: engineerProfession.id,
@@ -406,7 +406,7 @@ async function main() {
     },
   });
 
-  const quinaryPerson = await prisma.persons.create({
+  const quinaryPerson = await prisma.people.create({
     data: {
       camp_id: mainCamp.id,
       profession_id: scoutProfession.id,
@@ -439,10 +439,10 @@ async function main() {
   ];
 
   await prisma.$transaction([
-    prisma.inventory.createMany({
+    prisma.inventories.createMany({
       data: mainCampInitialInventory,
     }),
-    prisma.inventory_log.createMany({
+    prisma.inventory_logs.createMany({
       data: mainCampInitialInventory.map((item) => ({
         camp_id: item.camp_id,
         resource_type_id: item.resource_type_id,
@@ -469,10 +469,10 @@ async function main() {
   ];
 
   await prisma.$transaction([
-    prisma.inventory.createMany({
+    prisma.inventories.createMany({
       data: secondaryCampInitialInventory,
     }),
-    prisma.inventory_log.createMany({
+    prisma.inventory_logs.createMany({
       data: secondaryCampInitialInventory.map((item) => ({
         camp_id: item.camp_id,
         resource_type_id: item.resource_type_id,
@@ -559,17 +559,17 @@ async function main() {
   });
 
   // Make ONGOING expedition members consistent with business status.
-  await prisma.persons.update({
+  await prisma.people.update({
     where: { id: tertiaryPerson.id },
     data: { status: 'AWAY' },
   });
 
-  await prisma.persons.update({
+  await prisma.people.update({
     where: { id: quinaryPerson.id },
     data: { status: 'AWAY' },
   });
 
-  await prisma.person_status_log.createMany({
+  await prisma.person_status_logs.createMany({
     data: [
       {
         person_id: tertiaryPerson.id,
@@ -589,7 +589,7 @@ async function main() {
   });
 
   // Keep inventory values coherent with expedition outflow/inflow snapshots.
-  await prisma.inventory.update({
+  await prisma.inventories.update({
     where: {
       camp_id_resource_type_id: {
         camp_id: mainCamp.id,
@@ -599,7 +599,7 @@ async function main() {
     data: { quantity: '1160.0' },
   });
 
-  await prisma.inventory.update({
+  await prisma.inventories.update({
     where: {
       camp_id_resource_type_id: {
         camp_id: mainCamp.id,
@@ -609,7 +609,7 @@ async function main() {
     data: { quantity: '2435.0' },
   });
 
-  await prisma.inventory.update({
+  await prisma.inventories.update({
     where: {
       camp_id_resource_type_id: {
         camp_id: mainCamp.id,
@@ -619,7 +619,7 @@ async function main() {
     data: { quantity: '193.0' },
   });
 
-  await prisma.inventory_log.createMany({
+  await prisma.inventory_logs.createMany({
     data: [
       {
         camp_id: mainCamp.id,
@@ -719,7 +719,7 @@ async function main() {
     },
   });
 
-  await prisma.camp_transfer_item.createMany({
+  await prisma.camp_transfer_items.createMany({
     data: [
       {
         camp_transfer_id: pendingResourceTransfer.id,
@@ -751,7 +751,7 @@ async function main() {
     },
   });
 
-  await prisma.camp_transfer_item.createMany({
+  await prisma.camp_transfer_items.createMany({
     data: [
       {
         camp_transfer_id: approvedSourceMixedTransfer.id,
@@ -784,7 +784,7 @@ async function main() {
     },
   });
 
-  await prisma.camp_transfer_item.createMany({
+  await prisma.camp_transfer_items.createMany({
     data: [
       {
         camp_transfer_id: approvedTargetPersonTransfer.id,
@@ -820,7 +820,7 @@ async function main() {
     },
   });
 
-  await prisma.camp_transfer_item.createMany({
+  await prisma.camp_transfer_items.createMany({
     data: [
       {
         camp_transfer_id: rejectedTransfer.id,
@@ -831,7 +831,7 @@ async function main() {
     ],
   });
 
-  await prisma.system_config.create({
+  await prisma.system_configs.create({
     data: {
       id: 1,
       version: '1.0.0',
