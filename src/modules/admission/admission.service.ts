@@ -10,6 +10,8 @@ function prepareAdmissionCreateData(
   data: CreateAdmissionDTO,
   aiData: AdmissionAIResult,
 ): Prisma.admission_requestsCreateInput {
+  const aiProfessionId = aiData.ai_profession_id ?? null;
+
   return {
     camps: {
       connect: { id: campId },
@@ -24,9 +26,7 @@ function prepareAdmissionCreateData(
     ai_decision: aiData.ai_decision ?? 'PENDING',
     ai_reasoning: aiData.ai_reasoning.trim(),
     ai_suggested_profession: aiData.ai_suggested_profession.trim(),
-    ai_profession: aiData.ai_profession_id
-      ? { connect: { id: aiData.ai_profession_id } }
-      : undefined,
+    ai_profession_id: aiProfessionId,
     created_at: new Date(),
   };
 }
@@ -44,7 +44,7 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
       description: true,
     },
   });
-  if (!professions) throw new AppError(`Professions not found`, 404);
+  if (professions.length === 0) throw new AppError('Professions not found', 404);
 
   const campContext = camp.ai_context_prompt;
 
