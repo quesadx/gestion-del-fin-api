@@ -1,4 +1,13 @@
 import 'dotenv/config';
+
+//Debbug only
+console.log('ENV CHECK:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  HAS_JWT: !!process.env.JWT_SECRET,
+  HAS_DB: !!process.env.DATABASE_URL,
+});
+
 import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
