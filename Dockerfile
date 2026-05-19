@@ -17,6 +17,7 @@ FROM deps AS build
 
 COPY prisma ./prisma
 COPY prisma.config.ts tsconfig.json jest.config.ts eslint.config.js cspell.json ./
+COPY scripts ./scripts
 COPY src ./src
 RUN npx prisma generate && npm run build
 
@@ -30,6 +31,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/generated ./dist/generated
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 3000
 

@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 //Debug only
 console.log('ENV CHECK:', {
   NODE_ENV: process.env.NODE_ENV,
