@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --outDir dist --rootDir src",
+    "build": "tsc --outDir dist --rootDir src && node scripts/copy-build-assets.mjs",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
