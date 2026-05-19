@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-//Debbug only
+//Debug only
 console.log('ENV CHECK:', {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
