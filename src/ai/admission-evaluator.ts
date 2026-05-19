@@ -1,4 +1,4 @@
-import { ai } from '../lib/ai.js';
+import { getAI } from '../lib/ai.js';
 import {
   AdmissionAIResult,
   CreateAdmissionDTO,
@@ -60,7 +60,7 @@ async function parseCampWeights(campContext: string): Promise<CampWeights> {
     Camp context: "${sanitized}"
   `;
 
-  const response = await ai.chat.completions.create({
+  const response = await getAI().chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },

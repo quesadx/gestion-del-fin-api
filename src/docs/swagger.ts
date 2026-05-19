@@ -1,15 +1,25 @@
 import { readFileSync } from 'fs';
-import { load } from 'js-yaml';
+import yaml from 'js-yaml';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const yamlPath = resolve(__dirname, 'openapi.yaml');
-const doc = load(readFileSync(yamlPath, 'utf8')) as Record<string, unknown>;
+
+let doc: Record<string, unknown> = {};
+
+try {
+  const rawYaml = readFileSync(yamlPath, 'utf8');
+  doc = yaml.load(rawYaml) as Record<string, unknown>;
+} catch (error) {
+  console.warn('[Swagger] docs disabled', error instanceof Error ? error.message : error);
+}
 
 const PORT = process.env.PORT || 3000;
 const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`;
 
-doc.servers = [{ url: baseUrl, description: 'Server' }];
+if (doc && typeof doc === 'object') {
+  doc.servers = [{ url: baseUrl, description: 'Server' }];
+}
 
 export const swaggerSpec = doc;
