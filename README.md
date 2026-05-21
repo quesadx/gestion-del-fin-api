@@ -104,6 +104,39 @@ This project can be run using either **manual Node setup** (recommended) or **Ni
    npm run dev
    ```
 
+---
+
+## Cache (Valkey)
+
+This API uses Valkey for cache-aside reads in Tier 1 catalog modules.
+
+### Environment variables
+
+Add these to your `.env`:
+
+```env
+VALKEY_URL=redis://localhost:6379
+CACHE_ENABLED=true
+```
+
+Cache is disabled when `NODE_ENV=test`.
+
+### Local Valkey with Docker
+
+Start only Valkey:
+
+```bash
+docker compose up -d valkey
+```
+
+Stop:
+
+```bash
+docker compose stop valkey
+```
+
+See [docs/cache.md](docs/cache.md) for TTLs, invalidation, and verification steps.
+
 ### Option 2: Nix
 
 1. Enter the development shell:
