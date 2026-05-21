@@ -6,6 +6,12 @@ import {
 } from '../../shared/utils/handlePrismaError.js';
 import { CreateRoleDto, UpdateRoleDto } from './roles.schema.js';
 import { z } from 'zod';
+import {
+  deleteByPrefix,
+  deleteKeys,
+  getOrSetCacheJson,
+} from '../../lib/cache.js';
+import { cacheKeys, cacheTtl } from '../../shared/cache/cacheKeys.js';
 
 const roleSelect = {
   id: true,
@@ -71,6 +77,13 @@ function mapRole(role: RoleWithPermissions) {
   };
 }
 
+async function invalidateRoleCache(roleId?: number) {
+  const keys: string[] = [];
+  if (roleId) keys.push(cacheKeys.role(roleId));
+  await deleteKeys(keys);
+  await deleteByPrefix(cacheKeys.rolesListPrefix);
+}
+
 export async function createRole(data: CreateRoleDto) {
   const permissionIds = normalizePermissionIds(data.permission_ids);
   await ensurePermissionsExist(permissionIds);
@@ -96,7 +109,9 @@ export async function createRole(data: CreateRoleDto) {
       return tx.roles.findUnique({ where: { id: role.id }, select: roleSelect });
     });
 
-    return mapRole(RoleWithPermissionsSchema.parse(created));
+    const mapped = mapRole(RoleWithPermissionsSchema.parse(created));
+    await invalidateRoleCache(mapped.id);
+    return mapped;
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
@@ -138,42 +153,50 @@ export async function updateRole(id: number, data: UpdateRoleDto) {
     });
 
     if (!updated) throw new AppError(`Role not found: ${id}`, 404);
-    return mapRole(RoleWithPermissionsSchema.parse(updated));
+    const mapped = mapRole(RoleWithPermissionsSchema.parse(updated));
+    await invalidateRoleCache(id);
+    return mapped;
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
 }
 
 export async function getRole(id: number) {
-  const role = await prisma.roles.findUnique({ where: { id }, select: roleSelect });
-  if (!role) throw new AppError(`Role not found: ${id}`, 404);
-  return mapRole(RoleWithPermissionsSchema.parse(role));
+  const cacheKey = cacheKeys.role(id);
+  return getOrSetCacheJson(cacheKey, cacheTtl.roles, async () => {
+    const role = await prisma.roles.findUnique({ where: { id }, select: roleSelect });
+    if (!role) throw new AppError(`Role not found: ${id}`, 404);
+    return mapRole(RoleWithPermissionsSchema.parse(role));
+  });
 }
 
 export async function getRoles(page = 1, pageSize = 20) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
-  const [records, total] = await Promise.all([
-    prisma.roles.findMany({
-      skip,
-      take: effectiveLimit,
-      select: roleSelect,
-      orderBy: { id: 'asc' },
-    }),
-    prisma.roles.count(),
-  ]);
+  const cacheKey = cacheKeys.rolesList(page, effectiveLimit);
+  return getOrSetCacheJson(cacheKey, cacheTtl.roles, async () => {
+    const [records, total] = await Promise.all([
+      prisma.roles.findMany({
+        skip,
+        take: effectiveLimit,
+        select: roleSelect,
+        orderBy: { id: 'asc' },
+      }),
+      prisma.roles.count(),
+    ]);
 
-  return {
-    data: records.map((record) => mapRole(RoleWithPermissionsSchema.parse(record))),
-    pagination: {
-      page,
-      pageSize: effectiveLimit,
-      total,
-      hasNextPage: page * effectiveLimit < total,
-      totalPages: Math.ceil(total / effectiveLimit),
-    },
-  };
+    return {
+      data: records.map((record) => mapRole(RoleWithPermissionsSchema.parse(record))),
+      pagination: {
+        page,
+        pageSize: effectiveLimit,
+        total,
+        hasNextPage: page * effectiveLimit < total,
+        totalPages: Math.ceil(total / effectiveLimit),
+      },
+    };
+  });
 }
 
 export async function deleteRole(id: number) {
@@ -191,6 +214,7 @@ export async function deleteRole(id: number) {
       await tx.role_permissions.deleteMany({ where: { role_id: id } });
       await tx.roles.delete({ where: { id } });
     });
+    await invalidateRoleCache(id);
   } catch (error: any) {
     if (error instanceof AppError) throw error;
     handleForeignKeyError(error);
