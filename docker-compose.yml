@@ -40,6 +40,18 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  valkey:
+    image: valkey/valkey:7
+    container_name: gestion-del-fin-valkey
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 volumes:
   # This is a named volume that can be used to persist data across container restarts.
   # It is not used in this configuration, but it can be useful for storing database data or other persistent data.

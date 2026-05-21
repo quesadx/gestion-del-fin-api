@@ -1,11 +1,3 @@
-//Debug only
-console.log('ENV CHECK:', {
-  NODE_ENV: process.env.NODE_ENV,
-  PORT: process.env.PORT,
-  HAS_JWT: !!process.env.JWT_SECRET,
-  HAS_DB: !!process.env.DATABASE_URL,
-});
-
 import { logger } from './logger/logger.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middlewares/error.middleware.js';
@@ -15,6 +7,7 @@ import { campMiddleware } from './middlewares/camp.middleware.js';
 import { swaggerSpec } from './docs/swagger.js';
 import { globalRateLimit } from './middlewares/rateLimit.middleware.js';
 import jobScheduler from './jobs/scheduler.js';
+import { closeCache, initCache } from './lib/cache.js';
 
 import express from 'express';
 import cors from 'cors';
@@ -100,6 +93,8 @@ if (NODE_ENV !== 'test') {
   jobScheduler.startJobScheduler();
 }
 
+void initCache();
+
 app.listen(PORT, () => {
   logger.info(`Server listening on port ${PORT} [${NODE_ENV}]`);
 });
@@ -107,6 +102,7 @@ app.listen(PORT, () => {
 async function gracefulShutdown(signal: 'SIGINT' | 'SIGTERM') {
   jobScheduler.stopJobScheduler();
   await prisma.$disconnect();
+  await closeCache();
   logger.info(`Received ${signal}. DB connection closed. Shutting down gracefully...`);
   process.exit(0);
 }
