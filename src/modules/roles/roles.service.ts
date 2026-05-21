@@ -6,11 +6,7 @@ import {
 } from '../../shared/utils/handlePrismaError.js';
 import { CreateRoleDto, UpdateRoleDto } from './roles.schema.js';
 import { z } from 'zod';
-import {
-  deleteByPrefix,
-  deleteKeys,
-  getOrSetCacheJson,
-} from '../../lib/cache.js';
+import { deleteByPrefix, deleteKeys, getOrSetCacheJson } from '../../lib/cache.js';
 import { cacheKeys, cacheTtl } from '../../shared/cache/cacheKeys.js';
 
 const roleSelect = {

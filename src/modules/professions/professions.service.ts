@@ -5,11 +5,7 @@ import {
   handleForeignKeyError,
 } from '../../shared/utils/handlePrismaError.js';
 import { CreateProfessionDto, UpdateProfessionDto } from './professions.schema.js';
-import {
-  deleteByPrefix,
-  deleteKeys,
-  getOrSetCacheJson,
-} from '../../lib/cache.js';
+import { deleteByPrefix, deleteKeys, getOrSetCacheJson } from '../../lib/cache.js';
 import { cacheKeys, cacheTtl } from '../../shared/cache/cacheKeys.js';
 
 function prepareProfessionCreateData(data: CreateProfessionDto) {

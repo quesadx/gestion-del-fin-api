@@ -6,11 +6,7 @@ import {
 } from '../../shared/utils/handlePrismaError.js';
 import { CreateCampDto, UpdateCampDto } from './camps.schema.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
-import {
-  deleteByPrefix,
-  deleteKeys,
-  getOrSetCacheJson,
-} from '../../lib/cache.js';
+import { deleteByPrefix, deleteKeys, getOrSetCacheJson } from '../../lib/cache.js';
 import { cacheKeys, cacheTtl } from '../../shared/cache/cacheKeys.js';
 
 function prepareCampCreateData(data: CreateCampDto) {
