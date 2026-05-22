@@ -3,12 +3,12 @@ import { AppError } from '../../shared/utils/appError.js';
 import { handleUniqueConstraintError } from '../../shared/utils/handlePrismaError.js';
 import { CreateUserDto, UpdateUserDto } from './users.schema.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
-import bcrypt from 'bcryptjs';
+import { hash } from '@node-rs/bcrypt';
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
 async function prepareUserCreateData(data: CreateUserDto) {
-  const password_hash = await bcrypt.hash(data.password, SALT_ROUNDS);
+  const password_hash = await hash(data.password, SALT_ROUNDS);
 
   return {
     username: data.username.trim(),
@@ -22,7 +22,7 @@ async function prepareUserCreateData(data: CreateUserDto) {
 }
 
 async function prepareUserUpdateData(data: UpdateUserDto) {
-  const password_hash = data.password ? await bcrypt.hash(data.password, SALT_ROUNDS) : undefined;
+  const password_hash = data.password ? await hash(data.password, SALT_ROUNDS) : undefined;
 
   return {
     username: data.username?.trim(),
