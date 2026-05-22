@@ -10,8 +10,7 @@ export async function createAdmissionHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
 
   const result = await service.createAdmission(campId, body);
-  // Return created admission as-stored; signing is applied on GET endpoints.
-  res.status(201).json(result);
+  res.status(201).json(signMediaUrls(result, (req as AuthenticatedRequest).user?.exp));
 }
 
 export async function getAdmissionsHandler(req: Request, res: Response) {
