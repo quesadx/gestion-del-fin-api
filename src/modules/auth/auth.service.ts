@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
-import bcrypt from 'bcryptjs';
+import { compare } from '@node-rs/bcrypt';
 import { LoginInput } from './auth.schema.js';
 import { signAccessToken } from '../../shared/utils/jwt.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
@@ -37,7 +37,7 @@ export const login = async (data: LoginInput) => {
     throw new AppError('User has no role assigned', 500);
   }
 
-  const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
+  const isPasswordValid = await compare(data.password, user.password_hash);
   if (!isPasswordValid) {
     throw new AppError('Invalid credentials', 401);
   }

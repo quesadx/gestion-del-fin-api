@@ -23,7 +23,7 @@ async function globalSetup(): Promise<void> {
   const { prisma } = await import('../../src/lib/prisma.js');
   const { PERMISSIONS } = await import('../../src/shared/constants/permissions.js');
   const { signAccessToken } = await import('../../src/shared/utils/jwt.js');
-  const bcrypt = (await import('bcryptjs')).default;
+  const { hash } = await import('@node-rs/bcrypt');
   const fsMod = await import('fs');
 
   // ─── Phase 1: Clean slate ────────────────────────────────────────────
@@ -159,7 +159,7 @@ async function globalSetup(): Promise<void> {
   console.log('Setup: 2 professions created');
 
   // ─── Phase 3: Create test users ───────────────────────────────────────
-  const passwordHash = await bcrypt.hash('test-password-123', 4);
+  const passwordHash = await hash('test-password-123', 4);
 
   const USERS_TO_SEED = [
     { username: 'admin_master', role: adminRole, camp: camp1, isAdmin: true },
