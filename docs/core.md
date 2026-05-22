@@ -24,7 +24,7 @@ Think of it as a **management system for coordinating survival camps**: tracking
 ### Security & Auth
 
 - **JWT (jsonwebtoken)** - Creates secure tokens so users don't have to log in every request
-- **@node-rs/bcrypt** - Native Rust bcrypt implementation for secure password hashing
+- **bcryptjs** - Hashes passwords securely (never stores plain passwords)
 - **Helmet** - Adds security headers to HTTP responses
 - **CORS** - Controls which domains can access our API
 
