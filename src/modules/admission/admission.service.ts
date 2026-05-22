@@ -107,7 +107,7 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
         throw new AppError('Cannot create person without a profession assigned by AI', 400);
       }
 
-      await createPerson(
+      const person = await createPerson(
         admission.camp_id,
         {
           full_name: admission.applicant_name,
@@ -116,10 +116,25 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
           profession_id: admission.ai_profession_id,
           camp_id: admission.camp_id,
           admitted_at: new Date().toISOString(),
+          photo_url: admission.photo_url ?? undefined,
         },
         tx,
       );
+
+      const linkedAdmission = await tx.admission_requests.update({
+        where: { id },
+        data: { person_id: person.id },
+      });
+
+      return {
+        ...linkedAdmission,
+        created_person: person,
+      };
     }
-    return admission;
+
+    return {
+      ...admission,
+      created_person: null,
+    };
   });
 }

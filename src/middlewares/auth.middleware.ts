@@ -8,6 +8,8 @@ export interface AuthenticatedRequest extends Request {
     role: string;
     sessionVersion: number;
     isAdmin: boolean;
+    iat?: number;
+    exp?: number;
   };
 }
 
@@ -20,6 +22,8 @@ export const authMiddleware = (req: Request, _res: Response, next: NextFunction)
       role: payload.role,
       sessionVersion: payload.sessionVersion,
       isAdmin: payload.isAdmin,
+      iat: payload.iat,
+      exp: payload.exp,
     };
     next();
   } catch (error) {
