@@ -21,7 +21,7 @@ model: claude
 | **Runtime**       | Node.js 20+, Express 5.2.1     | `/src/index.ts` is entry; 13 route modules mounted                         |
 | **Language**      | TypeScript (strict mode)       | Compiles to `/dist`, runs via `node` or `tsx watch`                        |
 | **Database**      | PostgreSQL + Prisma 7.8        | Schema in `/prisma/schema.prisma`; migrations in `/prisma/migrations/`     |
-| **Auth**          | JWT (jsonwebtoken), @node-rs/bcrypt | 20-min session timeout via `session.middleware.ts`                         |
+| **Auth**          | JWT (jsonwebtoken), bcryptjs   | 20-min session timeout via `session.middleware.ts`                         |
 | **Validation**    | Zod                            | schemas in `{module}.schema.ts`; applied via `validate(Schema)` middleware |
 | **Logging**       | Winston                        | general logs + daily rotate; audit log captures user actions               |
 | **Job Scheduler** | node-cron                      | daily-rations, resource-alerts jobs in `/src/jobs/`                        |
