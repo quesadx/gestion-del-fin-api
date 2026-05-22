@@ -171,5 +171,3 @@ Con este cambio, el backend ya no maneja imágenes como URLs abiertas sin contro
 - guarda la URL en la base de datos
 - devuelve URLs firmadas y temporales
 - limita la vida útil de esas URLs con el JWT del usuario y con una variable de entorno
-
-Si quieres, en un siguiente paso se puede ampliar este mismo flujo a otros módulos que tengan imágenes, o convertirlo en un endpoint de upload separado si el frontend prefiere ese patrón.
