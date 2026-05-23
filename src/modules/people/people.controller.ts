@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 import { AppError } from '../../shared/utils/appError.js';
+import { signMediaUrls } from '../../shared/utils/mediaUrl.js';
 import {
   createContributionOverride,
   createPerson,
@@ -28,7 +29,7 @@ export async function updatePersonHandler(req: Request, res: Response) {
   }
 
   const result = await updatePerson(campId, id, req.body, userId);
-  return res.json(result);
+  return res.json(signMediaUrls(result, (req as AuthenticatedRequest).user?.exp));
 }
 
 export async function deletePersonHandler(req: Request, res: Response) {
@@ -42,7 +43,7 @@ export async function getPersonHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
   const id = parseIdParam(req.params.id);
   const result = await getPerson(campId, id);
-  return res.json(result);
+  return res.json(signMediaUrls(result, (req as AuthenticatedRequest).user?.exp));
 }
 
 export async function getPeopleHandler(req: Request, res: Response) {
@@ -50,7 +51,7 @@ export async function getPeopleHandler(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
   const result = await getPeople(campId, page, pageSize);
-  return res.json(result);
+  return res.json(signMediaUrls(result, (req as AuthenticatedRequest).user?.exp));
 }
 
 export async function createPersonStatusLogHandler(req: Request, res: Response) {

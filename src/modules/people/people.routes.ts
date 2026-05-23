@@ -23,12 +23,18 @@ import { validate } from '../../middlewares/validate.middleware.js';
 import { paginationQuerySchema } from '../../shared/schemas/http.schema.js';
 import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
+import { createImageUploadMiddleware } from '../../middlewares/image-upload.middleware.js';
+
+const personImageUpload = createImageUploadMiddleware([
+  { fieldName: 'photo', targetBodyKey: 'photo_url', folder: 'gestion-del-fin/people' },
+]);
 
 const router = Router({ mergeParams: true });
 
 router.post(
   '/',
   permissionMiddleware(PERMISSIONS.PEOPLE_CREATE),
+  personImageUpload,
   validate(z.object({ params: campIdParamsSchema, body: createPersonSchema })),
   createPersonHandler,
 );
@@ -71,6 +77,7 @@ router.get(
 router.put(
   '/:id',
   permissionMiddleware(PERMISSIONS.PEOPLE_UPDATE),
+  personImageUpload,
   validate(z.object({ params: campIdAndPersonIdParamsSchema, body: updatePersonSchema })),
   updatePersonHandler,
 );
