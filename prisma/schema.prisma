@@ -34,8 +34,11 @@ model admission_requests {
   /// AI's recommended decision (ACCEPTED/REJECTED/PENDING)
   ai_decision             admission_requests_ai_decision    @default(PENDING)
   ai_reasoning            String?                           @db.Text
+  ai_confidence           Float?
   ai_suggested_profession String?                           @db.VarChar(80)
   ai_profession_id        Int?
+  corrected_profession_id Int?
+  correction_reason       String?                           @db.VarChar(255)
   person_id               Int?
   reviewed_by             Int?
   /// Human reviewer's final override decision
@@ -45,11 +48,13 @@ model admission_requests {
   camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   ai_profession           professions?                      @relation(fields: [ai_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  corrected_profession    professions?                      @relation("admission_corrected_profession", fields: [corrected_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   person                  people?                           @relation(fields: [person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([camp_id], map: "admission_requests_camp_id_idx")
   @@index([reviewed_by], map: "admission_requests_reviewed_by_idx")
   @@index([ai_profession_id], map: "admission_requests_ai_profession_id_idx")
+  @@index([corrected_profession_id], map: "admission_requests_corrected_profession_id_idx")
   @@index([person_id], map: "admission_requests_person_id_idx")
   @@index([created_at], map: "admission_requests_created_at_idx")
 }
@@ -328,6 +333,7 @@ model professions {
   updated_at                    DateTime                        @updatedAt
   deleted_at                    DateTime?
   admission_requests            admission_requests[]
+  corrected_admission_requests  admission_requests[]            @relation("admission_corrected_profession")
   persons                       people[]
   from_profession_logs          profession_reassignment_logs[]  @relation("profession_log_from_profession")
   to_profession_logs            profession_reassignment_logs[]  @relation("profession_log_to_profession")

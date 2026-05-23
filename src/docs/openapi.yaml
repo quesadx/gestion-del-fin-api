@@ -693,10 +693,25 @@ components:
         ai_reasoning:
           type: string
           nullable: true
+        ai_confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          nullable: true
         ai_suggested_profession:
           type: string
           nullable: true
         ai_profession_id:
+          type: integer
+          nullable: true
+        corrected_profession_id:
+          type: integer
+          nullable: true
+        correction_reason:
+          type: string
+          nullable: true
+        person_id:
           type: integer
           nullable: true
         reviewed_by:
@@ -752,6 +767,12 @@ components:
         final_decision:
           type: string
           enum: [ACCEPTED, REJECTED]
+        corrected_profession_id:
+          type: integer
+          nullable: true
+        correction_reason:
+          type: string
+          nullable: true
 
     Exploration:
       type: object
