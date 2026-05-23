@@ -25,10 +25,37 @@ function prepareAdmissionCreateData(
     id_card_url: data.id_card_url?.trim(),
     ai_decision: aiData.ai_decision ?? 'PENDING',
     ai_reasoning: aiData.ai_reasoning.trim(),
+    ai_confidence: aiData.ai_confidence ?? null,
     ai_suggested_profession: aiData.ai_suggested_profession.trim(),
     ai_profession: aiProfessionId ? { connect: { id: aiProfessionId } } : undefined,
     created_at: new Date(),
   };
+}
+
+async function generateIdentificationCode(
+  tx: Prisma.TransactionClient,
+  professionId: number,
+): Promise<string> {
+  const profession = await tx.professions.findUnique({
+    where: { id: professionId },
+    select: { name: true },
+  });
+
+  const rawPrefix = profession?.name?.replace(/[^A-Za-z]/g, '').toUpperCase() ?? 'GEN';
+  const prefix = rawPrefix.slice(0, 3).padEnd(3, 'X');
+  const prefixFilter = `${prefix}-`;
+
+  const last = await tx.people.findFirst({
+    where: { identification_code: { startsWith: prefixFilter } },
+    orderBy: { identification_code: 'desc' },
+    select: { identification_code: true },
+  });
+
+  const lastCode = last?.identification_code ?? null;
+  const lastNumber = lastCode ? Number(lastCode.replace(prefixFilter, '')) : 0;
+  const nextNumber = Number.isFinite(lastNumber) ? lastNumber + 1 : 1;
+
+  return `${prefix}-${String(nextNumber).padStart(3, '0')}`;
 }
 
 export async function createAdmission(campId: number, data: CreateAdmissionDTO) {
@@ -99,13 +126,22 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
         final_decision: data.final_decision,
         reviewed_by: reviewedBy,
         reviewed_at: new Date(),
+        corrected_profession_id: data.corrected_profession_id ?? undefined,
+        correction_reason: data.correction_reason?.trim(),
       },
     });
 
     if (data.final_decision === 'ACCEPTED') {
-      if (!admission.ai_profession_id) {
+      if (admission.person_id) {
+        return admission;
+      }
+
+      const professionId = data.corrected_profession_id ?? admission.ai_profession_id;
+      if (!professionId) {
         throw new AppError('Cannot create person without a profession assigned by AI', 400);
       }
+
+      const identificationCode = await generateIdentificationCode(tx, professionId);
 
       const person = await createPerson(
         admission.camp_id,
@@ -113,14 +149,19 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
           full_name: admission.applicant_name,
           age: admission.applicant_age ?? undefined,
           skills_summary: admission.applicant_skills ?? undefined,
-          profession_id: admission.ai_profession_id,
+          profession_id: professionId,
           camp_id: admission.camp_id,
           admitted_at: new Date().toISOString(),
+          identification_code: identificationCode,
           photo_url: admission.photo_url ?? undefined,
         },
         tx,
       );
 
+      return tx.admission_requests.update({
+        where: { id: admission.id },
+        data: { person_id: person.id },
+      });
       const linkedAdmission = await tx.admission_requests.update({
         where: { id },
         data: { person_id: person.id },
