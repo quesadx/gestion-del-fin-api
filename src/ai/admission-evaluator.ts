@@ -144,6 +144,7 @@ export async function evaluateAdmission(
     return admissionAIResultSchema.parse({
       ai_decision: 'ACCEPTED',
       ai_reasoning: 'Test mode: automatic acceptance for E2E testing',
+      ai_confidence: 1,
       ai_suggested_profession: professions[0]?.name ?? 'General Labor',
       ai_profession_id: professions[0]?.id ?? 1,
     });
@@ -161,6 +162,7 @@ export async function evaluateAdmission(
   return admissionAIResultSchema.parse({
     ai_decision: decision,
     ai_reasoning: reasoning,
+    ai_confidence: confidence,
     ai_suggested_profession: profession?.name ?? 'General Labor',
     ai_profession_id: profession?.id ?? 1,
   });

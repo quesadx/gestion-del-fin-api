@@ -7,6 +7,8 @@ export type AccessTokenPayload = {
   role: string;
   sessionVersion: number;
   isAdmin: boolean;
+  iat?: number;
+  exp?: number;
 };
 
 function getJwtSecret(): string {
@@ -82,7 +84,10 @@ export function getAccessTokenPayloadFromHeader(authorizationHeader?: string): A
 
     const isAdmin = typeof decoded.isAdmin === 'boolean' ? decoded.isAdmin : false;
 
-    return { userId, campId, role, sessionVersion, isAdmin };
+    const iat = typeof decoded.iat === 'number' ? decoded.iat : undefined;
+    const exp = typeof decoded.exp === 'number' ? decoded.exp : undefined;
+
+    return { userId, campId, role, sessionVersion, isAdmin, iat, exp };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;

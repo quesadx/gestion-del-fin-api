@@ -6,6 +6,7 @@ export const aiDecisionEnum = z.enum(['ACCEPTED', 'REJECTED']);
 export const admissionAIResultSchema = z.object({
   ai_decision: aiDecisionEnum,
   ai_reasoning: z.string().describe('Detailed explanation step by step about the decision'),
+  ai_confidence: z.number().min(0).max(1),
   ai_suggested_profession: z.string().max(80).describe('Suggested profession within the camp'),
   ai_profession_id: z.coerce.number().int(),
 });
@@ -26,6 +27,8 @@ export type CreateAdmissionDTO = z.infer<typeof createAdmissionSchema>;
 
 export const reviewAdmissionSchema = z.object({
   final_decision: finalDecisionEnum,
+  corrected_profession_id: z.coerce.number().int().positive().optional(),
+  correction_reason: z.string().max(255).optional(),
 });
 
 export type ReviewAdmissionDTO = z.infer<typeof reviewAdmissionSchema>;
