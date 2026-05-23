@@ -7,19 +7,26 @@ import { idParamsSchema, paginationQuerySchema } from '../../shared/schemas/http
 import { permissionMiddleware } from '../../middlewares/permission.middleware.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
 import { admissionRateLimit } from '../../middlewares/rateLimit.middleware.js';
+import { createImageUploadMiddleware } from '../../middlewares/image-upload.middleware.js';
+
+const admissionImageUpload = createImageUploadMiddleware([
+  { fieldName: 'photo', targetBodyKey: 'photo_url', folder: 'gestion-del-fin/admissions' },
+  { fieldName: 'id_card', targetBodyKey: 'id_card_url', folder: 'gestion-del-fin/admissions' },
+]);
 
 const router = Router();
 
 router.post(
   '/camps/:campId',
   permissionMiddleware(PERMISSIONS.ADMISSION_CREATE),
+  admissionRateLimit,
+  admissionImageUpload,
   validate(
     z.object({
       params: z.object({ campId: z.coerce.number().int().positive() }),
       body: createAdmissionSchema,
     }),
   ),
-  admissionRateLimit,
   admissionController.createAdmissionHandler,
 );
 

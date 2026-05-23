@@ -1710,9 +1710,53 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreatePersonRequest'
+              type: object
+              required:
+                - full_name
+                - camp_id
+                - profession_id
+                - admitted_at
+              properties:
+                full_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 150
+                  example: 'John Doe'
+                camp_id:
+                  type: integer
+                  example: 1
+                profession_id:
+                  type: integer
+                  example: 2
+                admitted_at:
+                  type: string
+                  format: date-time
+                  example: '2026-04-25T14:05:30.000Z'
+                status:
+                  type: string
+                  enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+                  default: HEALTHY
+                age:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+                  example: 32
+                identification_code:
+                  type: string
+                  maxLength: 20
+                  example: 'S-001'
+                blood_type:
+                  type: string
+                  maxLength: 5
+                  example: 'O+'
+                skills_summary:
+                  type: string
+                  example: 'Medical training, basic combat'
+                photo:
+                  type: string
+                  format: binary
       responses:
         '201':
           description: 'Person created.'
@@ -1854,9 +1898,39 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UpdatePersonRequest'
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 150
+                camp_id:
+                  type: integer
+                profession_id:
+                  type: integer
+                admitted_at:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+                age:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+                identification_code:
+                  type: string
+                  maxLength: 20
+                blood_type:
+                  type: string
+                  maxLength: 5
+                skills_summary:
+                  type: string
+                photo:
+                  type: string
+                  format: binary
       responses:
         '200':
           description: 'Person updated.'
@@ -2455,9 +2529,36 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateAdmissionRequest'
+              type: object
+              required: [applicant_name]
+              properties:
+                applicant_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 150
+                  example: 'Jane Smith'
+                applicant_age:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+                  example: 28
+                applicant_skills:
+                  type: string
+                  example: 'Medical training, farming'
+                health_notes:
+                  type: string
+                  example: 'Minor injury on left leg'
+                background_notes:
+                  type: string
+                  example: 'Former military medic'
+                photo:
+                  type: string
+                  format: binary
+                id_card:
+                  type: string
+                  format: binary
       responses:
         '201':
           description: 'Admission request created with AI evaluation.'

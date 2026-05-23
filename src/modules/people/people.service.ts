@@ -6,6 +6,7 @@ import {
   handleForeignKeyError,
   handleUniqueConstraintError,
 } from '../../shared/utils/handlePrismaError.js';
+import { generateIdentificationCode } from '../../shared/utils/identificationCode.js';
 import {
   CreateContributionOverrideDto,
   CreatePersonDto,
@@ -142,7 +143,7 @@ function preparePersonCreateData(data: CreatePersonDto) {
   return {
     full_name: data.full_name.trim(),
     age: data.age,
-    identification_code: data.identification_code,
+    identification_code: data.identification_code ?? generateIdentificationCode(),
     blood_type: data.blood_type,
     skills_summary: data.skills_summary?.trim(),
     photo_url: data.photo_url,
