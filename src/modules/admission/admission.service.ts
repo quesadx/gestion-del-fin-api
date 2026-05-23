@@ -158,24 +158,12 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
         tx,
       );
 
-      return tx.admission_requests.update({
+      const linkedAdmission = await tx.admission_requests.update({
         where: { id: admission.id },
         data: { person_id: person.id },
       });
-      const linkedAdmission = await tx.admission_requests.update({
-        where: { id },
-        data: { person_id: person.id },
-      });
-
-      return {
-        ...linkedAdmission,
-        created_person: person,
-      };
+      return linkedAdmission;
     }
-
-    return {
-      ...admission,
-      created_person: null,
-    };
+    return admission;
   });
 }
