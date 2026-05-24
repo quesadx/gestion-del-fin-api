@@ -194,6 +194,17 @@ model expedition_members {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// 
+/// Date-ordering constraint: departure_date <= expected_return_date <= max_return_date
+/// AND actual_return_date (if set) >= departure_date.
+/// Enforced at the application level via validateDateOrder() in explorations.service.ts.
+/// There is no DB-level CHECK constraint; consider adding one for direct-DB access safety:
+///   ALTER TABLE expeditions ADD CONSTRAINT expeditions_date_order_check
+///     CHECK (
+///       expected_return_date >= departure_date
+///       AND max_return_date >= expected_return_date
+///       AND (actual_return_date IS NULL OR actual_return_date >= departure_date)
+///     );
 model expeditions {
   id                             Int                              @id @default(autoincrement())
   camp_id                        Int
