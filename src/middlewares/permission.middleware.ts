@@ -36,7 +36,7 @@ export const permissionMiddleware = (required: string | string[]) => {
       });
 
       if (!user || !user.is_active || user.camp_id !== authUser.campId) {
-        throw new AppError('Unauthorized', 401);
+        throw new AppError('Forbidden', 403);
       }
 
       const permissionNames = new Set(
