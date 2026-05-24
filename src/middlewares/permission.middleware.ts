@@ -36,16 +36,12 @@ export const permissionMiddleware = (required: string | string[]) => {
       });
 
       if (!user || !user.is_active || user.camp_id !== authUser.campId) {
-        throw new AppError('Forbidden', 403);
+        throw new AppError('Unauthorized', 401);
       }
 
       const permissionNames = new Set(
         user.roles.role_permissions.map((item) => item.permissions.name),
       );
-
-      // Cache resolved permissions on req so subsequent middleware can reuse
-      // the DB result without issuing duplicate queries (e.g., camp-scoping).
-      (req as any)._resolvedPermissions = [...permissionNames];
 
       const missingPermissions = requiredPermissions.filter(
         (permission) => !permissionNames.has(permission),

@@ -33,9 +33,7 @@ export async function getUsersHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  // Use DB-verified admin bypass status (set by campMiddleware) instead of
-  // the stale JWT isAdmin flag which may be outdated after permission revocation.
-  const campId = (req as any)._hasAdminBypass ? 0 : authReq.user.campId;
+  const campId = authReq.user.isAdmin ? 0 : authReq.user.campId;
   const result = await getUsers(campId, page, pageSize);
   return res.json(result);
 }

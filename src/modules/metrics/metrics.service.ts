@@ -21,11 +21,7 @@ export async function getDashboard(campId: number) {
     prisma.people.count({ where: { camp_id: campId, status: 'HEALTHY' } }),
     prisma.people.count({ where: { camp_id: campId, status: 'INJURED' } }),
     prisma.people.count({ where: { camp_id: campId, status: 'AWAY' } }),
-    prisma.resource_types.count({
-      where: {
-        inventories: { some: { camp_id: campId } },
-      },
-    }),
+    prisma.resource_types.count(),
     prisma.expeditions.count({ where: { camp_id: campId, status: 'ONGOING' } }),
     prisma.camp_transfers.count({
       where: { requesting_camp: campId, status: 'PENDING' },

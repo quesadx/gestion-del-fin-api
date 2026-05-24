@@ -29,12 +29,6 @@ function sendErrorResponse(res: Response, statusCode: number, message: string, d
 
 export function errorHandler(error: any, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) {
-    logger.error('Error after response headers sent', {
-      method: req.method,
-      url: req.originalUrl,
-      name: error?.name,
-      message: error?.message,
-    });
     next(error);
     return;
   }

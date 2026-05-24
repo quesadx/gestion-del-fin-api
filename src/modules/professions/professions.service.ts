@@ -15,7 +15,7 @@ function prepareProfessionCreateData(data: CreateProfessionDto) {
   };
 }
 
-function prepareProfessionUpdateData(data: UpdateProfessionDto) {
+function prepareProfessionalUpdateData(data: UpdateProfessionDto) {
   return {
     name: data.name?.trim(),
     description: data.description?.trim(),
@@ -48,7 +48,7 @@ export async function updateProfession(id: number, data: UpdateProfessionDto) {
   try {
     const updated = await prisma.professions.update({
       where: { id },
-      data: prepareProfessionUpdateData(data),
+      data: prepareProfessionalUpdateData(data),
     });
     await invalidateProfessionCache(id);
     return updated;

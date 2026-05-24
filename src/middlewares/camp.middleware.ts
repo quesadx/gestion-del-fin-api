@@ -86,10 +86,6 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
     // take effect immediately without requiring a re-login.
     const isAdmin = await hasAdminBypass(userId);
     if (isAdmin) {
-      // Attach DB-verified admin bypass status so downstream middleware and
-      // controllers can make authorization decisions without trusting the
-      // stale JWT payload (see CR-01).
-      (req as any)._hasAdminBypass = true;
       return next();
     }
 
