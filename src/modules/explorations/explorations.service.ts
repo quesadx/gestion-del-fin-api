@@ -97,8 +97,7 @@ async function getExpeditionMemberIds(
   tx: Prisma.TransactionClient,
   expeditionId: number,
 ): Promise<number[]> {
-  const client = tx as unknown as typeof prisma;
-  const members = await client.expedition_members.findMany({
+  const members = await tx.expedition_members.findMany({
     where: { expedition_id: expeditionId },
     select: { person_id: true },
   });
@@ -109,9 +108,8 @@ async function getExpeditionMemberIds(
 async function validateMembers(tx: Prisma.TransactionClient, campId: number, memberIds: number[]) {
   if (memberIds.length === 0) return;
 
-  const client = tx as unknown as typeof prisma;
   const uniqueMemberIds = Array.from(new Set(memberIds));
-  const people = await client.people.findMany({
+  const people = await tx.people.findMany({
     where: { id: { in: uniqueMemberIds } },
     select: { id: true, camp_id: true, status: true },
   });
@@ -140,8 +138,7 @@ async function changeMemberStatus(
 ) {
   if (personIds.length === 0) return;
 
-  const client = tx as unknown as typeof prisma;
-  const people = await client.people.findMany({
+  const people = await tx.people.findMany({
     where: { id: { in: personIds } },
     select: { id: true, status: true },
   });
@@ -149,12 +146,12 @@ async function changeMemberStatus(
   const updates = people.filter((person: { status: string }) => person.status !== newStatus);
 
   for (const person of updates) {
-    await client.people.update({
+    await tx.people.update({
       where: { id: person.id },
       data: { status: newStatus },
     });
 
-    await client.person_status_logs.create({
+    await tx.person_status_logs.create({
       data: {
         person_id: person.id,
         old_status: person.status,
@@ -176,13 +173,12 @@ export async function handleResourceOutflow(
     resources: Array<{ resource_type_id: number; amount: number }>;
   },
 ) {
-  const client = tx as unknown as typeof prisma;
   const aggregatedResources = aggregateResources(input.resources);
   const resourceIds = Array.from(aggregatedResources.keys());
 
   if (resourceIds.length === 0) return;
 
-  const inventoryRows = await client.inventories.findMany({
+  const inventoryRows = await tx.inventories.findMany({
     where: {
       camp_id: input.campId,
       resource_type_id: { in: resourceIds },
@@ -217,7 +213,7 @@ export async function handleResourceOutflow(
   for (const resourceId of resourceIds) {
     const requested = aggregatedResources.get(resourceId)!;
 
-    const updateResult = await client.inventories.updateMany({
+    const updateResult = await tx.inventories.updateMany({
       where: {
         camp_id: input.campId,
         resource_type_id: resourceId,
@@ -235,7 +231,7 @@ export async function handleResourceOutflow(
         400,
       );
     }
-    await client.inventory_logs.create({
+    await tx.inventory_logs.create({
       data: {
         camp_id: input.campId,
         resource_type_id: resourceId,
@@ -258,7 +254,6 @@ export async function handleResourceReturn(
     resources: Array<{ resource_type_id: number; amount: number }>;
   },
 ) {
-  const client = tx as unknown as typeof prisma;
   const aggregatedResources = aggregateResources(input.resources);
   const resourceIds = Array.from(aggregatedResources.keys());
 
@@ -267,7 +262,7 @@ export async function handleResourceReturn(
   for (const resourceId of resourceIds) {
     const amount = aggregatedResources.get(resourceId)!;
 
-    await client.inventories.upsert({
+    await tx.inventories.upsert({
       where: {
         camp_id_resource_type_id: {
           camp_id: input.campId,
@@ -285,7 +280,7 @@ export async function handleResourceReturn(
       },
     });
 
-    await client.inventory_logs.create({
+    await tx.inventory_logs.create({
       data: {
         camp_id: input.campId,
         resource_type_id: resourceId,
@@ -363,15 +358,14 @@ export async function createExploration(data: CreateExplorationDto) {
 
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const client = tx as unknown as typeof prisma;
       await validateMembers(tx, data.camp_id, memberIds);
 
-      const expedition = await client.expeditions.create({
+      const expedition = await tx.expeditions.create({
         data: prepareCreateData(data),
       });
 
       if (memberIds.length > 0) {
-        await client.expedition_members.createMany({
+        await tx.expedition_members.createMany({
           data: memberIds.map((personId) => ({
             expedition_id: expedition.id,
             person_id: personId,
@@ -381,7 +375,7 @@ export async function createExploration(data: CreateExplorationDto) {
       }
 
       if (allocatedResources.length > 0) {
-        await client.expedition_allocated_resources.createMany({
+        await tx.expedition_allocated_resources.createMany({
           data: allocatedResources.map((resource) => ({
             expedition_id: expedition.id,
             resource_type_id: resource.resource_type_id,
@@ -408,7 +402,7 @@ export async function createExploration(data: CreateExplorationDto) {
         );
       }
 
-      return client.expeditions.findUnique({
+      return tx.expeditions.findUnique({
         where: { id: expedition.id },
         include: {
           camps: true,
@@ -469,11 +463,10 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
 
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const client = tx as unknown as typeof prisma;
       let resourcesToReturn = data.resources_to_return ?? [];
 
       if (data.status === 'RETURNED' && resourcesToReturn.length === 0) {
-        const allocated = await client.expedition_allocated_resources.findMany({
+        const allocated = await tx.expedition_allocated_resources.findMany({
           where: { expedition_id: id },
           select: { resource_type_id: true, amount: true },
         });
@@ -537,7 +530,7 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
           resources: normalizedResourcesToReturn,
         });
 
-        await client.expedition_found_resources.createMany({
+        await tx.expedition_found_resources.createMany({
           data: normalizedResourcesToReturn.map((resource) => ({
             expedition_id: id,
             resource_type_id: resource.resource_type_id,
@@ -547,7 +540,7 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
         });
       }
 
-      await client.expeditions.update({
+      await tx.expeditions.update({
         where: { id },
         data: {
           status: data.status,
@@ -559,7 +552,7 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
         },
       });
 
-      return client.expeditions.findUnique({
+      return tx.expeditions.findUnique({
         where: { id },
         include: {
           camps: true,
@@ -645,7 +638,6 @@ export async function deleteExploration(id: number, data: DeleteExplorationDto) 
   await validateReferences(undefined, data.changed_by);
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const client = tx as unknown as typeof prisma;
     const memberIds = await getExpeditionMemberIds(tx, id);
 
     if (memberIds.length > 0) {
@@ -658,7 +650,7 @@ export async function deleteExploration(id: number, data: DeleteExplorationDto) 
       );
     }
 
-    await client.expeditions.update({
+    await tx.expeditions.update({
       where: { id },
       data: { status: 'CANCELLED' },
     });
