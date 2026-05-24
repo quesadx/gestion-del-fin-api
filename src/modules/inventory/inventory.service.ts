@@ -68,8 +68,10 @@ export async function logLowResourceAlerts(campId: number) {
       }
     }
   } catch (error) {
-    logger.error(` [INVENTORY] Failed to evaluate low stock alerts for camp ${campId}`);
-    logger.error(error);
+    logger.error(`[INVENTORY] Failed to evaluate low stock alerts for camp ${campId}`, {
+      error: String(error),
+      campId,
+    });
   }
 }
 
