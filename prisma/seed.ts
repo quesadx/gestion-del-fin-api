@@ -1,4 +1,5 @@
 import { prisma } from '../src/lib/prisma';
+import { hash } from '@node-rs/bcrypt';
 import { PERMISSIONS } from '../src/shared/constants/permissions';
 import { logger } from '../src/logger/logger';
 
@@ -398,43 +399,58 @@ async function main() {
 
   // Seed dependent entities
   logger.info('Seeding dependent entities...');
-  const adminUser = await prisma.users.upsert({
-    where: { username: 'admin_master' },
-    create: {
-      camp_id: mainCamp.id,
-      role_id: adminRole.id,
-      username: 'admin_master',
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
-      is_active: true,
-    },
-    update: {
-      camp_id: mainCamp.id,
-      role_id: adminRole.id,
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
-      is_active: true,
-      last_activity: null,
-      session_version: 1,
-    },
-  });
+  const passwordHash = await hash('password', 4);
 
-  const standardUser = await prisma.users.upsert({
-    where: { username: 'camp_manager' },
-    create: {
-      camp_id: secondaryCamp.id,
-      role_id: workerRole.id,
-      username: 'camp_manager',
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
-      is_active: true,
-    },
-    update: {
-      camp_id: secondaryCamp.id,
-      role_id: workerRole.id,
-      password_hash: '$2b$10$3TYk7ZvBUpyysVGRsa71Ne9gWf/EPJdF9n3l2g2peLBGTYkjbu0du',
-      is_active: true,
-      last_activity: null,
-      session_version: 1,
-    },
-  });
+  const usersToSeed = [
+    { username: 'admin_master', campId: mainCamp.id, roleId: adminRole.id },
+    { username: 'admin_user_2', campId: secondaryCamp.id, roleId: adminRole.id },
+    { username: 'camp_manager', campId: secondaryCamp.id, roleId: workerRole.id },
+    { username: 'worker_user_1', campId: mainCamp.id, roleId: workerRole.id },
+    { username: 'worker_user_2', campId: secondaryCamp.id, roleId: workerRole.id },
+    { username: 'resource_mgr_1', campId: mainCamp.id, roleId: resourceManagerRole.id },
+    { username: 'resource_mgr_2', campId: secondaryCamp.id, roleId: resourceManagerRole.id },
+    { username: 'travel_coord_1', campId: mainCamp.id, roleId: travelCoordinatorRole.id },
+    { username: 'travel_coord_2', campId: secondaryCamp.id, roleId: travelCoordinatorRole.id },
+  ];
+
+  const createdUsers = new Map<
+    string,
+    { id: number; username: string; camp_id: number; role_id: number }
+  >();
+
+  for (const userData of usersToSeed) {
+    const user = await prisma.users.upsert({
+      where: { username: userData.username },
+      create: {
+        camp_id: userData.campId,
+        role_id: userData.roleId,
+        username: userData.username,
+        password_hash: passwordHash,
+        is_active: true,
+      },
+      update: {
+        camp_id: userData.campId,
+        role_id: userData.roleId,
+        password_hash: passwordHash,
+        is_active: true,
+        last_activity: null,
+        session_version: 1,
+      },
+    });
+
+    createdUsers.set(userData.username, user);
+  }
+
+  const adminUser = createdUsers.get('admin_master');
+  const standardUser = createdUsers.get('camp_manager');
+
+  if (!adminUser) {
+    throw new Error('Seed failed to create admin_master');
+  }
+
+  if (!standardUser) {
+    throw new Error('Seed failed to create camp_manager');
+  }
 
   const primaryPerson = await prisma.people.create({
     data: {
