@@ -45,6 +45,16 @@ export const createExplorationSchema = explorationBaseSchema.superRefine((data, 
     });
   }
 
+  // Reject departure dates in the past (with 24h tolerance for clock skew)
+  const departureDate = new Date(data.departure_date);
+  if (departureDate.getTime() < Date.now() - 24 * 60 * 60 * 1000) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['departure_date'],
+      message: 'departure_date must not be in the past (24h tolerance for clock skew)',
+    });
+  }
+
   const seenResourceTypes = new Set<number>();
   data.allocated_resources.forEach((resource, index) => {
     if (seenResourceTypes.has(resource.resource_type_id)) {
