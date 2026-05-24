@@ -45,6 +45,7 @@ model admission_requests {
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?
   created_at              DateTime                          @default(now())
+  updated_at              DateTime                          @updatedAt
   camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   ai_profession           professions?                      @relation(fields: [ai_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -66,7 +67,7 @@ model camp_transfer_items {
   item_type        camp_transfer_item_item_type
   resource_type_id Int?
   person_id        Int?
-  quantity         Decimal?                     @db.Decimal(10, 2)
+  quantity         Decimal       @default(0.00) @db.Decimal(10, 2)
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   deleted_at       DateTime?
@@ -96,6 +97,7 @@ model camp_transfers {
   approved_source_at      DateTime?
   approved_target_at      DateTime?
   created_at              DateTime              @default(now())
+  updated_at              DateTime              @updatedAt
   camp_transfer_items     camp_transfer_items[]
   approved_by_source_ref  users?                @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
   approved_by_target_ref  users?                @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -120,6 +122,7 @@ model camps {
   status               camps_status         @default(ACTIVE)
   ai_context_prompt    String?              @db.Text
   created_at           DateTime             @default(now())
+  updated_at           DateTime             @updatedAt
   deleted_at            DateTime?
   admission_requests   admission_requests[]
   audit_logs           audit_logs[]
@@ -141,7 +144,7 @@ model contribution_overrides {
   start_date       DateTime  @default(now()) @db.Date
   end_date         DateTime? @db.Date
   created_by       Int?
-  amount           Decimal   @db.Decimal(8, 2)
+  amount           Decimal   @db.Decimal(12, 2)
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
   deleted_at       DateTime?
@@ -191,6 +194,17 @@ model expedition_members {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// 
+/// Date-ordering constraint: departure_date <= expected_return_date <= max_return_date
+/// AND actual_return_date (if set) >= departure_date.
+/// Enforced at the application level via validateDateOrder() in explorations.service.ts.
+/// There is no DB-level CHECK constraint; consider adding one for direct-DB access safety:
+///   ALTER TABLE expeditions ADD CONSTRAINT expeditions_date_order_check
+///     CHECK (
+///       expected_return_date >= departure_date
+///       AND max_return_date >= expected_return_date
+///       AND (actual_return_date IS NULL OR actual_return_date >= departure_date)
+///     );
 model expeditions {
   id                             Int                              @id @default(autoincrement())
   camp_id                        Int
@@ -203,6 +217,7 @@ model expeditions {
   max_return_date                DateTime                         @db.Date
   notes                          String?                          @db.Text
   created_at                     DateTime                         @default(now())
+  updated_at                     DateTime                         @updatedAt
   deleted_at                      DateTime?
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
@@ -412,7 +427,6 @@ model role_permissions {
 model system_configs {
   id          Int      @id @default(1)
   version     String?  @db.VarChar(20)
-  server_time DateTime
   created_at  DateTime @default(now())
 
   @@map("system_config")
@@ -553,10 +567,27 @@ enum audit_log_action {
   REJECT_TRANSFER
   LOGIN
   LOGOUT
+  CREATE_ADMISSION
+  REVIEW_ADMISSION
+  OVERRIDE_ADMISSION
+  CREATE_EXPEDITION
+  UPDATE_EXPEDITION_STATUS
+  CANCEL_EXPEDITION
+  CREATE_PERSON
+  UPDATE_PERSON
+  DELETE_PERSON
+  CHANGE_PERSON_STATUS
+  REASSIGN_PROFESSION
+  CREATE_OVERRIDE
+  MANUAL_INVENTORY_ADJUST
 }
 
 enum audit_log_target_type {
   users
   camps
   camp_transfers
+  admission_requests
+  expeditions
+  people
+  inventory_logs
 }

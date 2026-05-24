@@ -100,6 +100,7 @@ export async function getAllCamps() {
   const cacheKey = cacheKeys.campsCatalog;
   return getOrSetCacheJson(cacheKey, cacheTtl.camps, async () => {
     return prisma.camps.findMany({
+      where: { status: 'ACTIVE', deleted_at: null },
       select: { id: true, name: true, created_at: true, deleted_at: true },
       orderBy: { id: 'asc' },
     });

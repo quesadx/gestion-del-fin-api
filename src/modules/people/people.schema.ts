@@ -73,9 +73,9 @@ export const createContributionOverrideSchema = z
       .max(255, 'reason cannot exceed 255 characters'),
     amount: z
       .number({ message: 'amount is required' })
-      .max(999999.99, 'amount exceeds DECIMAL(8,2) range')
+      .max(9999999999.99, 'amount exceeds DECIMAL(12,2) range')
 
-      .min(-999999.99, 'amount exceeds DECIMAL(8,2) range'),
+      .min(-9999999999.99, 'amount exceeds DECIMAL(12,2) range'),
     start_date: z.iso
       .date({ message: 'start_date must be a valid ISO date (YYYY-MM-DD)' })
       .optional(),
