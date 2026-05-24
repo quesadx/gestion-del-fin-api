@@ -66,7 +66,7 @@ model camp_transfer_items {
   item_type        camp_transfer_item_item_type
   resource_type_id Int?
   person_id        Int?
-  quantity         Decimal?                     @db.Decimal(10, 2)
+  quantity         Decimal       @default(0.00) @db.Decimal(10, 2)
   created_at       DateTime           @default(now())
   updated_at       DateTime           @updatedAt
   deleted_at       DateTime?
