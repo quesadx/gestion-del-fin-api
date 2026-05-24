@@ -17,7 +17,7 @@ type AssignmentMap = Record<number, Record<number, number>>;
 const CHILD_AGE = Number(process.env.CHILD_AGE) || 12;
 
 function isChild(person: PersonWithProfession) {
-  return typeof person.age === 'number' && person.age <= CHILD_AGE;
+  return person.age == null || person.age <= CHILD_AGE;
 }
 
 function isDoctor(person: PersonWithProfession) {
