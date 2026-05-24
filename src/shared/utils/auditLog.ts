@@ -11,9 +11,9 @@ interface AuditLogParams {
   metadata?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
 }
 
-export async function auditLog(params: AuditLogParams): Promise<void> {
-  try {
-    await prisma.audit_logs.create({
+export function auditLog(params: AuditLogParams): void {
+  prisma.audit_logs
+    .create({
       data: {
         user_id: params.userId,
         camp_id: params.campId,
@@ -22,13 +22,9 @@ export async function auditLog(params: AuditLogParams): Promise<void> {
         target_id: params.targetId,
         metadata: params.metadata ?? undefined,
       },
+    })
+    .then(() => {})
+    .catch((err: unknown) => {
+      logger.error('Audit log write failed', { error: err, ...params });
     });
-  } catch (err: unknown) {
-    logger.error('Audit log write failed', { error: err, ...params });
-    // In production, re-throw so operations know audit is broken.
-    // Callers should use .catch() for fire-and-forget usage.
-    if (process.env.NODE_ENV === 'production') {
-      throw err;
-    }
-  }
 }

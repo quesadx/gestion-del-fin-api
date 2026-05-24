@@ -31,30 +31,45 @@ async function hasAdminBypass(userId: number): Promise<boolean> {
 }
 
 /**
- * Extracts a camp ID from URL patterns that genuinely embed a camp ID.
+ * Extracts a camp ID from known URL patterns used by camp-scoped routes.
  *
- * Only these route families contain a camp ID in the URL path:
+ * Handles these route families:
  *   - /camps/<id>[/...]           (camp-scoped resource routes)
  *   - /inventory/audit/<id>[/...] (audit routes)
  *   - /inventory/<id>[/...]       (inventory lookup by camp)
  *   - /admission/camps/<id>[/...] (admission by camp)
- *
- * All other resource routes (expeditions, transfers, professions, users,
- * roles, permissions, etc.) use resource-specific IDs — not camp IDs.
- * For those routes, camp scoping is handled by the service layer via
- * database queries on the resource's camp_id.
+ *   - /resources/<id>[/...]       (resources scoped to camp)
+ *   - /expeditions/<id>[/...]     (expeditions scoped to camp)
+ *   - /professions/<id>[/...]     (professions scoped to camp)
+ *   - /transfers/<id>[/...]       (transfers scoped to camp)
+ *   - /users/<id>[/...]           (users scoped to camp)
+ *   - /roles/<id>[/...]           (roles scoped to camp)
+ *   - /permissions/<id>[/...]     (permissions scoped to camp)
+ *   - /metrics/<id>[/...]         (metrics scoped to camp)
  *
  * Query strings are stripped before matching to avoid false-positive
  * camp ID extraction from user-supplied query parameters.
  */
 function extractCampIdFromUrl(url: string): number | null {
   const pathOnly = url.split('?')[0];
-  // Only match paths that genuinely embed a camp ID
   const match = pathOnly.match(
-    /\/(?:camps\/(\d+)|inventory\/audit\/(\d+)|inventory\/(\d+)|admission\/camps\/(\d+))(?:\/|$)/,
+    /\/(?:camps\/(\d+)|inventory\/audit\/(\d+)|inventory\/(\d+)|admission\/camps\/(\d+)|resources\/(\d+)|expeditions\/(\d+)|professions\/(\d+)|transfers\/(\d+)|users\/(\d+)|roles\/(\d+)|permissions\/(\d+)|metrics\/(\d+))(?:\/|$)/,
   );
   if (!match) return null;
-  return Number(match[1] || match[2] || match[3] || match[4]) || null;
+  const id =
+    match[1] ||
+    match[2] ||
+    match[3] ||
+    match[4] ||
+    match[5] ||
+    match[6] ||
+    match[7] ||
+    match[8] ||
+    match[9] ||
+    match[10] ||
+    match[11] ||
+    match[12];
+  return id ? Number(id) : null;
 }
 
 export const campMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
@@ -95,11 +110,7 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
       }
     } else {
       const requestedCampIdFromUrl = extractCampIdFromUrl(req.originalUrl || req.url);
-      // No camp ID in URL — service layer will handle scoping via DB queries
-      if (requestedCampIdFromUrl === null) {
-        return next();
-      }
-      if (requestedCampIdFromUrl !== campId) {
+      if (requestedCampIdFromUrl !== null && requestedCampIdFromUrl !== campId) {
         throw new AppError('Forbidden', 403);
       }
     }

@@ -6,7 +6,8 @@ export const CreateUserSchema = z.object({
   camp_id: z.number().int().positive(),
   role_id: z.number().int().positive(),
   is_active: z.boolean().optional(),
-  // last_activity and created_at removed — server-controlled timestamps
+  last_activity: z.iso.datetime().optional(),
+  created_at: z.iso.datetime().optional(),
 });
 
 export const UpdateUserSchema = CreateUserSchema.partial();

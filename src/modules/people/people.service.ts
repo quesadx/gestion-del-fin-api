@@ -62,17 +62,15 @@ function parseDateOnly(dateStr: string | undefined, fieldName: string) {
   return date;
 }
 
-async function ensureCampExists(campId: number, tx?: PeopleTransactionClient) {
-  const client = tx ?? prisma;
-  const camp = await client.camps.findUnique({ where: { id: campId }, select: { id: true } });
+async function ensureCampExists(campId: number) {
+  const camp = await prisma.camps.findUnique({ where: { id: campId }, select: { id: true } });
   if (!camp) {
     throw new AppError(`Camp not found: ${campId}`, 404);
   }
 }
 
-async function ensureProfessionExists(professionId: number, tx?: Prisma.TransactionClient) {
-  const client = tx ?? prisma;
-  const profession = await client.professions.findUnique({
+async function ensureProfessionExists(professionId: number) {
+  const profession = await prisma.professions.findUnique({
     where: { id: professionId },
     select: { id: true },
   });
@@ -128,14 +126,13 @@ async function ensurePersonBelongsToCamp(campId: number, personId: number) {
 
 async function validateRelations(
   data: Partial<Pick<CreatePersonDto, 'camp_id' | 'profession_id'>>,
-  tx?: Prisma.TransactionClient,
 ) {
   if (data.camp_id !== undefined) {
-    await ensureCampExists(data.camp_id, tx);
+    await ensureCampExists(data.camp_id);
   }
 
   if (data.profession_id !== undefined) {
-    await ensureProfessionExists(data.profession_id, tx);
+    await ensureProfessionExists(data.profession_id);
   }
 }
 
@@ -172,7 +169,7 @@ export async function createPerson(campId: number, data: CreatePersonDto, tx?: T
     throw new AppError(`camp_id in body (${data.camp_id}) must match URL campId (${campId})`, 400);
   }
 
-  await validateRelations({ camp_id: campId, profession_id: data.profession_id }, tx);
+  await validateRelations({ camp_id: campId, profession_id: data.profession_id });
 
   const client = tx ?? prisma;
   const maxRetries = 3;

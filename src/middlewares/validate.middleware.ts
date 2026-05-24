@@ -13,16 +13,11 @@ export const validate =
           const val = obj[key];
           if (typeof val === 'string') {
             const trimmed = val.trim();
-            // Skip coercion for values with leading zeros — preserve string
-            // semantics for zip codes, phone prefixes, etc. (e.g. "01234").
-            // Also skip single-zero strings like "000" to avoid data loss.
-            if (/^-?\d+$/.test(trimmed) && !/^-?0\d/.test(trimmed)) {
+            if (/^-?\d+$/.test(trimmed)) {
               out[key] = Number.parseInt(trimmed, 10);
               continue;
             }
-            // Only coerce floats that have significant fractional digits
-            // (e.g., "1.5" → 1.5 but "1.0" stays as string "1.0").
-            if (/^-?\d+\.\d*[1-9]\d*$/.test(trimmed)) {
+            if (/^-?\d*\.\d+$/.test(trimmed)) {
               out[key] = Number.parseFloat(trimmed);
               continue;
             }

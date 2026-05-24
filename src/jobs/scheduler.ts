@@ -12,24 +12,12 @@ let dailyRationsTask: ScheduledTask | null = null;
 let dailyProductionTask: ScheduledTask | null = null;
 let resourceAlertsTask: ScheduledTask | null = null;
 
-// Concurrency guards — node-cron does not prevent overlapping executions.
-// Without these guards, overlapping cron runs can cause inventory race
-// conditions (e.g., multiple invocations reading the same stale snapshot).
-let dailyRationsRunning = false;
-let dailyProductionRunning = false;
-let resourceAlertsRunning = false;
-
 export function startJobScheduler() {
   if (dailyRationsTask || dailyProductionTask || resourceAlertsTask) {
     return;
   }
 
   dailyRationsTask = cron.schedule(DAILY_RATIONS_CRON, async () => {
-    if (dailyRationsRunning) {
-      logger.warn('[JOB] Daily rations already running, skipping');
-      return;
-    }
-    dailyRationsRunning = true;
     logger.info('[JOB] Starting daily rations job');
 
     try {
@@ -37,19 +25,12 @@ export function startJobScheduler() {
       logger.info('[JOB] Daily rations job finished');
     } catch (error) {
       logger.error('[JOB] Daily rations job failed', error);
-    } finally {
-      dailyRationsRunning = false;
     }
   });
 
   logger.info(`[JOB] Daily rations scheduler registered with cron: ${DAILY_RATIONS_CRON}`);
 
   dailyProductionTask = cron.schedule(DAILY_PRODUCTION_CRON, async () => {
-    if (dailyProductionRunning) {
-      logger.warn('[JOB] Daily production already running, skipping');
-      return;
-    }
-    dailyProductionRunning = true;
     logger.info('[JOB] Starting daily production job');
 
     try {
@@ -57,19 +38,12 @@ export function startJobScheduler() {
       logger.info('[JOB] Daily production job finished');
     } catch (error) {
       logger.error('[JOB] Daily production job failed', error);
-    } finally {
-      dailyProductionRunning = false;
     }
   });
 
   logger.info(`[JOB] Daily production scheduler registered with cron: ${DAILY_PRODUCTION_CRON}`);
 
   resourceAlertsTask = cron.schedule(RESOURCE_ALERTS_CRON, async () => {
-    if (resourceAlertsRunning) {
-      logger.warn('[JOB] Resource alerts already running, skipping');
-      return;
-    }
-    resourceAlertsRunning = true;
     logger.info('[JOB] Starting resource alerts job');
 
     try {
@@ -77,8 +51,6 @@ export function startJobScheduler() {
       logger.info('[JOB] Resource alerts job finished');
     } catch (error) {
       logger.error('[JOB] Resource alerts job failed', error);
-    } finally {
-      resourceAlertsRunning = false;
     }
   });
 

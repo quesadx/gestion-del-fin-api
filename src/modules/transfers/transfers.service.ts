@@ -126,18 +126,12 @@ function ensureTransferStatus(
   }
 }
 
-function isPastDate(date: Date): boolean {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return date.getTime() < startOfToday.getTime();
-}
-
 function ensureScheduledDeliveryDateForApproval(date: Date | null) {
   if (!date) {
     throw new AppError('scheduled_delivery_date is required before approval', 400);
   }
 
-  if (isPastDate(date)) {
+  if (date.getTime() < Date.now()) {
     throw new AppError('scheduled_delivery_date cannot be in the past for approval', 400);
   }
 }
@@ -368,7 +362,7 @@ export async function scheduleTransferDelivery(
 ) {
   const scheduledDeliveryDate = parseDateTime(data.scheduled_delivery_date)!;
 
-  if (isPastDate(scheduledDeliveryDate)) {
+  if (scheduledDeliveryDate.getTime() < Date.now()) {
     throw new AppError('scheduled_delivery_date cannot be in the past', 400);
   }
 
@@ -398,11 +392,10 @@ export async function approveTransferBySource(
   data: ApproveTransferSourceDto,
 ) {
   const scheduledDeliveryDate = parseDateTime(data.scheduled_delivery_date);
-  const approver = await prisma.users.findUnique({
-    where: { id: approverUserId },
-    select: { id: true, camp_id: true },
-  });
-  if (!approver) throw new AppError(`User not found: ${approverUserId}`, 404);
+  const approver = await ensureUserExists(
+    prisma as unknown as TransferTransactionClient,
+    approverUserId,
+  );
 
   return prisma
     .$transaction(async (tx: TransferTransactionClient) => {
@@ -448,11 +441,10 @@ export async function approveTransferByTarget(
   approverUserId: number,
   data: ApproveTransferTargetDto,
 ) {
-  const approver = await prisma.users.findUnique({
-    where: { id: approverUserId },
-    select: { id: true, camp_id: true },
-  });
-  if (!approver) throw new AppError(`User not found: ${approverUserId}`, 404);
+  const approver = await ensureUserExists(
+    prisma as unknown as TransferTransactionClient,
+    approverUserId,
+  );
 
   return prisma
     .$transaction(async (tx: TransferTransactionClient) => {
@@ -497,11 +489,7 @@ export async function completeTransfer(
   data: CompleteTransferDto,
 ) {
   const targetPersonStatus = data.person_status ?? 'HEALTHY';
-  const actor = await prisma.users.findUnique({
-    where: { id: completedBy },
-    select: { id: true, camp_id: true },
-  });
-  if (!actor) throw new AppError(`User not found: ${completedBy}`, 404);
+  const actor = await ensureUserExists(prisma as unknown as TransferTransactionClient, completedBy);
 
   return prisma
     .$transaction(async (tx: TransferTransactionClient) => {
@@ -594,11 +582,7 @@ export async function rejectTransfer(
   actorUserId: number,
   data: RejectTransferDto,
 ) {
-  const actor = await prisma.users.findUnique({
-    where: { id: actorUserId },
-    select: { id: true, camp_id: true },
-  });
-  if (!actor) throw new AppError(`User not found: ${actorUserId}`, 404);
+  const actor = await ensureUserExists(prisma as unknown as TransferTransactionClient, actorUserId);
 
   return prisma
     .$transaction(async (tx: TransferTransactionClient) => {
