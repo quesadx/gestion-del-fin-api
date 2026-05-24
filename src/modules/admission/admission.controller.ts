@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CreateAdmissionDTO, reviewAdmissionSchema } from './admission.schema.js';
+import { CreateAdmissionDTO } from './admission.schema.js';
 import * as service from './admission.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
@@ -31,8 +31,7 @@ export async function reviewAdmissionHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
   const reviewedBy = authReq.user.userId;
-  const body = reviewAdmissionSchema.parse(req.body);
-
-  const result = await service.reviewAdmission(id, reviewedBy, body);
+  // req.body already validated by validate(reviewAdmissionSchema) middleware
+  const result = await service.reviewAdmission(id, reviewedBy, req.body);
   res.json(signMediaUrls(result, authReq.user?.exp));
 }
