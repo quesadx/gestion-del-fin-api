@@ -6,6 +6,7 @@ import {
   handleForeignKeyError,
   handleUniqueConstraintError,
 } from '../../shared/utils/handlePrismaError.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 import { generateIdentificationCode } from '../../shared/utils/identificationCode.js';
 import {
   CreateContributionOverrideDto,
@@ -164,7 +165,7 @@ function preparePersonUpdateData(data: UpdatePersonDto) {
   };
 }
 
-export async function createPerson(campId: number, data: CreatePersonDto, tx?: TransactionClient) {
+export async function createPerson(campId: number, data: CreatePersonDto, createdBy: number, tx?: TransactionClient) {
   if (data.camp_id !== campId) {
     throw new AppError(`camp_id in body (${data.camp_id}) must match URL campId (${campId})`, 400);
   }
@@ -178,10 +179,20 @@ export async function createPerson(campId: number, data: CreatePersonDto, tx?: T
 
   while (attempts < maxRetries) {
     try {
-      return await client.people.create({
+      const person = await client.people.create({
         data: preparePersonCreateData({ ...data, camp_id: campId }, identificationCode),
         include: personInclude,
       });
+
+      auditLog({
+        userId: createdBy,
+        campId,
+        action: 'CREATE_PERSON',
+        targetType: 'people',
+        targetId: person.id,
+      });
+
+      return person;
     } catch (error: any) {
       // Retry on identification_code collision with a fresh random code
       if (
@@ -248,6 +259,18 @@ export async function updatePerson(
       }
 
       return updatedPerson;
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: changedBy,
+          campId,
+          action: 'UPDATE_PERSON',
+          targetType: 'people',
+          targetId: id,
+        });
+      }
+      return result;
     });
   } catch (error: any) {
     handleUniqueConstraintError(error);
@@ -325,11 +348,19 @@ export async function getActiveContributionOverridesByCamp(campId: number) {
   });
 }
 
-export async function deletePerson(campId: number, id: number) {
+export async function deletePerson(campId: number, id: number, deletedBy: number) {
   await ensurePersonBelongsToCamp(campId, id);
 
   try {
     await prisma.people.delete({ where: { id } });
+
+    auditLog({
+      userId: deletedBy,
+      campId,
+      action: 'DELETE_PERSON',
+      targetType: 'people',
+      targetId: id,
+    });
   } catch (error: any) {
     handleForeignKeyError(error);
   }
@@ -390,12 +421,25 @@ export async function createPersonStatusLog(
         },
       },
     });
+  })
+  .then((result) => {
+    if (result) {
+      auditLog({
+        userId,
+        campId,
+        action: 'CHANGE_PERSON_STATUS',
+        targetType: 'people',
+        targetId: data.person_id,
+      });
+    }
+    return result;
   });
 }
 
 export async function createProfessionReassignment(
   campId: number,
   data: CreateProfessionReassignmentDto,
+  changedBy: number,
 ) {
   return prisma.$transaction(async (tx: PeopleTransactionClient) => {
     const client = tx as unknown as typeof prisma;
@@ -496,6 +540,18 @@ export async function createProfessionReassignment(
       ...log,
       target_profession_had_no_active_people: targetActiveCount === 0,
     };
+  })
+  .then((result) => {
+    if (result) {
+      auditLog({
+        userId: changedBy,
+        campId,
+        action: 'REASSIGN_PROFESSION',
+        targetType: 'people',
+        targetId: data.person_id,
+      });
+    }
+    return result;
   });
 }
 
@@ -559,5 +615,17 @@ export async function createContributionOverride(
         },
       },
     });
+  })
+  .then((result) => {
+    if (result) {
+      auditLog({
+        userId,
+        campId,
+        action: 'CREATE_OVERRIDE',
+        targetType: 'people',
+        targetId: result.id,
+      });
+    }
+    return result;
   });
 }

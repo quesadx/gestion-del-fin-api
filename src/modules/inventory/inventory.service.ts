@@ -4,6 +4,7 @@ import { AppError } from '../../shared/utils/appError.js';
 import { ManualAdjustmentDto } from './inventory.schema.js';
 import { logger } from '../../logger/logger.js';
 import { getLowResourceAlerts } from '../metrics/metrics.service.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 function asNumber(value: unknown): number {
   return Number(value);
@@ -575,6 +576,14 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
   });
 
   await logLowResourceAlerts(data.camp_id);
+
+  auditLog({
+    userId,
+    campId: data.camp_id,
+    action: 'MANUAL_INVENTORY_ADJUST',
+    targetType: 'inventory_logs',
+    targetId: result.movement.id,
+  });
 
   return result;
 }

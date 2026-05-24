@@ -553,10 +553,27 @@ enum audit_log_action {
   REJECT_TRANSFER
   LOGIN
   LOGOUT
+  CREATE_ADMISSION
+  REVIEW_ADMISSION
+  OVERRIDE_ADMISSION
+  CREATE_EXPEDITION
+  UPDATE_EXPEDITION_STATUS
+  CANCEL_EXPEDITION
+  CREATE_PERSON
+  UPDATE_PERSON
+  DELETE_PERSON
+  CHANGE_PERSON_STATUS
+  REASSIGN_PROFESSION
+  CREATE_OVERRIDE
+  MANUAL_INVENTORY_ADJUST
 }
 
 enum audit_log_target_type {
   users
   camps
   camp_transfers
+  admission_requests
+  expeditions
+  people
+  inventory_logs
 }

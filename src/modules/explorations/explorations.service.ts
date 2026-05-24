@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { handleUniqueConstraintError } from '../../shared/utils/handlePrismaError.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import {
   CreateExplorationDto,
@@ -417,6 +418,18 @@ export async function createExploration(data: CreateExplorationDto) {
           expedition_allocated_resources: true,
         },
       });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: data.created_by,
+          campId: data.camp_id,
+          action: 'CREATE_EXPEDITION',
+          targetType: 'expeditions',
+          targetId: result.id,
+        });
+      }
+      return result;
     });
   } catch (error: any) {
     handleUniqueConstraintError(error);
@@ -569,6 +582,19 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
           expedition_found_resources: true,
         },
       });
+    })
+    .then((result) => {
+      if (result) {
+        const action = data.status === 'CANCELLED' ? 'CANCEL_EXPEDITION' : 'UPDATE_EXPEDITION_STATUS';
+        auditLog({
+          userId: data.changed_by,
+          campId: result.camp_id,
+          action,
+          targetType: 'expeditions',
+          targetId: result.id,
+        });
+      }
+      return result;
     });
   } catch (error: any) {
     handleUniqueConstraintError(error);
@@ -662,5 +688,13 @@ export async function deleteExploration(id: number, data: DeleteExplorationDto) 
       where: { id },
       data: { status: 'CANCELLED' },
     });
+  });
+
+  auditLog({
+    userId: data.changed_by,
+    campId: expedition.camp_id,
+    action: 'CANCEL_EXPEDITION',
+    targetType: 'expeditions',
+    targetId: id,
   });
 }
