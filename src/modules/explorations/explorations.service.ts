@@ -363,74 +363,75 @@ export async function createExploration(data: CreateExplorationDto) {
   const memberIds = data.members.map((member) => member.person_id);
 
   try {
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const client = tx as unknown as typeof prisma;
-      await validateMembers(tx, data.camp_id, memberIds);
+    return await prisma
+      .$transaction(async (tx: Prisma.TransactionClient) => {
+        const client = tx as unknown as typeof prisma;
+        await validateMembers(tx, data.camp_id, memberIds);
 
-      const expedition = await client.expeditions.create({
-        data: prepareCreateData(data),
+        const expedition = await client.expeditions.create({
+          data: prepareCreateData(data),
+        });
+
+        if (memberIds.length > 0) {
+          await client.expedition_members.createMany({
+            data: memberIds.map((personId) => ({
+              expedition_id: expedition.id,
+              person_id: personId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        if (allocatedResources.length > 0) {
+          await client.expedition_allocated_resources.createMany({
+            data: allocatedResources.map((resource) => ({
+              expedition_id: expedition.id,
+              resource_type_id: resource.resource_type_id,
+              amount: resource.amount,
+            })),
+            skipDuplicates: true,
+          });
+
+          await handleResourceOutflow(tx, {
+            campId: data.camp_id,
+            loggedBy: data.created_by,
+            expeditionId: expedition.id,
+            resources: allocatedResources,
+          });
+        }
+
+        if (initialStatus === 'ONGOING' && memberIds.length > 0) {
+          await changeMemberStatus(
+            tx,
+            memberIds,
+            'AWAY',
+            data.created_by,
+            `Expedition #${expedition.id} started`,
+          );
+        }
+
+        return client.expeditions.findUnique({
+          where: { id: expedition.id },
+          include: {
+            camps: true,
+            users: true,
+            expedition_members: true,
+            expedition_allocated_resources: true,
+          },
+        });
+      })
+      .then((result) => {
+        if (result) {
+          auditLog({
+            userId: data.created_by,
+            campId: data.camp_id,
+            action: 'CREATE_EXPEDITION',
+            targetType: 'expeditions',
+            targetId: result.id,
+          });
+        }
+        return result;
       });
-
-      if (memberIds.length > 0) {
-        await client.expedition_members.createMany({
-          data: memberIds.map((personId) => ({
-            expedition_id: expedition.id,
-            person_id: personId,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      if (allocatedResources.length > 0) {
-        await client.expedition_allocated_resources.createMany({
-          data: allocatedResources.map((resource) => ({
-            expedition_id: expedition.id,
-            resource_type_id: resource.resource_type_id,
-            amount: resource.amount,
-          })),
-          skipDuplicates: true,
-        });
-
-        await handleResourceOutflow(tx, {
-          campId: data.camp_id,
-          loggedBy: data.created_by,
-          expeditionId: expedition.id,
-          resources: allocatedResources,
-        });
-      }
-
-      if (initialStatus === 'ONGOING' && memberIds.length > 0) {
-        await changeMemberStatus(
-          tx,
-          memberIds,
-          'AWAY',
-          data.created_by,
-          `Expedition #${expedition.id} started`,
-        );
-      }
-
-      return client.expeditions.findUnique({
-        where: { id: expedition.id },
-        include: {
-          camps: true,
-          users: true,
-          expedition_members: true,
-          expedition_allocated_resources: true,
-        },
-      });
-    })
-    .then((result) => {
-      if (result) {
-        auditLog({
-          userId: data.created_by,
-          campId: data.camp_id,
-          action: 'CREATE_EXPEDITION',
-          targetType: 'expeditions',
-          targetId: result.id,
-        });
-      }
-      return result;
-    });
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
@@ -481,121 +482,123 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
   validateStatusTransition(expedition.status, data.status);
 
   try {
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const client = tx as unknown as typeof prisma;
-      let resourcesToReturn = data.resources_to_return ?? [];
+    return await prisma
+      .$transaction(async (tx: Prisma.TransactionClient) => {
+        const client = tx as unknown as typeof prisma;
+        let resourcesToReturn = data.resources_to_return ?? [];
 
-      if (data.status === 'RETURNED' && resourcesToReturn.length === 0) {
-        const allocated = await client.expedition_allocated_resources.findMany({
-          where: { expedition_id: id },
-          select: { resource_type_id: true, amount: true },
-        });
+        if (data.status === 'RETURNED' && resourcesToReturn.length === 0) {
+          const allocated = await client.expedition_allocated_resources.findMany({
+            where: { expedition_id: id },
+            select: { resource_type_id: true, amount: true },
+          });
 
-        resourcesToReturn = allocated.map((resource) => ({
-          resource_type_id: resource.resource_type_id,
-          amount: asNumber(resource.amount),
-        }));
-      }
-
-      const normalizedResourcesToReturn = Array.from(aggregateResources(resourcesToReturn)).map(
-        ([resource_type_id, amount]) => ({ resource_type_id, amount }),
-      );
-
-      const expeditionMemberIds = await getExpeditionMemberIds(tx, id);
-
-      let memberIds = expeditionMemberIds;
-      if (data.members) {
-        const requestedMemberIds = Array.from(
-          new Set(data.members.map((member) => member.person_id)),
-        );
-        const expeditionMemberSet = new Set(expeditionMemberIds);
-
-        for (const memberId of requestedMemberIds) {
-          if (!expeditionMemberSet.has(memberId)) {
-            throw new AppError(`Person ${memberId} is not a member of expedition ${id}`, 400);
-          }
+          resourcesToReturn = allocated.map((resource) => ({
+            resource_type_id: resource.resource_type_id,
+            amount: asNumber(resource.amount),
+          }));
         }
 
-        await validateMembers(tx, expedition.camp_id, requestedMemberIds);
-        memberIds = requestedMemberIds;
-      }
-
-      if (data.status === 'ONGOING' && memberIds.length > 0) {
-        await changeMemberStatus(
-          tx,
-          memberIds,
-          'AWAY',
-          data.changed_by,
-          `Expedition #${id} switched to ONGOING`,
+        const normalizedResourcesToReturn = Array.from(aggregateResources(resourcesToReturn)).map(
+          ([resource_type_id, amount]) => ({ resource_type_id, amount }),
         );
-      }
 
-      if (data.status === 'RETURNED' || data.status === 'CANCELLED') {
-        if (memberIds.length > 0) {
+        const expeditionMemberIds = await getExpeditionMemberIds(tx, id);
+
+        let memberIds = expeditionMemberIds;
+        if (data.members) {
+          const requestedMemberIds = Array.from(
+            new Set(data.members.map((member) => member.person_id)),
+          );
+          const expeditionMemberSet = new Set(expeditionMemberIds);
+
+          for (const memberId of requestedMemberIds) {
+            if (!expeditionMemberSet.has(memberId)) {
+              throw new AppError(`Person ${memberId} is not a member of expedition ${id}`, 400);
+            }
+          }
+
+          await validateMembers(tx, expedition.camp_id, requestedMemberIds);
+          memberIds = requestedMemberIds;
+        }
+
+        if (data.status === 'ONGOING' && memberIds.length > 0) {
           await changeMemberStatus(
             tx,
             memberIds,
-            data.return_member_status ?? 'HEALTHY',
+            'AWAY',
             data.changed_by,
-            `Expedition #${id} switched to ${data.status}`,
+            `Expedition #${id} switched to ONGOING`,
           );
         }
-      }
 
-      if (data.status === 'RETURNED' && normalizedResourcesToReturn.length > 0) {
-        await handleResourceReturn(tx, {
-          campId: expedition.camp_id,
-          loggedBy: data.changed_by,
-          expeditionId: id,
-          resources: normalizedResourcesToReturn,
+        if (data.status === 'RETURNED' || data.status === 'CANCELLED') {
+          if (memberIds.length > 0) {
+            await changeMemberStatus(
+              tx,
+              memberIds,
+              data.return_member_status ?? 'HEALTHY',
+              data.changed_by,
+              `Expedition #${id} switched to ${data.status}`,
+            );
+          }
+        }
+
+        if (data.status === 'RETURNED' && normalizedResourcesToReturn.length > 0) {
+          await handleResourceReturn(tx, {
+            campId: expedition.camp_id,
+            loggedBy: data.changed_by,
+            expeditionId: id,
+            resources: normalizedResourcesToReturn,
+          });
+
+          await client.expedition_found_resources.createMany({
+            data: normalizedResourcesToReturn.map((resource) => ({
+              expedition_id: id,
+              resource_type_id: resource.resource_type_id,
+              amount: resource.amount,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        await client.expeditions.update({
+          where: { id },
+          data: {
+            status: data.status,
+            actual_return_date:
+              data.status === 'RETURNED'
+                ? parseDate(data.actual_return_date)!
+                : expedition.actual_return_date,
+            notes: data.notes?.trim() ?? expedition.notes,
+          },
         });
 
-        await client.expedition_found_resources.createMany({
-          data: normalizedResourcesToReturn.map((resource) => ({
-            expedition_id: id,
-            resource_type_id: resource.resource_type_id,
-            amount: resource.amount,
-          })),
-          skipDuplicates: true,
+        return client.expeditions.findUnique({
+          where: { id },
+          include: {
+            camps: true,
+            users: true,
+            expedition_members: true,
+            expedition_allocated_resources: true,
+            expedition_found_resources: true,
+          },
         });
-      }
-
-      await client.expeditions.update({
-        where: { id },
-        data: {
-          status: data.status,
-          actual_return_date:
-            data.status === 'RETURNED'
-              ? parseDate(data.actual_return_date)!
-              : expedition.actual_return_date,
-          notes: data.notes?.trim() ?? expedition.notes,
-        },
+      })
+      .then((result) => {
+        if (result) {
+          const action =
+            data.status === 'CANCELLED' ? 'CANCEL_EXPEDITION' : 'UPDATE_EXPEDITION_STATUS';
+          auditLog({
+            userId: data.changed_by,
+            campId: result.camp_id,
+            action,
+            targetType: 'expeditions',
+            targetId: result.id,
+          });
+        }
+        return result;
       });
-
-      return client.expeditions.findUnique({
-        where: { id },
-        include: {
-          camps: true,
-          users: true,
-          expedition_members: true,
-          expedition_allocated_resources: true,
-          expedition_found_resources: true,
-        },
-      });
-    })
-    .then((result) => {
-      if (result) {
-        const action = data.status === 'CANCELLED' ? 'CANCEL_EXPEDITION' : 'UPDATE_EXPEDITION_STATUS';
-        auditLog({
-          userId: data.changed_by,
-          campId: result.camp_id,
-          action,
-          targetType: 'expeditions',
-          targetId: result.id,
-        });
-      }
-      return result;
-    });
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }

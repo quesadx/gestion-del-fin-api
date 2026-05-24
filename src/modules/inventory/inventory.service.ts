@@ -427,17 +427,16 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
 
   // 4 — detailed consistency only for the paginated page (DB-level pagination)
   const pagedConsistency =
-    paginatedIds.length > 0
-      ? await validateInventoryConsistency(campId, paginatedIds)
-      : [];
+    paginatedIds.length > 0 ? await validateInventoryConsistency(campId, paginatedIds) : [];
 
   // 5 — fetch resource names only for the displayed page
-  const resources = paginatedIds.length > 0
-    ? await prisma.resource_types.findMany({
-        where: { id: { in: paginatedIds } },
-        select: { id: true, name: true, unit: true },
-      })
-    : [];
+  const resources =
+    paginatedIds.length > 0
+      ? await prisma.resource_types.findMany({
+          where: { id: { in: paginatedIds } },
+          select: { id: true, name: true, unit: true },
+        })
+      : [];
 
   const resourcesMap = new Map(
     resources.map((r: { id: number; name: string; unit: string }) => [r.id, r]),
