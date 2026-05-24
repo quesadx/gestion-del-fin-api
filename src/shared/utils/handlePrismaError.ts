@@ -10,7 +10,7 @@ export function handleUniqueConstraintError(error: any): never {
 
 export function handleForeignKeyError(error: any): never {
   if (error.code === 'P2003') {
-    throw new AppError('Cannot delete record with related records', 409);
+    throw new AppError('Cannot delete record with related records', 400);
   }
   throw error;
 }
