@@ -332,7 +332,7 @@ export async function createTransfer(data: CreateTransferDto) {
           item_type: item.item_type,
           resource_type_id: item.resource_type_id,
           person_id: item.person_id,
-          quantity: item.item_type === 'RESOURCE' ? item.quantity : null,
+          quantity: item.item_type === 'RESOURCE' ? item.quantity : undefined,
         })),
       });
 
