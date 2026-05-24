@@ -2,6 +2,33 @@ import { NextFunction, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../shared/utils/appError.js';
 import { AuthenticatedRequest } from './auth.middleware.js';
+import { PERMISSIONS } from '../shared/constants/permissions.js';
+
+/**
+ * Checks the database on every request to determine if the user has the
+ * admin.bypass_camp_scoping permission. This ensures that role changes
+ * take effect immediately without requiring a re-login.
+ */
+async function hasAdminBypass(userId: number): Promise<boolean> {
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      roles: {
+        select: {
+          role_permissions: {
+            select: { permissions: { select: { name: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  return (
+    user?.roles?.role_permissions?.some(
+      (rp) => rp.permissions.name === PERMISSIONS.ADMIN_BYPASS_CAMP_SCOPING,
+    ) ?? false
+  );
+}
 
 /**
  * Extracts a camp ID from known URL patterns used by camp-scoped routes.
@@ -49,14 +76,15 @@ export const campMiddleware = async (req: Request, _res: Response, next: NextFun
   try {
     const authReq = req as AuthenticatedRequest;
     const campId = authReq.user?.campId;
-    const isAdmin = authReq.user?.isAdmin;
+    const userId = authReq.user?.userId;
 
-    if (!campId) {
+    if (!campId || !userId) {
       throw new AppError('Unauthorized', 401);
     }
 
-    // Admin bypass — skip camp validation entirely.
-    // Uses isAdmin from JWT (set at login) so role renames don't break access.
+    // Admin bypass — re-checked from DB on every request so role changes
+    // take effect immediately without requiring a re-login.
+    const isAdmin = await hasAdminBypass(userId);
     if (isAdmin) {
       return next();
     }

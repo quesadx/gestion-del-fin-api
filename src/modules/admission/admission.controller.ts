@@ -4,13 +4,19 @@ import * as service from './admission.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 import { signMediaUrls } from '../../shared/utils/mediaUrl.js';
+import { AppError } from '../../shared/utils/appError.js';
 
 export async function createAdmissionHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const body = req.body as CreateAdmissionDTO;
   const campId = parseIdParam(req.params.campId);
+  const createdBy = authReq.user?.userId;
+  if (!createdBy) {
+    throw new AppError('Unauthorized', 401);
+  }
 
-  const result = await service.createAdmission(campId, body);
-  res.status(201).json(signMediaUrls(result, (req as AuthenticatedRequest).user?.exp));
+  const result = await service.createAdmission(campId, body, createdBy);
+  res.status(201).json(signMediaUrls(result, authReq.user?.exp));
 }
 
 export async function getAdmissionsHandler(req: Request, res: Response) {

@@ -109,7 +109,7 @@ components:
           example: 'admin'
         password:
           type: string
-          minLength: 1
+          minLength: 8
           maxLength: 255
           example: 'my-secure-password'
 
@@ -134,6 +134,7 @@ components:
 
     SystemTimeResponse:
       type: object
+      description: 'Time is taken from server clock (process time), not from database'
       required: [now, iso, today]
       properties:
         now:
@@ -178,6 +179,10 @@ components:
           format: date-time
           nullable: true
           description: 'Soft delete timestamp (null = active)'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
 
     CreateCampRequest:
       type: object
@@ -341,6 +346,7 @@ components:
           type: string
           nullable: true
           example: 'https://example.com/photo.jpg'
+          description: 'May be a signed Cloudinary URL with time-limited access token'
         status:
           type: string
           enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
@@ -559,8 +565,8 @@ components:
           example: 'Medical exemption — reduced ration'
         amount:
           type: number
-          minimum: -999999.99
-          maximum: 999999.99
+          minimum: -9999999999.99
+          maximum: 9999999999.99
           example: 0.3
         start_date:
           type: string
@@ -684,9 +690,11 @@ components:
         photo_url:
           type: string
           nullable: true
+          maxLength: 500
         id_card_url:
           type: string
           nullable: true
+          maxLength: 500
         ai_decision:
           type: string
           enum: [ACCEPTED, PENDING, REJECTED]
@@ -724,6 +732,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-25T14:05:30.000Z'
         created_at:
           type: string
           format: date-time
@@ -754,7 +767,7 @@ components:
         photo_url:
           type: string
           format: uri
-          maxLength: 255
+          maxLength: 500
         id_card_url:
           type: string
           format: uri
@@ -770,9 +783,11 @@ components:
         corrected_profession_id:
           type: integer
           nullable: true
+          description: 'Override the AI-suggested profession when accepting'
         correction_reason:
           type: string
           nullable: true
+          description: 'Reason for correcting the profession'
 
     Exploration:
       type: object
@@ -807,6 +822,11 @@ components:
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-25T14:05:30.000Z'
         deleted_at:
           type: string
           format: date-time
@@ -1046,6 +1066,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-25T14:05:30.000Z'
         created_at:
           type: string
           format: date-time
@@ -1190,6 +1215,9 @@ components:
         created_at:
           type: string
           format: date-time
+        session_version:
+          type: integer
+          example: 1
 
     CreateUserRequest:
       type: object
@@ -1202,9 +1230,9 @@ components:
           example: 'operator1'
         password:
           type: string
-          minLength: 1
+          minLength: 8
           maxLength: 255
-          example: 'secure-password'
+          example: 'my-secure-pw'
         camp_id:
           type: integer
           example: 1
@@ -1223,6 +1251,7 @@ components:
           maxLength: 60
         password:
           type: string
+          minLength: 8
           maxLength: 255
         camp_id:
           type: integer
@@ -1846,6 +1875,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedResponse'
+        '401':
+          description: 'Missing or invalid authentication.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 'Insufficient permissions.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/camps/{campId}/people/{id}:
     get:
@@ -4327,46 +4368,34 @@ paths:
               schema:
                 type: object
                 properties:
-                  people:
-                    type: object
-                    properties:
-                      total:
-                        type: integer
-                      healthy:
-                        type: integer
-                      sick:
-                        type: integer
-                      injured:
-                        type: integer
-                      away:
-                        type: integer
-                      dead:
-                        type: integer
-                  resources:
-                    type: object
-                    properties:
-                      total_types:
-                        type: integer
-                      low_stock:
-                        type: array
-                        items:
-                          type: object
-                  expeditions:
-                    type: object
-                    properties:
-                      active:
-                        type: integer
-                      planned:
-                        type: integer
-                      completed:
-                        type: integer
-                  transfers:
-                    type: object
-                    properties:
-                      pending:
-                        type: integer
-                      in_transit:
-                        type: integer
+                  survivor_count:
+                    type: integer
+                    example: 150
+                  healthy_count:
+                    type: integer
+                    example: 120
+                  injured_count:
+                    type: integer
+                    example: 15
+                  absent_count:
+                    type: integer
+                    example: 10
+                  resource_types_count:
+                    type: integer
+                    example: 12
+                  total_resources_value:
+                    type: number
+                    format: float
+                    example: 5000.5
+                  active_expeditions_count:
+                    type: integer
+                    example: 2
+                  pending_transfers_count:
+                    type: integer
+                    example: 3
+                  low_resource_alerts_count:
+                    type: integer
+                    example: 5
         '401':
           description: 'Missing or invalid authentication.'
           content:
@@ -4390,6 +4419,36 @@ paths:
       responses:
         '200':
           description: 'Resource metrics retrieved.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    resource_id:
+                      type: integer
+                      example: 1
+                    resource_name:
+                      type: string
+                      example: 'Canned Food'
+                    quantity_current:
+                      type: number
+                      format: float
+                      example: 500.0
+                    quantity_min_threshold:
+                      type: number
+                      format: float
+                      example: 100.0
+                    quantity_max_capacity:
+                      type: number
+                      format: float
+                      nullable: true
+                      example: null
+                    status:
+                      type: string
+                      enum: [OK, LOW, CRITICAL, OVERSTOCKED]
+                      example: OK
         '401':
           description: 'Missing or invalid authentication.'
           content:
@@ -4413,6 +4472,40 @@ paths:
       responses:
         '200':
           description: 'People metrics retrieved.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_survivors:
+                    type: integer
+                    example: 150
+                  by_profession:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        profession_name:
+                          type: string
+                          example: 'Medic'
+                        count:
+                          type: integer
+                          example: 25
+                  by_status:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: string
+                          example: 'HEALTHY'
+                        count:
+                          type: integer
+                          example: 120
+                  average_capacity_utilization_percent:
+                    type: number
+                    format: float
+                    example: 0
         '401':
           description: 'Missing or invalid authentication.'
           content:
@@ -4436,6 +4529,37 @@ paths:
       responses:
         '200':
           description: 'Expedition metrics retrieved.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    expedition_id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: 'East Sector Mall'
+                    status:
+                      type: string
+                      enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+                      example: 'ONGOING'
+                    participant_count:
+                      type: integer
+                      example: 5
+                    resource_consumption_total:
+                      type: number
+                      format: float
+                      example: 25.5
+                    days_elapsed:
+                      type: integer
+                      example: 3
+                    expected_return_date:
+                      type: string
+                      format: date
+                      example: '2026-04-30'
         '401':
           description: 'Missing or invalid authentication.'
           content:

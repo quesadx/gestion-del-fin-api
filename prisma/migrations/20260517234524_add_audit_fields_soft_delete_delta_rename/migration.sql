@@ -9,7 +9,14 @@ ADD COLUMN     "deleted_at" TIMESTAMP(3),
 ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- AlterTable
-ALTER TABLE "camps" ADD COLUMN     "deleted_at" TIMESTAMP(3);
+ALTER TABLE "admission_requests" ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AlterTable
+ALTER TABLE "camp_transfers" ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AlterTable
+ALTER TABLE "camps" ADD COLUMN     "deleted_at" TIMESTAMP(3),
+ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- AlterTable
 ALTER TABLE "contribution_overrides" ADD COLUMN     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -26,7 +33,8 @@ ALTER TABLE "expedition_found_resources" ADD COLUMN     "created_at" TIMESTAMP(3
 ALTER TABLE "expedition_members" ADD COLUMN     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- AlterTable
-ALTER TABLE "expeditions" ADD COLUMN     "deleted_at" TIMESTAMP(3);
+ALTER TABLE "expeditions" ADD COLUMN     "deleted_at" TIMESTAMP(3),
+ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- AlterTable
 ALTER TABLE "inventory" ADD COLUMN     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

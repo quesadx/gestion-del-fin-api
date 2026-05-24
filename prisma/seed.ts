@@ -835,7 +835,6 @@ async function main() {
     data: {
       id: 1,
       version: '1.0.0',
-      server_time: new Date(),
     },
   });
 

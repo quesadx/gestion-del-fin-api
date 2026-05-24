@@ -6,6 +6,7 @@ import {
   handleForeignKeyError,
   handleUniqueConstraintError,
 } from '../../shared/utils/handlePrismaError.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 import { generateIdentificationCode } from '../../shared/utils/identificationCode.js';
 import {
   CreateContributionOverrideDto,
@@ -81,8 +82,7 @@ async function ensureProfessionExists(professionId: number) {
 }
 
 async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionId: number) {
-  const client = tx as unknown as typeof prisma;
-  const profession = await client.professions.findUnique({
+  const profession = await tx.professions.findUnique({
     where: { id: professionId },
     select: { id: true },
   });
@@ -93,8 +93,7 @@ async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionI
 }
 
 async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceTypeId: number) {
-  const client = tx as unknown as typeof prisma;
-  const resourceType = await client.resource_types.findUnique({
+  const resourceType = await tx.resource_types.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -105,8 +104,7 @@ async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceT
 }
 
 async function ensureUserExistsTx(tx: PeopleTransactionClient, userId: number) {
-  const client = tx as unknown as typeof prisma;
-  const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
+  const user = await tx.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
   }
@@ -139,11 +137,12 @@ async function validateRelations(
   }
 }
 
-function preparePersonCreateData(data: CreatePersonDto) {
+function preparePersonCreateData(data: CreatePersonDto, identificationCode?: string) {
   return {
     full_name: data.full_name.trim(),
     age: data.age,
-    identification_code: data.identification_code ?? generateIdentificationCode(),
+    identification_code:
+      identificationCode ?? data.identification_code ?? generateIdentificationCode(),
     blood_type: data.blood_type,
     skills_summary: data.skills_summary?.trim(),
     photo_url: data.photo_url,
@@ -167,7 +166,12 @@ function preparePersonUpdateData(data: UpdatePersonDto) {
   };
 }
 
-export async function createPerson(campId: number, data: CreatePersonDto, tx?: TransactionClient) {
+export async function createPerson(
+  campId: number,
+  data: CreatePersonDto,
+  createdBy: number,
+  tx?: TransactionClient,
+) {
   if (data.camp_id !== campId) {
     throw new AppError(`camp_id in body (${data.camp_id}) must match URL campId (${campId})`, 400);
   }
@@ -175,15 +179,43 @@ export async function createPerson(campId: number, data: CreatePersonDto, tx?: T
   await validateRelations({ camp_id: campId, profession_id: data.profession_id });
 
   const client = tx ?? prisma;
+  const maxRetries = 3;
+  let identificationCode = data.identification_code ?? generateIdentificationCode();
+  let attempts = 0;
 
-  try {
-    return await client.people.create({
-      data: preparePersonCreateData({ ...data, camp_id: campId }),
-      include: personInclude,
-    });
-  } catch (error: any) {
-    handleUniqueConstraintError(error);
+  while (attempts < maxRetries) {
+    try {
+      const person = await client.people.create({
+        data: preparePersonCreateData({ ...data, camp_id: campId }, identificationCode),
+        include: personInclude,
+      });
+
+      auditLog({
+        userId: createdBy,
+        campId,
+        action: 'CREATE_PERSON',
+        targetType: 'people',
+        targetId: person.id,
+      });
+
+      return person;
+    } catch (error: any) {
+      // Retry on identification_code collision with a fresh random code
+      if (
+        error.code === 'P2002' &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes('identification_code') &&
+        !data.identification_code // only retry if we auto-generated the code
+      ) {
+        attempts++;
+        identificationCode = generateIdentificationCode();
+        if (attempts < maxRetries) continue;
+      }
+      handleUniqueConstraintError(error);
+    }
   }
+  // Should be unreachable — handleUniqueConstraintError always throws
+  throw new AppError('Failed to create person after retries', 500);
 }
 
 export async function updatePerson(
@@ -201,39 +233,52 @@ export async function updatePerson(
   await validateRelations({ camp_id: data.camp_id, profession_id: data.profession_id });
 
   try {
-    return await prisma.$transaction(async (tx: PeopleTransactionClient) => {
-      const client = tx as unknown as typeof prisma;
-      await ensureUserExistsTx(tx, changedBy);
+    return await prisma
+      .$transaction(async (tx: PeopleTransactionClient) => {
+        const client = tx as unknown as typeof prisma;
+        await ensureUserExistsTx(tx, changedBy);
 
-      const currentPerson = await client.people.findUnique({
-        where: { id },
-        select: { id: true, status: true },
-      });
-
-      if (!currentPerson) {
-        throw new AppError(`Person not found: ${id}`, 404);
-      }
-
-      const updatedPerson = await client.people.update({
-        where: { id },
-        data: preparePersonUpdateData({ ...data, camp_id: campId }),
-        include: personInclude,
-      });
-
-      if (data.status && data.status !== currentPerson.status) {
-        await client.person_status_logs.create({
-          data: {
-            person_id: id,
-            old_status: currentPerson.status,
-            new_status: data.status,
-            reason: 'Status changed via people update endpoint',
-            changed_by: changedBy,
-          },
+        const currentPerson = await client.people.findUnique({
+          where: { id },
+          select: { id: true, status: true },
         });
-      }
 
-      return updatedPerson;
-    });
+        if (!currentPerson) {
+          throw new AppError(`Person not found: ${id}`, 404);
+        }
+
+        const updatedPerson = await client.people.update({
+          where: { id },
+          data: preparePersonUpdateData({ ...data, camp_id: campId }),
+          include: personInclude,
+        });
+
+        if (data.status && data.status !== currentPerson.status) {
+          await client.person_status_logs.create({
+            data: {
+              person_id: id,
+              old_status: currentPerson.status,
+              new_status: data.status,
+              reason: 'Status changed via people update endpoint',
+              changed_by: changedBy,
+            },
+          });
+        }
+
+        return updatedPerson;
+      })
+      .then((result) => {
+        if (result) {
+          auditLog({
+            userId: changedBy,
+            campId,
+            action: 'UPDATE_PERSON',
+            targetType: 'people',
+            targetId: id,
+          });
+        }
+        return result;
+      });
   } catch (error: any) {
     handleUniqueConstraintError(error);
   }
@@ -310,11 +355,19 @@ export async function getActiveContributionOverridesByCamp(campId: number) {
   });
 }
 
-export async function deletePerson(campId: number, id: number) {
+export async function deletePerson(campId: number, id: number, deletedBy: number) {
   await ensurePersonBelongsToCamp(campId, id);
 
   try {
     await prisma.people.delete({ where: { id } });
+
+    auditLog({
+      userId: deletedBy,
+      campId,
+      action: 'DELETE_PERSON',
+      targetType: 'people',
+      targetId: id,
+    });
   } catch (error: any) {
     handleForeignKeyError(error);
   }
@@ -325,163 +378,190 @@ export async function createPersonStatusLog(
   data: CreatePersonStatusLogDto,
   userId: number,
 ) {
-  return prisma.$transaction(async (tx: PeopleTransactionClient) => {
-    const client = tx as unknown as typeof prisma;
-    await ensureUserExistsTx(tx, userId);
+  return prisma
+    .$transaction(async (tx: PeopleTransactionClient) => {
+      const client = tx as unknown as typeof prisma;
+      await ensureUserExistsTx(tx, userId);
 
-    const person = await client.people.findUnique({
-      where: { id: data.person_id },
-      select: { id: true, camp_id: true, status: true },
-    });
+      const person = await client.people.findUnique({
+        where: { id: data.person_id },
+        select: { id: true, camp_id: true, status: true },
+      });
 
-    if (!person) {
-      throw new AppError(`Person not found: ${data.person_id}`, 404);
-    }
+      if (!person) {
+        throw new AppError(`Person not found: ${data.person_id}`, 404);
+      }
 
-    if (person.camp_id !== campId) {
-      throw new AppError(`Person ${data.person_id} does not belong to camp ${campId}`, 409);
-    }
+      if (person.camp_id !== campId) {
+        throw new AppError(`Person ${data.person_id} does not belong to camp ${campId}`, 409);
+      }
 
-    if (person.status === data.new_status) {
-      throw new AppError('new_status must be different from current status', 400);
-    }
+      if (person.status === data.new_status) {
+        throw new AppError('new_status must be different from current status', 400);
+      }
 
-    await client.people.update({
-      where: { id: data.person_id },
-      data: { status: data.new_status },
-    });
+      await client.people.update({
+        where: { id: data.person_id },
+        data: { status: data.new_status },
+      });
 
-    return client.person_status_logs.create({
-      data: {
-        person_id: data.person_id,
-        old_status: person.status,
-        new_status: data.new_status,
-        reason: data.reason?.trim(),
-        changed_by: userId,
-      },
-      include: {
-        persons: {
-          select: {
-            id: true,
-            full_name: true,
-            status: true,
+      return client.person_status_logs.create({
+        data: {
+          person_id: data.person_id,
+          old_status: person.status,
+          new_status: data.new_status,
+          reason: data.reason?.trim(),
+          changed_by: userId,
+        },
+        include: {
+          persons: {
+            select: {
+              id: true,
+              full_name: true,
+              status: true,
+            },
+          },
+          users: {
+            select: {
+              id: true,
+              username: true,
+            },
           },
         },
-        users: {
-          select: {
-            id: true,
-            username: true,
-          },
-        },
-      },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId,
+          campId,
+          action: 'CHANGE_PERSON_STATUS',
+          targetType: 'people',
+          targetId: data.person_id,
+        });
+      }
+      return result;
     });
-  });
 }
 
 export async function createProfessionReassignment(
   campId: number,
   data: CreateProfessionReassignmentDto,
+  changedBy: number,
 ) {
-  return prisma.$transaction(async (tx: PeopleTransactionClient) => {
-    const client = tx as unknown as typeof prisma;
-    const person = await client.people.findUnique({
-      where: { id: data.person_id },
-      select: {
-        id: true,
-        camp_id: true,
-        status: true,
-        profession_id: true,
-      },
-    });
-
-    if (!person) {
-      throw new AppError(`Person not found: ${data.person_id}`, 404);
-    }
-
-    if (person.camp_id !== campId) {
-      throw new AppError(`Person ${data.person_id} does not belong to camp ${campId}`, 409);
-    }
-
-    await Promise.all([
-      ensureProfessionExistsTx(tx, data.from_profession_id),
-      ensureProfessionExistsTx(tx, data.to_profession_id),
-    ]);
-
-    if (person.profession_id !== data.from_profession_id) {
-      throw new AppError(
-        `Person ${data.person_id} is currently assigned to profession ${person.profession_id}, not ${data.from_profession_id}`,
-        409,
-      );
-    }
-
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const today = new Date(`${todayStr}T00:00:00.000Z`);
-
-    const activeReassignment = await client.profession_reassignment_logs.findFirst({
-      where: {
-        person_id: data.person_id,
-        OR: [{ end_date: null }, { end_date: { gte: today } }],
-      },
-      select: { id: true, start_date: true, end_date: true },
-    });
-
-    if (activeReassignment) {
-      throw new AppError(
-        `Person ${data.person_id} already has an active profession reassignment (${activeReassignment.id})`,
-        409,
-      );
-    }
-
-    const targetActiveCount = await client.people.count({
-      where: {
-        camp_id: person.camp_id,
-        profession_id: data.to_profession_id,
-        status: { in: Array.from(ACTIVE_PERSON_STATUS_SET) },
-      },
-    });
-
-    if (!ACTIVE_PERSON_STATUS_SET.has(person.status)) {
-      throw new AppError(
-        `Person ${data.person_id} has an inactive status (${person.status}) and cannot be reassigned`,
-        400,
-      );
-    }
-
-    const startDate = parseDateOnly(data.start_date, 'start_date');
-    const endDate = parseDateOnly(data.end_date, 'end_date');
-
-    await client.people.update({
-      where: { id: data.person_id },
-      data: { profession_id: data.to_profession_id },
-    });
-
-    const log = await client.profession_reassignment_logs.create({
-      data: {
-        person_id: data.person_id,
-        from_profession_id: data.from_profession_id,
-        to_profession_id: data.to_profession_id,
-        reason: data.reason?.trim(),
-        start_date: startDate,
-        end_date: endDate,
-      },
-      include: {
-        persons: {
-          select: { id: true, full_name: true, profession_id: true },
+  return prisma
+    .$transaction(async (tx: PeopleTransactionClient) => {
+      const client = tx as unknown as typeof prisma;
+      const person = await client.people.findUnique({
+        where: { id: data.person_id },
+        select: {
+          id: true,
+          camp_id: true,
+          status: true,
+          profession_id: true,
         },
-        from_profession: {
-          select: { id: true, name: true },
-        },
-        to_profession: {
-          select: { id: true, name: true },
-        },
-      },
-    });
+      });
 
-    return {
-      ...log,
-      target_profession_had_no_active_people: targetActiveCount === 0,
-    };
-  });
+      if (!person) {
+        throw new AppError(`Person not found: ${data.person_id}`, 404);
+      }
+
+      if (person.camp_id !== campId) {
+        throw new AppError(`Person ${data.person_id} does not belong to camp ${campId}`, 409);
+      }
+
+      await Promise.all([
+        ensureProfessionExistsTx(tx, data.from_profession_id),
+        ensureProfessionExistsTx(tx, data.to_profession_id),
+      ]);
+
+      if (person.profession_id !== data.from_profession_id) {
+        throw new AppError(
+          `Person ${data.person_id} is currently assigned to profession ${person.profession_id}, not ${data.from_profession_id}`,
+          409,
+        );
+      }
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const today = new Date(`${todayStr}T00:00:00.000Z`);
+
+      const activeReassignment = await client.profession_reassignment_logs.findFirst({
+        where: {
+          person_id: data.person_id,
+          OR: [{ end_date: null }, { end_date: { gte: today } }],
+        },
+        select: { id: true, start_date: true, end_date: true },
+      });
+
+      if (activeReassignment) {
+        throw new AppError(
+          `Person ${data.person_id} already has an active profession reassignment (${activeReassignment.id})`,
+          409,
+        );
+      }
+
+      const targetActiveCount = await client.people.count({
+        where: {
+          camp_id: person.camp_id,
+          profession_id: data.to_profession_id,
+          status: { in: Array.from(ACTIVE_PERSON_STATUS_SET) },
+        },
+      });
+
+      if (!ACTIVE_PERSON_STATUS_SET.has(person.status)) {
+        throw new AppError(
+          `Person ${data.person_id} has an inactive status (${person.status}) and cannot be reassigned`,
+          400,
+        );
+      }
+
+      const startDate = parseDateOnly(data.start_date, 'start_date');
+      const endDate = parseDateOnly(data.end_date, 'end_date');
+
+      await client.people.update({
+        where: { id: data.person_id },
+        data: { profession_id: data.to_profession_id },
+      });
+
+      const log = await client.profession_reassignment_logs.create({
+        data: {
+          person_id: data.person_id,
+          from_profession_id: data.from_profession_id,
+          to_profession_id: data.to_profession_id,
+          reason: data.reason?.trim(),
+          start_date: startDate,
+          end_date: endDate,
+        },
+        include: {
+          persons: {
+            select: { id: true, full_name: true, profession_id: true },
+          },
+          from_profession: {
+            select: { id: true, name: true },
+          },
+          to_profession: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+
+      return {
+        ...log,
+        target_profession_had_no_active_people: targetActiveCount === 0,
+      };
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId: changedBy,
+          campId,
+          action: 'REASSIGN_PROFESSION',
+          targetType: 'people',
+          targetId: data.person_id,
+        });
+      }
+      return result;
+    });
 }
 
 export async function createContributionOverride(
@@ -489,60 +569,73 @@ export async function createContributionOverride(
   data: CreateContributionOverrideDto,
   userId: number,
 ) {
-  return prisma.$transaction(async (tx: PeopleTransactionClient) => {
-    const client = tx as unknown as typeof prisma;
-    await Promise.all([
-      ensureResourceTypeExistsTx(tx, data.resource_type_id),
-      ensureUserExistsTx(tx, userId),
-    ]);
+  return prisma
+    .$transaction(async (tx: PeopleTransactionClient) => {
+      const client = tx as unknown as typeof prisma;
+      await Promise.all([
+        ensureResourceTypeExistsTx(tx, data.resource_type_id),
+        ensureUserExistsTx(tx, userId),
+      ]);
 
-    const person = await client.people.findUnique({
-      where: { id: data.person_id },
-      select: { id: true, camp_id: true },
+      const person = await client.people.findUnique({
+        where: { id: data.person_id },
+        select: { id: true, camp_id: true },
+      });
+
+      if (!person) {
+        throw new AppError(`Person not found: ${data.person_id}`, 404);
+      }
+
+      if (person.camp_id !== campId) {
+        throw new AppError(`Person ${data.person_id} does not belong to camp ${campId}`, 409);
+      }
+
+      const startDate = parseDateOnly(data.start_date, 'start_date');
+      const endDate = parseDateOnly(data.end_date, 'end_date');
+
+      return client.contribution_overrides.create({
+        data: {
+          person_id: data.person_id,
+          resource_type_id: data.resource_type_id,
+          reason: data.reason.trim(),
+          start_date: startDate,
+          end_date: endDate,
+          created_by: userId,
+          amount: data.amount,
+        },
+        include: {
+          persons: {
+            select: {
+              id: true,
+              full_name: true,
+            },
+          },
+          resource_type: {
+            select: {
+              id: true,
+              name: true,
+              unit: true,
+            },
+          },
+          users: {
+            select: {
+              id: true,
+              username: true,
+            },
+          },
+        },
+      });
+    })
+    .then((result) => {
+      if (result) {
+        auditLog({
+          userId,
+          campId,
+          action: 'CREATE_OVERRIDE',
+          targetType: 'people',
+          targetId: result.id,
+        });
+      }
+      return result;
     });
-
-    if (!person) {
-      throw new AppError(`Person not found: ${data.person_id}`, 404);
-    }
-
-    if (person.camp_id !== campId) {
-      throw new AppError(`Person ${data.person_id} does not belong to camp ${campId}`, 409);
-    }
-
-    const startDate = parseDateOnly(data.start_date, 'start_date');
-    const endDate = parseDateOnly(data.end_date, 'end_date');
-
-    return client.contribution_overrides.create({
-      data: {
-        person_id: data.person_id,
-        resource_type_id: data.resource_type_id,
-        reason: data.reason.trim(),
-        start_date: startDate,
-        end_date: endDate,
-        created_by: userId,
-        amount: data.amount,
-      },
-      include: {
-        persons: {
-          select: {
-            id: true,
-            full_name: true,
-          },
-        },
-        resource_type: {
-          select: {
-            id: true,
-            name: true,
-            unit: true,
-          },
-        },
-        users: {
-          select: {
-            id: true,
-            username: true,
-          },
-        },
-      },
-    });
-  });
 }

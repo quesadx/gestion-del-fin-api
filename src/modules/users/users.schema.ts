@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const CreateUserSchema = z.object({
   username: z.string().trim().min(1).max(60),
-  password: z.string().min(1).max(255),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(255),
   camp_id: z.number().int().positive(),
   role_id: z.number().int().positive(),
   is_active: z.boolean().optional(),

@@ -4,6 +4,7 @@ import { AdmissionAIResult, CreateAdmissionDTO, ReviewAdmissionDTO } from './adm
 import { evaluateAdmission } from '../../ai/admission-evaluator.js';
 import { createPerson } from '../people/people.service.js';
 import { AppError } from '../../shared/utils/appError.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 function prepareAdmissionCreateData(
   campId: number,
@@ -58,7 +59,7 @@ async function generateIdentificationCode(
   return `${prefix}-${String(nextNumber).padStart(3, '0')}`;
 }
 
-export async function createAdmission(campId: number, data: CreateAdmissionDTO) {
+export async function createAdmission(campId: number, data: CreateAdmissionDTO, createdBy: number) {
   const camp = await prisma.camps.findUnique({
     where: { id: campId },
   });
@@ -81,9 +82,30 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
     professions,
   );
 
-  return prisma.admission_requests.create({
+  // Validate that the AI-suggested profession exists in this camp's professions list.
+  // Guards against edge cases where the AI returns a fallback ID (e.g. 1) that does not
+  // belong to the current camp, which would cause the admission to be stuck on review.
+  const aiProfession = professions.find((p) => p.id === aiResult.ai_profession_id);
+  if (!aiProfession) {
+    throw new AppError(
+      `AI-suggested profession ID ${aiResult.ai_profession_id} not found in camp's professions`,
+      400,
+    );
+  }
+
+  const admission = await prisma.admission_requests.create({
     data: prepareAdmissionCreateData(campId, data, aiResult),
   });
+
+  auditLog({
+    userId: createdBy,
+    campId,
+    action: 'CREATE_ADMISSION',
+    targetType: 'admission_requests',
+    targetId: admission.id,
+  });
+
+  return admission;
 }
 
 export async function getAdmissions(campId: number, page = 1, pageSize = 20) {
@@ -119,7 +141,7 @@ export async function getAdmissionsById(id: number) {
 }
 
 export async function reviewAdmission(id: number, reviewedBy: number, data: ReviewAdmissionDTO) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const admission = await tx.admission_requests.update({
       where: { id },
       data: {
@@ -155,6 +177,7 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
           identification_code: identificationCode,
           photo_url: admission.photo_url ?? undefined,
         },
+        reviewedBy,
         tx,
       );
 
@@ -166,4 +189,14 @@ export async function reviewAdmission(id: number, reviewedBy: number, data: Revi
     }
     return admission;
   });
+
+  auditLog({
+    userId: reviewedBy,
+    campId: result.camp_id,
+    action: 'REVIEW_ADMISSION',
+    targetType: 'admission_requests',
+    targetId: result.id,
+  });
+
+  return result;
 }
