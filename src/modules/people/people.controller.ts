@@ -17,7 +17,7 @@ import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 export async function createPersonHandler(req: Request, res: Response) {
   const campId = parseIdParam(req.params.campId);
   const result = await createPerson(campId, req.body);
-  return res.status(201).json(result);
+  return res.status(201).json(signMediaUrls(result, (req as AuthenticatedRequest).user?.exp));
 }
 
 export async function updatePersonHandler(req: Request, res: Response) {

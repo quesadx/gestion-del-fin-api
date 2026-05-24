@@ -16,8 +16,7 @@ async function prepareUserCreateData(data: CreateUserDto) {
     camp_id: data.camp_id,
     role_id: data.role_id,
     is_active: data.is_active ?? true,
-    last_activity: data.last_activity,
-    created_at: data.created_at,
+    // last_activity and created_at are server-controlled
   };
 }
 
@@ -30,7 +29,7 @@ async function prepareUserUpdateData(data: UpdateUserDto) {
     camp_id: data.camp_id,
     role_id: data.role_id,
     is_active: data.is_active,
-    last_activity: data.last_activity,
+    // last_activity is server-controlled
   };
 }
 
@@ -109,7 +108,7 @@ export async function getUsers(campId: number, page = 1, pageSize = 20) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
-  const where = campId ? { camp_id: campId } : {};
+  const where = campId !== undefined ? { camp_id: campId } : {};
 
   const [records, total] = await Promise.all([
     prisma.users.findMany({
