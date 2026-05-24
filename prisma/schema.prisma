@@ -427,7 +427,6 @@ model role_permissions {
 model system_configs {
   id          Int      @id @default(1)
   version     String?  @db.VarChar(20)
-  server_time DateTime
   created_at  DateTime @default(now())
 
   @@map("system_config")
