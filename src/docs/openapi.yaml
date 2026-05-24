@@ -134,6 +134,7 @@ components:
 
     SystemTimeResponse:
       type: object
+      description: 'Time is taken from server clock (process time), not from database'
       required: [now, iso, today]
       properties:
         now:
@@ -178,6 +179,10 @@ components:
           format: date-time
           nullable: true
           description: 'Soft delete timestamp (null = active)'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-04-25T14:05:30.000Z'
 
     CreateCampRequest:
       type: object
@@ -341,6 +346,7 @@ components:
           type: string
           nullable: true
           example: 'https://example.com/photo.jpg'
+          description: 'May be a signed Cloudinary URL with time-limited access token'
         status:
           type: string
           enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
@@ -559,8 +565,8 @@ components:
           example: 'Medical exemption — reduced ration'
         amount:
           type: number
-          minimum: -999999.99
-          maximum: 999999.99
+          minimum: -999999999999.99
+          maximum: 999999999999.99
           example: 0.3
         start_date:
           type: string
@@ -684,9 +690,11 @@ components:
         photo_url:
           type: string
           nullable: true
+          maxLength: 500
         id_card_url:
           type: string
           nullable: true
+          maxLength: 500
         ai_decision:
           type: string
           enum: [ACCEPTED, PENDING, REJECTED]
@@ -724,6 +732,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-25T14:05:30.000Z'
         created_at:
           type: string
           format: date-time
@@ -754,7 +767,7 @@ components:
         photo_url:
           type: string
           format: uri
-          maxLength: 255
+          maxLength: 500
         id_card_url:
           type: string
           format: uri
@@ -766,13 +779,15 @@ components:
       properties:
         final_decision:
           type: string
-          enum: [ACCEPTED, REJECTED]
+          enum: [ACCEPTED, REJECTED, PENDING]
         corrected_profession_id:
           type: integer
           nullable: true
+          description: 'Override the AI-suggested profession when accepting'
         correction_reason:
           type: string
           nullable: true
+          description: 'Reason for correcting the profession'
 
     Exploration:
       type: object
@@ -807,6 +822,11 @@ components:
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-25T14:05:30.000Z'
         deleted_at:
           type: string
           format: date-time
@@ -1046,6 +1066,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-25T14:05:30.000Z'
         created_at:
           type: string
           format: date-time
@@ -1190,6 +1215,9 @@ components:
         created_at:
           type: string
           format: date-time
+        session_version:
+          type: integer
+          example: 1
 
     CreateUserRequest:
       type: object
@@ -1202,9 +1230,9 @@ components:
           example: 'operator1'
         password:
           type: string
-          minLength: 1
+          minLength: 8
           maxLength: 255
-          example: 'secure-password'
+          example: 'my-secure-pw'
         camp_id:
           type: integer
           example: 1
@@ -1223,6 +1251,7 @@ components:
           maxLength: 60
         password:
           type: string
+          minLength: 8
           maxLength: 255
         camp_id:
           type: integer
