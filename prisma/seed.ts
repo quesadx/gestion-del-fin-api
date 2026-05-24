@@ -601,8 +601,7 @@ async function main() {
       photo_url: 'https://example.com/admissions/milo-arden.jpg',
       id_card_url: 'https://example.com/admissions/milo-arden-id.pdf',
       ai_decision: 'ACCEPTED',
-      ai_reasoning:
-        'Useful medical support profile, stable behavior, and low operational risk.',
+      ai_reasoning: 'Useful medical support profile, stable behavior, and low operational risk.',
       ai_confidence: 0.92,
       ai_suggested_profession: 'Medic',
       ai_profession_id: medicProfession.id,
@@ -642,8 +641,7 @@ async function main() {
       photo_url: 'https://example.com/admissions/jace-hollow.jpg',
       id_card_url: 'https://example.com/admissions/jace-hollow-id.pdf',
       ai_decision: 'REJECTED',
-      ai_reasoning:
-        'Health concerns and trust risk make the applicant unsuitable for intake.',
+      ai_reasoning: 'Health concerns and trust risk make the applicant unsuitable for intake.',
       ai_confidence: 0.89,
       ai_suggested_profession: 'Worker',
       ai_profession_id: engineerProfession.id,
