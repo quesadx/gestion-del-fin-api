@@ -15,7 +15,7 @@ export type AdmissionAIResult = z.infer<typeof admissionAIResultSchema>;
 
 export const createAdmissionSchema = z.object({
   applicant_name: z.string().min(1).max(150),
-  applicant_age: z.number().int().min(0).max(255).optional(),
+  applicant_age: z.coerce.number().int().min(0).max(255).optional(),
   applicant_skills: z.string().optional(),
   health_notes: z.string().optional(),
   background_notes: z.string().optional(),
