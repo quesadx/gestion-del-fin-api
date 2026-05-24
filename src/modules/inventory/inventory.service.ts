@@ -72,17 +72,64 @@ export async function logLowResourceAlerts(campId: number) {
   }
 }
 
-async function validateInventoryConsistency(campId: number) {
-  const inventoryRecords = await prisma.inventories.findMany({
-    where: { camp_id: campId },
-    select: { resource_type_id: true, quantity: true },
-  });
+/**
+ * Collects all distinct resource_type_ids across inventories and inventory_logs
+ * for a given camp. Returns the sorted array of IDs (lightweight, just integers).
+ */
+async function getDistinctResourceTypeIdsForCamp(campId: number): Promise<number[]> {
+  const [inventoryIds, logIds] = await Promise.all([
+    prisma.inventories.findMany({
+      where: { camp_id: campId },
+      select: { resource_type_id: true },
+      distinct: ['resource_type_id'],
+    }),
+    prisma.inventory_logs.findMany({
+      where: { camp_id: campId },
+      select: { resource_type_id: true },
+      distinct: ['resource_type_id'],
+    }),
+  ]);
 
-  const logDeltasByResource = await prisma.inventory_logs.groupBy({
-    by: ['resource_type_id'],
-    where: { camp_id: campId },
-    _sum: { quantity_change: true },
-  });
+  const idSet = new Set<number>([
+    ...inventoryIds.map((r: { resource_type_id: number }) => r.resource_type_id),
+    ...logIds.map((r: { resource_type_id: number }) => r.resource_type_id),
+  ]);
+
+  return Array.from(idSet).sort((a, b) => a - b);
+}
+
+/**
+ * Computes consistency between inventory snapshots and log deltas for the given
+ * resource_type_ids. Pagination is pushed to the database level — only the requested
+ * IDs are queried.
+ */
+async function validateInventoryConsistency(
+  campId: number,
+  resourceTypeIds: number[],
+): Promise<
+  Array<{
+    resource_type_id: number;
+    inventory_quantity: number;
+    log_delta_sum: number;
+    is_consistent: boolean;
+    discrepancy: number;
+  }>
+> {
+  if (resourceTypeIds.length === 0) {
+    return [];
+  }
+
+  const [inventoryRecords, logDeltasByResource] = await Promise.all([
+    prisma.inventories.findMany({
+      where: { camp_id: campId, resource_type_id: { in: resourceTypeIds } },
+      select: { resource_type_id: true, quantity: true },
+    }),
+    prisma.inventory_logs.groupBy({
+      by: ['resource_type_id'],
+      where: { camp_id: campId, resource_type_id: { in: resourceTypeIds } },
+      _sum: { quantity_change: true },
+    }),
+  ]);
 
   const inventoryMap = new Map(
     inventoryRecords.map((inv: { resource_type_id: number; quantity: Prisma.Decimal }) => [
@@ -100,9 +147,7 @@ async function validateInventoryConsistency(campId: number) {
     ),
   );
 
-  const allResourceTypeIds = new Set<number>([...inventoryMap.keys(), ...logMap.keys()]);
-
-  return Array.from(allResourceTypeIds).map((resourceTypeId) => {
+  return resourceTypeIds.map((resourceTypeId) => {
     const inventoryQty = inventoryMap.get(resourceTypeId) ?? 0;
     const logSum = logMap.get(resourceTypeId) ?? 0;
     const isConsistent = Math.abs(inventoryQty - logSum) < 0.01; // tolerance for decimals
@@ -351,36 +396,63 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
-  const consistency = await validateInventoryConsistency(campId);
-  const hasInconsistencies = consistency.some((item) => !item.is_consistent);
+  // 1 — collect all distinct resource_type_ids (lightweight, just integers)
+  const allIds = await getDistinctResourceTypeIdsForCamp(campId);
+  const total = allIds.length;
 
-  const resourceTypeIds = consistency.map((c) => c.resource_type_id);
-  const total = consistency.length;
+  // 2 — paginate the ID list
+  const paginatedIds = allIds.slice(skip, skip + effectiveLimit);
 
-  const paginatedIds = resourceTypeIds.slice(skip, skip + effectiveLimit);
-  const resources = await prisma.resource_types.findMany({
-    where: { id: { in: paginatedIds } },
-    select: { id: true, name: true, unit: true },
-  });
+  // 3 — compute global has_inconsistencies via lightweight SQL EXISTS (no full data load)
+  let hasInconsistencies = false;
+  if (allIds.length > 0) {
+    const result = await prisma.$queryRaw<Array<{ has_inconsistency: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM inventories i
+        LEFT JOIN (
+          SELECT resource_type_id, COALESCE(SUM(quantity_change), 0) AS log_sum
+          FROM inventory_logs
+          WHERE camp_id = ${campId}
+          GROUP BY resource_type_id
+        ) l ON i.resource_type_id = l.resource_type_id
+        WHERE i.camp_id = ${campId}
+          AND ABS(i.quantity - COALESCE(l.log_sum, 0)) >= 0.01
+      ) AS has_inconsistency
+    `;
+    hasInconsistencies = result[0]?.has_inconsistency ?? false;
+  }
+
+  // 4 — detailed consistency only for the paginated page (DB-level pagination)
+  const pagedConsistency =
+    paginatedIds.length > 0
+      ? await validateInventoryConsistency(campId, paginatedIds)
+      : [];
+
+  // 5 — fetch resource names only for the displayed page
+  const resources = paginatedIds.length > 0
+    ? await prisma.resource_types.findMany({
+        where: { id: { in: paginatedIds } },
+        select: { id: true, name: true, unit: true },
+      })
+    : [];
 
   const resourcesMap = new Map(
     resources.map((r: { id: number; name: string; unit: string }) => [r.id, r]),
   );
 
-  const audit = consistency
-    .filter((item) => paginatedIds.includes(item.resource_type_id))
-    .map((item) => {
-      const resource = resourcesMap.get(item.resource_type_id);
-      return {
-        resource_type_id: item.resource_type_id,
-        resource_name: resource?.name ?? null,
-        unit: resource?.unit ?? null,
-        inventory_quantity: item.inventory_quantity,
-        log_delta_sum: item.log_delta_sum,
-        is_consistent: item.is_consistent,
-        discrepancy: item.discrepancy,
-      };
-    });
+  const audit = pagedConsistency.map((item) => {
+    const resource = resourcesMap.get(item.resource_type_id);
+    return {
+      resource_type_id: item.resource_type_id,
+      resource_name: resource?.name ?? null,
+      unit: resource?.unit ?? null,
+      inventory_quantity: item.inventory_quantity,
+      log_delta_sum: item.log_delta_sum,
+      is_consistent: item.is_consistent,
+      discrepancy: item.discrepancy,
+    };
+  });
 
   return {
     data: audit,
