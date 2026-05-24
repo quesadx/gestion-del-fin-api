@@ -81,6 +81,17 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO) 
     professions,
   );
 
+  // Validate that the AI-suggested profession exists in this camp's professions list.
+  // Guards against edge cases where the AI returns a fallback ID (e.g. 1) that does not
+  // belong to the current camp, which would cause the admission to be stuck on review.
+  const aiProfession = professions.find((p) => p.id === aiResult.ai_profession_id);
+  if (!aiProfession) {
+    throw new AppError(
+      `AI-suggested profession ID ${aiResult.ai_profession_id} not found in camp's professions`,
+      400,
+    );
+  }
+
   return prisma.admission_requests.create({
     data: prepareAdmissionCreateData(campId, data, aiResult),
   });
