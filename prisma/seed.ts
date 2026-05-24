@@ -71,6 +71,26 @@ async function main() {
     },
   });
 
+  const tertiaryCamp = await prisma.camps.create({
+    data: {
+      name: 'Gamma Bastion',
+      location: 'Grid Sector 12',
+      status: 'ACTIVE',
+      ai_context_prompt:
+        'Prioritize logistics, supply continuity, and stable staffing for long-duration settlement support.',
+    },
+  });
+
+  const quaternaryCamp = await prisma.camps.create({
+    data: {
+      name: 'Delta Haven',
+      location: 'Grid Sector 4',
+      status: 'ACTIVE',
+      ai_context_prompt:
+        'Prioritize medical readiness, low-risk integration, and skilled support for recovery operations.',
+    },
+  });
+
   const adminRole = await prisma.roles.create({
     data: {
       name: 'system_admin',
@@ -404,13 +424,21 @@ async function main() {
   const usersToSeed = [
     { username: 'admin_master', campId: mainCamp.id, roleId: adminRole.id },
     { username: 'admin_user_2', campId: secondaryCamp.id, roleId: adminRole.id },
+    { username: 'admin_user_3', campId: tertiaryCamp.id, roleId: adminRole.id },
+    { username: 'admin_user_4', campId: quaternaryCamp.id, roleId: adminRole.id },
     { username: 'camp_manager', campId: secondaryCamp.id, roleId: workerRole.id },
     { username: 'worker_user_1', campId: mainCamp.id, roleId: workerRole.id },
     { username: 'worker_user_2', campId: secondaryCamp.id, roleId: workerRole.id },
+    { username: 'worker_user_3', campId: tertiaryCamp.id, roleId: workerRole.id },
+    { username: 'worker_user_4', campId: quaternaryCamp.id, roleId: workerRole.id },
     { username: 'resource_mgr_1', campId: mainCamp.id, roleId: resourceManagerRole.id },
     { username: 'resource_mgr_2', campId: secondaryCamp.id, roleId: resourceManagerRole.id },
+    { username: 'resource_mgr_3', campId: tertiaryCamp.id, roleId: resourceManagerRole.id },
+    { username: 'resource_mgr_4', campId: quaternaryCamp.id, roleId: resourceManagerRole.id },
     { username: 'travel_coord_1', campId: mainCamp.id, roleId: travelCoordinatorRole.id },
     { username: 'travel_coord_2', campId: secondaryCamp.id, roleId: travelCoordinatorRole.id },
+    { username: 'travel_coord_3', campId: tertiaryCamp.id, roleId: travelCoordinatorRole.id },
+    { username: 'travel_coord_4', campId: quaternaryCamp.id, roleId: travelCoordinatorRole.id },
   ];
 
   const createdUsers = new Map<
@@ -452,6 +480,15 @@ async function main() {
     throw new Error('Seed failed to create camp_manager');
   }
 
+  const tertiaryAdminUser = createdUsers.get('admin_user_3');
+  const quaternaryAdminUser = createdUsers.get('admin_user_4');
+  const tertiaryWorkerUser = createdUsers.get('worker_user_3');
+  const quaternaryWorkerUser = createdUsers.get('worker_user_4');
+
+  if (!tertiaryAdminUser || !quaternaryAdminUser || !tertiaryWorkerUser || !quaternaryWorkerUser) {
+    throw new Error('Seed failed to create the extended camp user set');
+  }
+
   const primaryPerson = await prisma.people.create({
     data: {
       camp_id: mainCamp.id,
@@ -476,6 +513,174 @@ async function main() {
       skills_summary: 'Reconnaissance, survival',
       status: 'HEALTHY',
     },
+  });
+
+  const gammaPersonLead = await prisma.people.create({
+    data: {
+      camp_id: tertiaryCamp.id,
+      profession_id: engineerProfession.id,
+      identification_code: 'ENG-101',
+      full_name: 'Daria Cross',
+      age: 38,
+      blood_type: 'A+',
+      skills_summary: 'Warehouse systems, repair coordination, supply routing',
+      photo_url: 'https://example.com/people/daria-cross.jpg',
+      status: 'HEALTHY',
+    },
+  });
+
+  const gammaPersonSupport = await prisma.people.create({
+    data: {
+      camp_id: tertiaryCamp.id,
+      profession_id: medicProfession.id,
+      identification_code: 'MED-101',
+      full_name: 'Omar Finch',
+      age: 34,
+      blood_type: 'O+',
+      skills_summary: 'Field triage, injury stabilization, recovery management',
+      photo_url: 'https://example.com/people/omar-finch.jpg',
+      status: 'HEALTHY',
+    },
+  });
+
+  const deltaPersonLead = await prisma.people.create({
+    data: {
+      camp_id: quaternaryCamp.id,
+      profession_id: scoutProfession.id,
+      identification_code: 'SCT-101',
+      full_name: 'Selene Ward',
+      age: 30,
+      blood_type: 'B+',
+      skills_summary: 'Route scouting, perimeter checks, evac guidance',
+      photo_url: 'https://example.com/people/selene-ward.jpg',
+      status: 'HEALTHY',
+    },
+  });
+
+  const deltaPersonSupport = await prisma.people.create({
+    data: {
+      camp_id: quaternaryCamp.id,
+      profession_id: medicProfession.id,
+      identification_code: 'MED-102',
+      full_name: 'Noah Vale',
+      age: 27,
+      blood_type: 'AB-',
+      skills_summary: 'Medical care, stabilization, intake triage',
+      photo_url: 'https://example.com/people/noah-vale.jpg',
+      status: 'HEALTHY',
+    },
+  });
+
+  const gammaPendingAdmission = await prisma.admission_requests.create({
+    data: {
+      camp_id: tertiaryCamp.id,
+      applicant_name: 'Hana Rook',
+      applicant_age: 41,
+      applicant_skills: 'Logistics, procurement, inventory rotation',
+      health_notes: 'Fatigued but medically stable',
+      background_notes: 'Previously coordinated supply chains for mobile shelters',
+      photo_url: 'https://example.com/admissions/hana-rook.jpg',
+      id_card_url: 'https://example.com/admissions/hana-rook-id.pdf',
+      ai_decision: 'PENDING',
+      ai_reasoning: null,
+      ai_confidence: null,
+      ai_suggested_profession: null,
+      ai_profession_id: null,
+      final_decision: 'PENDING',
+    },
+  });
+
+  const deltaAcceptedAdmission = await prisma.admission_requests.create({
+    data: {
+      camp_id: quaternaryCamp.id,
+      applicant_name: 'Milo Arden',
+      applicant_age: 24,
+      applicant_skills: 'Patient care, wound cleaning, vital monitoring',
+      health_notes: 'Light concussion fully resolved',
+      background_notes: 'Volunteered as a mobile medic after convoy collapse',
+      photo_url: 'https://example.com/admissions/milo-arden.jpg',
+      id_card_url: 'https://example.com/admissions/milo-arden-id.pdf',
+      ai_decision: 'ACCEPTED',
+      ai_reasoning:
+        'Useful medical support profile, stable behavior, and low operational risk.',
+      ai_confidence: 0.92,
+      ai_suggested_profession: 'Medic',
+      ai_profession_id: medicProfession.id,
+      final_decision: 'ACCEPTED',
+      reviewed_by: quaternaryAdminUser.id,
+      reviewed_at: new Date('2026-04-12T08:15:00Z'),
+    },
+  });
+
+  const deltaAcceptedPerson = await prisma.people.create({
+    data: {
+      camp_id: quaternaryCamp.id,
+      profession_id: medicProfession.id,
+      identification_code: 'MED-103',
+      full_name: 'Milo Arden',
+      age: 24,
+      blood_type: 'O-',
+      skills_summary: 'Patient care, wound cleaning, vital monitoring',
+      photo_url: 'https://example.com/people/milo-arden.jpg',
+      status: 'HEALTHY',
+    },
+  });
+
+  await prisma.admission_requests.update({
+    where: { id: deltaAcceptedAdmission.id },
+    data: { person_id: deltaAcceptedPerson.id },
+  });
+
+  const gammaRejectedAdmission = await prisma.admission_requests.create({
+    data: {
+      camp_id: tertiaryCamp.id,
+      applicant_name: 'Jace Hollow',
+      applicant_age: 36,
+      applicant_skills: 'Unverified repair and patrol support',
+      health_notes: 'Recurring respiratory symptoms',
+      background_notes: 'Multiple route disputes in previous settlement',
+      photo_url: 'https://example.com/admissions/jace-hollow.jpg',
+      id_card_url: 'https://example.com/admissions/jace-hollow-id.pdf',
+      ai_decision: 'REJECTED',
+      ai_reasoning:
+        'Health concerns and trust risk make the applicant unsuitable for intake.',
+      ai_confidence: 0.89,
+      ai_suggested_profession: 'Worker',
+      ai_profession_id: engineerProfession.id,
+      final_decision: 'REJECTED',
+      reviewed_by: tertiaryAdminUser.id,
+      reviewed_at: new Date('2026-04-13T14:20:00Z'),
+      correction_reason: 'Rejected due to unresolved health risk and repeated disputes.',
+    },
+  });
+
+  await prisma.people.update({
+    where: { id: gammaPersonLead.id },
+    data: { status: 'INJURED' },
+  });
+
+  await prisma.people.update({
+    where: { id: gammaPersonSupport.id },
+    data: { status: 'HEALTHY' },
+  });
+
+  await prisma.person_status_logs.createMany({
+    data: [
+      {
+        person_id: gammaPersonLead.id,
+        old_status: 'HEALTHY',
+        new_status: 'INJURED',
+        reason: 'Seed: manual readiness check before logistics assignment',
+        changed_by: tertiaryAdminUser.id,
+      },
+      {
+        person_id: deltaAcceptedPerson.id,
+        old_status: 'HEALTHY',
+        new_status: 'HEALTHY',
+        reason: 'Seed: accepted intake completed with no health issues',
+        changed_by: quaternaryAdminUser.id,
+      },
+    ],
   });
 
   await prisma.people.update({
@@ -828,6 +1033,84 @@ async function main() {
     }),
   ]);
 
+  const tertiaryCampInitialInventory = [
+    {
+      camp_id: tertiaryCamp.id,
+      resource_type_id: rationsResource.id,
+      quantity: '860.0',
+    },
+    {
+      camp_id: tertiaryCamp.id,
+      resource_type_id: waterResource.id,
+      quantity: '1750.0',
+    },
+    {
+      camp_id: tertiaryCamp.id,
+      resource_type_id: fuelResource.id,
+      quantity: '140.0',
+    },
+    {
+      camp_id: tertiaryCamp.id,
+      resource_type_id: medicalKitResource.id,
+      quantity: '46.0',
+    },
+  ];
+
+  await prisma.$transaction([
+    prisma.inventories.createMany({
+      data: tertiaryCampInitialInventory,
+    }),
+    prisma.inventory_logs.createMany({
+      data: tertiaryCampInitialInventory.map((item) => ({
+        camp_id: item.camp_id,
+        resource_type_id: item.resource_type_id,
+        logged_by: tertiaryAdminUser.id,
+        log_type: 'MANUAL_IN',
+        quantity_change: item.quantity,
+        description: 'Seed: opening inventory balance',
+      })),
+    }),
+  ]);
+
+  const quaternaryCampInitialInventory = [
+    {
+      camp_id: quaternaryCamp.id,
+      resource_type_id: rationsResource.id,
+      quantity: '520.0',
+    },
+    {
+      camp_id: quaternaryCamp.id,
+      resource_type_id: waterResource.id,
+      quantity: '980.0',
+    },
+    {
+      camp_id: quaternaryCamp.id,
+      resource_type_id: fuelResource.id,
+      quantity: '88.0',
+    },
+    {
+      camp_id: quaternaryCamp.id,
+      resource_type_id: medicalKitResource.id,
+      quantity: '62.0',
+    },
+  ];
+
+  await prisma.$transaction([
+    prisma.inventories.createMany({
+      data: quaternaryCampInitialInventory,
+    }),
+    prisma.inventory_logs.createMany({
+      data: quaternaryCampInitialInventory.map((item) => ({
+        camp_id: item.camp_id,
+        resource_type_id: item.resource_type_id,
+        logged_by: quaternaryAdminUser.id,
+        log_type: 'MANUAL_IN',
+        quantity_change: item.quantity,
+        description: 'Seed: opening inventory balance',
+      })),
+    }),
+  ]);
+
   // Seed expeditions module data
   logger.info('Seeding expeditions data...');
 
@@ -900,6 +1183,111 @@ async function main() {
     data: [
       { expedition_id: returnedExpedition.id, resource_type_id: rationsResource.id, amount: '5' },
       { expedition_id: returnedExpedition.id, resource_type_id: waterResource.id, amount: '10' },
+    ],
+  });
+
+  const gammaExpedition = await prisma.expeditions.create({
+    data: {
+      camp_id: tertiaryCamp.id,
+      destination: 'South Freight Yard',
+      status: 'PLANNED',
+      created_by: tertiaryAdminUser.id,
+      departure_date: new Date('2026-05-06'),
+      expected_return_date: new Date('2026-05-08'),
+      max_return_date: new Date('2026-05-09'),
+      notes: 'Cargo retrieval and logistics mapping for Gamma Bastion',
+    },
+  });
+
+  await prisma.expedition_members.createMany({
+    data: [
+      { expedition_id: gammaExpedition.id, person_id: gammaPersonLead.id },
+      { expedition_id: gammaExpedition.id, person_id: gammaPersonSupport.id },
+    ],
+  });
+
+  await prisma.expedition_allocated_resources.createMany({
+    data: [
+      { expedition_id: gammaExpedition.id, resource_type_id: rationsResource.id, amount: '10' },
+      { expedition_id: gammaExpedition.id, resource_type_id: waterResource.id, amount: '16' },
+      { expedition_id: gammaExpedition.id, resource_type_id: fuelResource.id, amount: '8' },
+      {
+        expedition_id: gammaExpedition.id,
+        resource_type_id: medicalKitResource.id,
+        amount: '2',
+      },
+    ],
+  });
+
+  const quaternarySupportTransfer = await prisma.camp_transfers.create({
+    data: {
+      requesting_camp: quaternaryCamp.id,
+      target_camp: tertiaryCamp.id,
+      status: 'PENDING',
+      type: 'MIXED',
+      notes: 'Support transfer to balance medical and logistics capacity.',
+      requested_by: quaternaryAdminUser.id,
+      leader_person_id: deltaPersonLead.id,
+      scheduled_delivery_date: new Date('2026-05-07T13:00:00Z'),
+    },
+  });
+
+  await prisma.camp_transfer_items.createMany({
+    data: [
+      {
+        camp_transfer_id: quaternarySupportTransfer.id,
+        item_type: 'PERSON',
+        person_id: deltaPersonLead.id,
+      },
+      {
+        camp_transfer_id: quaternarySupportTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: medicalKitResource.id,
+        quantity: '5.00',
+      },
+      {
+        camp_transfer_id: quaternarySupportTransfer.id,
+        item_type: 'RESOURCE',
+        resource_type_id: waterResource.id,
+        quantity: '22.00',
+      },
+    ],
+  });
+
+  await prisma.audit_logs.createMany({
+    data: [
+      {
+        user_id: tertiaryAdminUser.id,
+        camp_id: tertiaryCamp.id,
+        action: 'CREATE_CAMP',
+        target_type: 'camps',
+        target_id: tertiaryCamp.id,
+        metadata: { name: tertiaryCamp.name, location: tertiaryCamp.location },
+      },
+      {
+        user_id: quaternaryAdminUser.id,
+        camp_id: quaternaryCamp.id,
+        action: 'CREATE_CAMP',
+        target_type: 'camps',
+        target_id: quaternaryCamp.id,
+        metadata: { name: quaternaryCamp.name, location: quaternaryCamp.location },
+      },
+      {
+        user_id: tertiaryAdminUser.id,
+        camp_id: tertiaryCamp.id,
+        action: 'CREATE_TRANSFER',
+        target_type: 'camp_transfers',
+        target_id: quaternarySupportTransfer.id,
+        metadata: { status: 'PENDING', type: 'MIXED' },
+      },
+      {
+        user_id: quaternaryAdminUser.id,
+        camp_id: quaternaryCamp.id,
+        action: 'CREATE_EXPEDITION',
+        target_type: 'expeditions',
+        target_id: gammaExpedition.id,
+        metadata: { destination: gammaExpedition.destination, status: gammaExpedition.status },
+      },
     ],
   });
 
