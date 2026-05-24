@@ -25,7 +25,11 @@ type InventoryLogOptions = {
   logAlerts?: boolean;
 };
 
-async function ensureCampExists(tx: InventoryTransactionClient, campId: number) {
+// PrismaClientLike accepts both the global prisma client (used outside transactions)
+// and the Prisma.TransactionClient (used inside $transaction callbacks).
+type PrismaClientLike = typeof prisma | InventoryTransactionClient;
+
+async function ensureCampExists(tx: PrismaClientLike, campId: number) {
   const camp = await tx.camps.findUnique({ where: { id: campId }, select: { id: true } });
   if (!camp) {
     throw new AppError(`Camp not found: ${campId}`, 404);
