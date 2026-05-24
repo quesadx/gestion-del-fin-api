@@ -26,16 +26,14 @@ type InventoryLogOptions = {
 };
 
 async function ensureCampExists(tx: InventoryTransactionClient, campId: number) {
-  const client = tx as unknown as typeof prisma;
-  const camp = await client.camps.findUnique({ where: { id: campId }, select: { id: true } });
+  const camp = await tx.camps.findUnique({ where: { id: campId }, select: { id: true } });
   if (!camp) {
     throw new AppError(`Camp not found: ${campId}`, 404);
   }
 }
 
 async function ensureResourceExists(tx: InventoryTransactionClient, resourceTypeId: number) {
-  const client = tx as unknown as typeof prisma;
-  const resource = await client.resource_types.findUnique({
+  const resource = await tx.resource_types.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -46,8 +44,7 @@ async function ensureResourceExists(tx: InventoryTransactionClient, resourceType
 }
 
 async function ensureUserExists(tx: InventoryTransactionClient, userId: number) {
-  const client = tx as unknown as typeof prisma;
-  const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
+  const user = await tx.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
   }

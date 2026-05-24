@@ -81,8 +81,7 @@ async function ensureProfessionExists(professionId: number) {
 }
 
 async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionId: number) {
-  const client = tx as unknown as typeof prisma;
-  const profession = await client.professions.findUnique({
+  const profession = await tx.professions.findUnique({
     where: { id: professionId },
     select: { id: true },
   });
@@ -93,8 +92,7 @@ async function ensureProfessionExistsTx(tx: PeopleTransactionClient, professionI
 }
 
 async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceTypeId: number) {
-  const client = tx as unknown as typeof prisma;
-  const resourceType = await client.resource_types.findUnique({
+  const resourceType = await tx.resource_types.findUnique({
     where: { id: resourceTypeId },
     select: { id: true },
   });
@@ -105,8 +103,7 @@ async function ensureResourceTypeExistsTx(tx: PeopleTransactionClient, resourceT
 }
 
 async function ensureUserExistsTx(tx: PeopleTransactionClient, userId: number) {
-  const client = tx as unknown as typeof prisma;
-  const user = await client.users.findUnique({ where: { id: userId }, select: { id: true } });
+  const user = await tx.users.findUnique({ where: { id: userId }, select: { id: true } });
   if (!user) {
     throw new AppError(`User not found: ${userId}`, 404);
   }
