@@ -144,7 +144,7 @@ model contribution_overrides {
   start_date       DateTime  @default(now()) @db.Date
   end_date         DateTime? @db.Date
   created_by       Int?
-  amount           Decimal   @db.Decimal(8, 2)
+  amount           Decimal   @db.Decimal(12, 2)
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
   deleted_at       DateTime?
