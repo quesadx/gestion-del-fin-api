@@ -36,6 +36,11 @@ export async function closeCache(): Promise<void> {
     await client.quit();
   } catch (error) {
     logger.warn(`Cache shutdown failed: ${String(error)}`);
+    try {
+      await client!.disconnect(); // force disconnect on failed graceful shutdown
+    } catch {
+      // Ignore — connection already dead or unreachable
+    }
   } finally {
     client = null;
     connectPromise = null;
