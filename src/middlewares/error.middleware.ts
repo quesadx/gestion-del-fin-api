@@ -9,7 +9,7 @@ function mapPrismaError(error: Prisma.PrismaClientKnownRequestError) {
     case 'P2002':
       return { statusCode: 409, message: 'Unique constraint violation' };
     case 'P2003':
-      return { statusCode: 400, message: 'Foreign key constraint violation' };
+      return { statusCode: 409, message: 'Foreign key constraint violation' };
     case 'P2025':
       return { statusCode: 404, message: 'Record not found' };
     default:
