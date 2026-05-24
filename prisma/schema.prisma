@@ -45,6 +45,7 @@ model admission_requests {
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?
   created_at              DateTime                          @default(now())
+  updated_at              DateTime                          @updatedAt
   camps                   camps                             @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   users                   users?                            @relation(fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   ai_profession           professions?                      @relation(fields: [ai_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -96,6 +97,7 @@ model camp_transfers {
   approved_source_at      DateTime?
   approved_target_at      DateTime?
   created_at              DateTime              @default(now())
+  updated_at              DateTime              @updatedAt
   camp_transfer_items     camp_transfer_items[]
   approved_by_source_ref  users?                @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
   approved_by_target_ref  users?                @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -120,6 +122,7 @@ model camps {
   status               camps_status         @default(ACTIVE)
   ai_context_prompt    String?              @db.Text
   created_at           DateTime             @default(now())
+  updated_at           DateTime             @updatedAt
   deleted_at            DateTime?
   admission_requests   admission_requests[]
   audit_logs           audit_logs[]
@@ -203,6 +206,7 @@ model expeditions {
   max_return_date                DateTime                         @db.Date
   notes                          String?                          @db.Text
   created_at                     DateTime                         @default(now())
+  updated_at                     DateTime                         @updatedAt
   deleted_at                      DateTime?
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
