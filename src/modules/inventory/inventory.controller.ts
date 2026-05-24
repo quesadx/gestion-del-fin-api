@@ -27,16 +27,17 @@ export async function getInventoryAuditHandler(req: Request, res: Response) {
 export async function manualAdjustmentHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user?.userId;
-  const isAdmin = authReq.user?.isAdmin;
-  const userCampId = authReq.user?.campId;
+  // Use DB-verified admin bypass status (set by campMiddleware) instead of
+  // the stale JWT isAdmin flag which may be outdated after permission revocation.
+  const hasAdminBypass = !!(req as any)._hasAdminBypass;
 
   if (!userId) {
     throw new AppError('Unauthorized', 401);
   }
 
   // Prevent cross-camp tampering via body camp_id for non-admin users
-  if (!isAdmin && req.body.camp_id !== userCampId) {
-    throw new AppError('Unauthorized: cannot modify another camp', 401);
+  if (!hasAdminBypass && req.body.camp_id !== authReq.user?.campId) {
+    throw new AppError('Forbidden: cannot modify another camp', 403);
   }
 
   const result = await createManualAdjustment(req.body, userId);
