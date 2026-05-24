@@ -43,6 +43,10 @@ export const permissionMiddleware = (required: string | string[]) => {
         user.roles.role_permissions.map((item) => item.permissions.name),
       );
 
+      // Cache resolved permissions on req so subsequent middleware can reuse
+      // the DB result without issuing duplicate queries (e.g., camp-scoping).
+      (req as any)._resolvedPermissions = [...permissionNames];
+
       const missingPermissions = requiredPermissions.filter(
         (permission) => !permissionNames.has(permission),
       );
