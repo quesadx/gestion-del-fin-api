@@ -136,11 +136,11 @@ async function validateRelations(
   }
 }
 
-function preparePersonCreateData(data: CreatePersonDto) {
+function preparePersonCreateData(data: CreatePersonDto, identificationCode?: string) {
   return {
     full_name: data.full_name.trim(),
     age: data.age,
-    identification_code: data.identification_code ?? generateIdentificationCode(),
+    identification_code: identificationCode ?? data.identification_code ?? generateIdentificationCode(),
     blood_type: data.blood_type,
     skills_summary: data.skills_summary?.trim(),
     photo_url: data.photo_url,
@@ -172,15 +172,33 @@ export async function createPerson(campId: number, data: CreatePersonDto, tx?: T
   await validateRelations({ camp_id: campId, profession_id: data.profession_id });
 
   const client = tx ?? prisma;
+  const maxRetries = 3;
+  let identificationCode = data.identification_code ?? generateIdentificationCode();
+  let attempts = 0;
 
-  try {
-    return await client.people.create({
-      data: preparePersonCreateData({ ...data, camp_id: campId }),
-      include: personInclude,
-    });
-  } catch (error: any) {
-    handleUniqueConstraintError(error);
+  while (attempts < maxRetries) {
+    try {
+      return await client.people.create({
+        data: preparePersonCreateData({ ...data, camp_id: campId }, identificationCode),
+        include: personInclude,
+      });
+    } catch (error: any) {
+      // Retry on identification_code collision with a fresh random code
+      if (
+        error.code === 'P2002' &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes('identification_code') &&
+        !data.identification_code // only retry if we auto-generated the code
+      ) {
+        attempts++;
+        identificationCode = generateIdentificationCode();
+        if (attempts < maxRetries) continue;
+      }
+      handleUniqueConstraintError(error);
+    }
   }
+  // Should be unreachable — handleUniqueConstraintError always throws
+  throw new AppError('Failed to create person after retries', 500);
 }
 
 export async function updatePerson(
