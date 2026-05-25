@@ -26,7 +26,13 @@ router.post(
 router.get(
   '/',
   permissionMiddleware(PERMISSIONS.TRANSFERS_READ),
-  validate(z.object({ query: paginationQuerySchema })),
+  validate(
+    z.object({
+      query: paginationQuerySchema.extend({
+        camp_id: z.coerce.number().int().positive().optional(),
+      }),
+    }),
+  ),
   transfersController.listTransfersHandler,
 );
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
+import { AppError } from '../../shared/utils/appError.js';
 import {
   approveTransferBySource,
   approveTransferByTarget,
@@ -21,7 +22,9 @@ export async function listTransfersHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  const result = await getTransfers(authReq.user.campId, page, pageSize);
+  const queryCampId = Number(req.query.camp_id);
+  const campId = queryCampId && authReq.user.isAdmin ? queryCampId : authReq.user.campId;
+  const result = await getTransfers(campId, page, pageSize);
   return res.json(result);
 }
 
