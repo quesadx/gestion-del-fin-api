@@ -411,10 +411,10 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
     const result = await prisma.$queryRaw<Array<{ has_inconsistency: boolean }>>`
       SELECT EXISTS (
         SELECT 1
-        FROM inventories i
+        FROM inventory i
         LEFT JOIN (
           SELECT resource_type_id, COALESCE(SUM(quantity_change), 0) AS log_sum
-          FROM inventory_logs
+          FROM inventory_log
           WHERE camp_id = ${campId}
           GROUP BY resource_type_id
         ) l ON i.resource_type_id = l.resource_type_id

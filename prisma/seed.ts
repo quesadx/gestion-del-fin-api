@@ -2,6 +2,8 @@ import { prisma } from '../src/lib/prisma';
 import { hash } from '@node-rs/bcrypt';
 import { PERMISSIONS } from '../src/shared/constants/permissions';
 import { logger } from '../src/logger/logger';
+import { deleteByPrefix, deleteKeys } from '../src/lib/cache';
+import { cacheKeys } from '../src/shared/cache/cacheKeys';
 
 async function main() {
   logger.info('Starting database seed...');
@@ -1745,6 +1747,9 @@ async function main() {
       version: '1.0.0',
     },
   });
+
+  await deleteKeys([cacheKeys.campsCatalog]);
+  await deleteByPrefix(cacheKeys.campsListPrefix);
 
   logger.info('Seed completed successfully.');
 }
