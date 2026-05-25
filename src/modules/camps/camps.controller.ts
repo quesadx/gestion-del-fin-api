@@ -30,8 +30,9 @@ export async function getCampHandler(req: Request, res: Response) {
 }
 
 export async function getCampsHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  const result = await getCamps(page, pageSize);
+  const result = await getCamps(page, pageSize, authReq.user.campId, authReq.user.isAdmin);
   return res.json(result);
 }
