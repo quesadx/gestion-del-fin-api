@@ -40,7 +40,9 @@ export const achievementEvaluator = {
           }
 
           // Count LOGIN audit entries for the user as a proxy for number of logins.
-          const loginCount = await prisma.audit_logs.count({ where: { user_id: userId, action: 'LOGIN' } });
+          const loginCount = await prisma.audit_logs.count({
+            where: { user_id: userId, action: 'LOGIN' },
+          });
 
           const required = getRequiredCount(achievement.name, 1, {
             Novice: 1,
