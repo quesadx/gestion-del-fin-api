@@ -7,6 +7,7 @@ import {
 import { AppError } from '../shared/utils/appError.js';
 import { logger } from '../logger/logger.js';
 import { z } from 'zod';
+import { resolveProfessionSuggestion, type ProfessionRecord } from './profession-resolver.js';
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
 
@@ -80,6 +81,7 @@ async function parseCampWeights(campContext: string): Promise<CampWeights> {
 async function evaluateWithDecisionTree(
   data: CreateAdmissionDTO,
   campWeights: Record<string, number | boolean>,
+  professions: ProfessionRecord[],
 ): Promise<{
   decision: 'ACCEPTED' | 'REJECTED';
   confidence: number;
@@ -95,6 +97,7 @@ async function evaluateWithDecisionTree(
         skills: data.applicant_skills ?? null,
         health_notes: data.health_notes ?? null,
         camp_weights: campWeights,
+        professions,
       }),
       signal: AbortSignal.timeout(5000),
     });
@@ -128,34 +131,10 @@ async function evaluateWithDecisionTree(
   }
 }
 
-function mapCategoryToProfession(
-  category: string,
-  professions: { id: number; name: string; description: string | null }[],
-): { id: number; name: string } | null {
-  const lower = category.toLowerCase();
-
-  const exact = professions.find((p) => p.name.toLowerCase().includes(lower));
-  if (exact) return exact;
-
-  // Fallback keyword map
-  const fallbackMap: Record<string, string[]> = {
-    technical: ['engineer', 'mechanic', 'electrician', 'builder'],
-    medical: ['doctor', 'nurse', 'medic', 'surgeon'],
-    scout: ['scout', 'explorer', 'tracker', 'ranger'],
-    agricultural: ['farmer', 'cook', 'botanist', 'fisher'],
-    security: ['soldier', 'guard', 'military', 'police'],
-  };
-
-  const keywords = fallbackMap[lower] ?? [];
-  const match = professions.find((p) => keywords.some((kw) => p.name.toLowerCase().includes(kw)));
-
-  return match ?? professions[0] ?? null;
-}
-
 export async function evaluateAdmission(
   data: CreateAdmissionDTO,
   campContext: string,
-  professions: { id: number; name: string; description: string | null }[],
+  professions: ProfessionRecord[],
 ): Promise<AdmissionAIResult> {
   if (process.env.NODE_ENV === 'test') {
     return admissionAIResultSchema.parse({
@@ -170,9 +149,9 @@ export async function evaluateAdmission(
   const campWeights = await parseCampWeights(campContext);
 
   const { decision, confidence, reasoningPath, professionCategory } =
-    await evaluateWithDecisionTree(data, campWeights);
+    await evaluateWithDecisionTree(data, campWeights, professions);
 
-  const profession = mapCategoryToProfession(professionCategory, professions);
+  const profession = resolveProfessionSuggestion(professionCategory, professions);
 
   const reasoning = [...reasoningPath, `Confidence: ${(confidence * 100).toFixed(0)}%`].join(' | ');
 

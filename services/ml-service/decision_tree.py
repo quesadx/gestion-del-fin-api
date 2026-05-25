@@ -1,7 +1,8 @@
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier, export_text
-from sklearn.preprocessing import LabelEncoder
 import pandas as pd
+import re
+import unicodedata
 from data import get_training_data
 
 FEATURE_NAMES = [
@@ -17,15 +18,34 @@ FEATURE_NAMES = [
 SKILL_KEYWORDS = {
     "technical":    ["engineer", "mechanic", "electrician", "technical", "builder", "programmer"],
     "medical":      ["doctor", "nurse", "medic", "medical", "surgeon", "pharmacist"],
-    "scout":        ["scout", "explorer", "tracker", "spy", "ranger"],
+    "scout":        ["scout", "explorer", "tracker", "spy", "ranger", "survival", "wilderness", "navigation"],
     "agricultural": ["farmer", "cook", "botanist", "agriculture", "gardener", "fisher"],
-    "security":     ["soldier", "guard", "military", "security", "fighter", "police"],
+    "security":     ["soldier", "guard", "military", "security", "fighter", "police", "combat", "martial", "self-defense", "defense", "tactical"],
 }
 
 DANGEROUS_HEALTH_KEYWORDS = [
     "infected", "terminal", "contagious", "plague",
     "rabies", "undead", "dying", "critical"
 ]
+
+STOPWORDS = {
+    "and", "or", "the", "a", "an", "for", "with", "from", "to", "of",
+    "in", "on", "at", "by", "general", "labor", "worker", "works", "work",
+}
+
+
+def normalize_text(value: str | None) -> str:
+    if not value:
+        return ""
+
+    normalized = unicodedata.normalize("NFKD", value)
+    without_accents = "".join(char for char in normalized if not unicodedata.combining(char))
+    return without_accents.lower()
+
+
+def tokenize_text(value: str | None) -> set[str]:
+    tokens = re.findall(r"[a-z0-9]+", normalize_text(value))
+    return {token for token in tokens if len(token) > 2 and token not in STOPWORDS}
 
 
 def extract_features(
@@ -79,10 +99,60 @@ def extract_features(
 def detect_profession_category(skills: str | None) -> str:
     """Detect the most relevant profession category from skills."""
     skills_lower = (skills or "").lower()
+
+    best_category = "general"
+    best_score = 0
+
     for category, keywords in SKILL_KEYWORDS.items():
-        if any(kw in skills_lower for kw in keywords):
-            return category
-    return "general"
+        score = sum(1 for kw in keywords if kw in skills_lower)
+        if score > best_score:
+            best_category = category
+            best_score = score
+
+    return best_category
+
+
+def score_profession_match(skills: str | None, profession: dict) -> float:
+    skill_tokens = tokenize_text(skills)
+    profession_name = str(profession.get("name") or "")
+    profession_description = str(profession.get("description") or "")
+    profession_tokens = tokenize_text(f"{profession_name} {profession_description}")
+
+    if not skill_tokens or not profession_tokens:
+        return 0.0
+
+    exact_overlap = len(skill_tokens & profession_tokens) * 2.0
+
+    fuzzy_overlap = 0.0
+    for skill_token in skill_tokens:
+        for profession_token in profession_tokens:
+            if skill_token == profession_token:
+                continue
+            if skill_token in profession_token or profession_token in skill_token:
+                fuzzy_overlap += 0.5
+            elif skill_token[:4] == profession_token[:4]:
+                fuzzy_overlap += 0.25
+
+    if normalize_text(profession_name) and normalize_text(profession_name) in normalize_text(skills):
+        exact_overlap += 2.0
+
+    return exact_overlap + fuzzy_overlap
+
+
+def select_profession(skills: str | None, professions: list[dict]) -> dict | None:
+    if not professions:
+        return None
+
+    best_profession = professions[0]
+    best_score = score_profession_match(skills, best_profession)
+
+    for profession in professions[1:]:
+        score = score_profession_match(skills, profession)
+        if score > best_score:
+            best_profession = profession
+            best_score = score
+
+    return best_profession
 
 
 class AdmissionDecisionTree:
@@ -109,9 +179,13 @@ class AdmissionDecisionTree:
         skills: str | None,
         health_notes: str | None,
         camp_weights: dict,
+        professions: list[dict],
     ) -> dict:
         if not self.trained:
             raise RuntimeError("Model not trained yet")
+
+        selected_profession = select_profession(skills, professions)
+        profession_label = selected_profession["name"] if selected_profession else "general"
 
         # Minor → automatic acceptance
         if age is not None and age < 18:
@@ -119,7 +193,7 @@ class AdmissionDecisionTree:
                 "decision": "ACCEPTED",
                 "confidence": 1.0,
                 "reasoning_path": ["Applicant is a minor — automatic protection policy applied"],
-                "profession_category": detect_profession_category(skills) or "general",
+                "profession_category": profession_label,
             }
 
         features = extract_features(age, skills, health_notes, camp_weights)
@@ -128,13 +202,12 @@ class AdmissionDecisionTree:
         decision = self.classifier.predict(X)[0]
         confidence = float(self.classifier.predict_proba(X).max())
         reasoning_path = self._build_reasoning(features, decision, confidence)
-        profession_category = detect_profession_category(skills)
 
         return {
             "decision": decision,
             "confidence": round(confidence, 2),
             "reasoning_path": reasoning_path,
-            "profession_category": profession_category,
+            "profession_category": profession_label,
         }
 
     def _build_reasoning(
