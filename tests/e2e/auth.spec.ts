@@ -14,6 +14,8 @@ test.describe('POST /api/auth/login', () => {
     expect(data).toHaveProperty('token');
     expect(data).toHaveProperty('user');
     expect(data.user).toHaveProperty('username', 'e2e_auth_test');
+    expect(Array.isArray(data.user.permissions)).toBe(true);
+    expect(data.user.permissions.length).toBeGreaterThan(0);
     expect(typeof data.token).toBe('string');
     await ctx.dispose();
   });
