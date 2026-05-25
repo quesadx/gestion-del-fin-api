@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
-import { enqueueDailyRations } from '../../src/jobs/job-queue';
+import { closeJobQueueRedisClient, enqueueDailyRations } from '../../src/jobs/job-queue';
 
 describe('scheduler enqueue', () => {
   const url = process.env.REDIS_JOBS_URL || 'redis://localhost:6379/1';
@@ -13,7 +13,8 @@ describe('scheduler enqueue', () => {
   });
 
   afterAll(async () => {
-    if (client) await client.quit();
+    if (client) await client.disconnect();
+    await closeJobQueueRedisClient();
   });
 
   test('enqueueDailyRations pushes an item', async () => {

@@ -38,3 +38,16 @@ export async function enqueueDailyProduction(redisUrl: string, campId?: number) 
 export async function enqueueResourceAlerts(redisUrl: string, campId?: number) {
   await enqueueJob(redisUrl, RESOURCE_ALERTS_QUEUE, 'resource_alerts', campId);
 }
+
+export async function closeJobQueueRedisClient() {
+  if (!redisClient) return;
+
+  const client = redisClient;
+  redisClient = null;
+
+  if (client.isOpen) {
+    await client.quit();
+  } else {
+    await client.disconnect();
+  }
+}
