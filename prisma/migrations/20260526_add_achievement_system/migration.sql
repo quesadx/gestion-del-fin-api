@@ -1,5 +1,5 @@
-// Migración Prisma para Sistema de Achievements
-// Fichero: prisma/migrations/20260526_add_achievement_system/migration.sql
+-- Migración Prisma para Sistema de Achievements
+-- Fichero: prisma/migrations/20260526_add_achievement_system/migration.sql
 
 -- 1. Tabla de Mapeo: Achievement -> Role
 -- (Enlaza qué logros son válidos para qué roles)
@@ -82,10 +82,10 @@ CREATE TABLE achievement_stats (
 -- 4. Extender enum audit_log_action (si PostgreSQL)
 -- (Para PostgreSQL, necesitamos ALTER TYPE)
 
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_type WHERE typname = 'audit_log_action'
-  ) THEN
+DO $$
+BEGIN
+  -- Si el tipo no existe, crearlo con el valor nuevo ya incluido
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'audit_log_action') THEN
     CREATE TYPE audit_log_action AS ENUM (
       'CREATE_CAMP', 'UPDATE_CAMP', 'DELETE_CAMP',
       'CREATE_USER', 'UPDATE_USER', 'DELETE_USER',
@@ -100,11 +100,18 @@ DO $$ BEGIN
       'ACHIEVEMENT_UNLOCKED'
     );
   ELSE
-    -- Si ya existe, agregar valor faltante
-    ALTER TYPE audit_log_action ADD VALUE 'ACHIEVEMENT_UNLOCKED' 
-      IF NOT EXISTS;
+    -- Si ya existe, agregar solo si el valor no está presente
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_enum e
+      JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'audit_log_action' AND e.enumlabel = 'ACHIEVEMENT_UNLOCKED'
+    ) THEN
+      ALTER TYPE audit_log_action ADD VALUE 'ACHIEVEMENT_UNLOCKED';
+    END IF;
   END IF;
-END $$;
+END
+$$;
 
 -- 5. Agregar índices para queries de achievement performance
 
