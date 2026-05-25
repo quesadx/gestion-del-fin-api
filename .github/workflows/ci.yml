@@ -55,6 +55,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://gestion_user:admin@localhost:5432/gestion_del_fin_test
+      JWT_SECRET: test-jwt-secret-at-least-32-characters-long-for-e2e
       NODE_ENV: test
 
     steps:
