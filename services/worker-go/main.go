@@ -84,11 +84,11 @@ func main() {
     }
     defer pool.Close()
 
-    // If REDIS_JOBS_URL is set, run in daemon mode consuming jobs from Redis list.
-    redisUrl := os.Getenv("REDIS_JOBS_URL")
-    if redisUrl != "" {
+    // If VALKEY_JOBS_URL is set, run in daemon mode consuming jobs from the queue.
+    valkeyURL := os.Getenv("VALKEY_JOBS_URL")
+    if valkeyURL != "" {
         log.Printf("Starting worker in daemon mode (queues: %s, %s, %s)", jobQueueDailyRations, jobQueueDailyProduction, jobQueueResourceAlerts)
-        if err := runDaemon(ctx, pool, redisUrl, childAge); err != nil {
+        if err := runDaemon(ctx, pool, valkeyURL, childAge); err != nil {
             log.Fatalf("worker daemon failed: %v", err)
         }
         return
@@ -136,7 +136,7 @@ func runDaemon(ctx context.Context, pool *pgxpool.Pool, redisUrl string, childAg
 
     opt, err := rds.ParseURL(redisUrl)
     if err != nil {
-        return fmt.Errorf("invalid REDIS_JOBS_URL: %w", err)
+        return fmt.Errorf("invalid VALKEY_JOBS_URL: %w", err)
     }
     client := rds.NewClient(opt)
     defer client.Close()

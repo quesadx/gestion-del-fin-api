@@ -21,10 +21,10 @@ export function startJobScheduler() {
     logger.info('[JOB] Starting daily rations job');
 
     try {
-      const redisUrl = process.env.REDIS_JOBS_URL;
-      if (redisUrl) {
+      const valkeyUrl = process.env.VALKEY_JOBS_URL;
+      if (valkeyUrl) {
         try {
-          await enqueueDailyRations(redisUrl);
+          await enqueueDailyRations(valkeyUrl);
           logger.info('[JOB] Daily rations job enqueued');
         } catch (err) {
           logger.error('[JOB] Failed to enqueue daily rations job', err);
@@ -44,10 +44,10 @@ export function startJobScheduler() {
     logger.info('[JOB] Starting daily production job');
 
     try {
-      const redisUrl = process.env.REDIS_JOBS_URL;
-      if (redisUrl) {
+      const valkeyUrl = process.env.VALKEY_JOBS_URL;
+      if (valkeyUrl) {
         try {
-          await enqueueDailyProduction(redisUrl);
+          await enqueueDailyProduction(valkeyUrl);
           logger.info('[JOB] Daily production job enqueued');
         } catch (err) {
           logger.error('[JOB] Failed to enqueue daily production job', err);
@@ -67,10 +67,10 @@ export function startJobScheduler() {
     logger.info('[JOB] Starting resource alerts job');
 
     try {
-      const redisUrl = process.env.REDIS_JOBS_URL;
-      if (redisUrl) {
+      const valkeyUrl = process.env.VALKEY_JOBS_URL;
+      if (valkeyUrl) {
         try {
-          await enqueueResourceAlerts(redisUrl);
+          await enqueueResourceAlerts(valkeyUrl);
           logger.info('[JOB] Resource alerts job enqueued');
         } catch (err) {
           logger.error('[JOB] Failed to enqueue resource alerts job', err);
