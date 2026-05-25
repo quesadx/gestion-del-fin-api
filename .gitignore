@@ -25,8 +25,7 @@ logs/
 src/generated/prisma/
 prisma/migrations.lock/
 
-# Test environment
-.env.test
+
 
 # Generated test auth tokens
 tests/e2e/.auth/
