@@ -92,7 +92,9 @@ schemas:
     properties:
       now:
         type: string
-        example: '14:05:30'
+        format: date-time
+        description: 'Current server time as Date object (serialized as ISO 8601)'
+        example: '2026-05-24T14:05:30.000Z'
       iso:
         type: string
         format: date-time
@@ -317,6 +319,61 @@ schemas:
         format: date-time
         nullable: true
         description: 'Soft delete timestamp (null = active)'
+      camps:
+        type: object
+        description: 'Full camp relation data'
+      professions:
+        type: object
+        description: 'Full profession relation data'
+      admission_requests:
+        type: array
+        items:
+          type: object
+        description: 'Admission requests for this person'
+      camp_transfer_items:
+        type: array
+        items:
+          type: object
+      led_transfers:
+        type: array
+        items:
+          type: object
+      contribution_overrides:
+        type: array
+        items:
+          $ref: '#/components/schemas/ContributionOverride'
+      expedition_members:
+        type: array
+        items:
+          type: object
+      person_status_logs:
+        type: array
+        items:
+          allOf:
+            - $ref: '#/components/schemas/PersonStatusLog'
+            - type: object
+              properties:
+                persons:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    full_name:
+                      type: string
+                    status:
+                      type: string
+                users:
+                  type: object
+                  nullable: true
+                  properties:
+                    id:
+                      type: integer
+                    username:
+                      type: string
+      profession_reassignment_logs:
+        type: array
+        items:
+          $ref: '#/components/schemas/ProfessionReassignmentLog'
 
   CreatePersonRequest:
     type: object
@@ -412,9 +469,29 @@ schemas:
         nullable: true
       changed_by:
         type: integer
+        nullable: true
       changed_at:
         type: string
         format: date-time
+      persons:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          full_name:
+            type: string
+          status:
+            type: string
+            enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+      users:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          username:
+            type: string
 
   CreatePersonStatusLogRequest:
     type: object
@@ -451,6 +528,32 @@ schemas:
         type: string
         format: date
         nullable: true
+      persons:
+        type: object
+        properties:
+          id:
+            type: integer
+          full_name:
+            type: string
+          profession_id:
+            type: integer
+      from_profession:
+        type: object
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+      to_profession:
+        type: object
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+      target_profession_had_no_active_people:
+        type: boolean
+        description: 'Whether the target profession had no active members before this reassignment'
 
   CreateProfessionReassignmentRequest:
     type: object
@@ -497,9 +600,36 @@ schemas:
         nullable: true
       created_by:
         type: integer
+        nullable: true
       amount:
         type: number
         format: float
+      persons:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          full_name:
+            type: string
+      resource_type:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+          unit:
+            type: string
+      users:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          username:
+            type: string
 
   CreateContributionOverrideRequest:
     type: object
@@ -533,19 +663,26 @@ schemas:
   InventoryItem:
     type: object
     properties:
-      id:
-        type: integer
-      camp_id:
-        type: integer
       resource_type_id:
         type: integer
+        example: 1
+      resource_name:
+        type: string
+        example: 'Water'
+      unit:
+        type: string
+        example: 'Liters'
       quantity:
         type: number
         format: float
-        example: 500
-      last_updated:
-        type: string
-        format: date-time
+        example: 500.5
+      minimum_stock:
+        type: number
+        format: float
+        example: 100
+      is_below_minimum:
+        type: boolean
+        example: false
       created_at:
         type: string
         format: date-time
@@ -555,6 +692,32 @@ schemas:
         format: date-time
         nullable: true
         description: 'Soft delete timestamp (null = active)'
+      resource_type:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 1
+          name:
+            type: string
+            example: 'Water'
+          unit:
+            type: string
+            example: 'Liters'
+          minimum_stock:
+            type: number
+            format: float
+            example: 100
+          created_at:
+            type: string
+            format: date-time
+          updated_at:
+            type: string
+            format: date-time
+          deleted_at:
+            type: string
+            format: date-time
+            nullable: true
 
   InventoryLog:
     type: object
@@ -570,17 +733,7 @@ schemas:
         nullable: true
       log_type:
         type: string
-        enum:
-          [
-            DAILY_GAIN,
-            DAILY_RATION,
-            MANUAL_IN,
-            MANUAL_OUT,
-            EXPEDITION_OUT,
-            EXPEDITION_IN,
-            TRANSFER_OUT,
-            TRANSFER_IN,
-          ]
+        enum: [DAILY_GAIN, DAILY_RATION, MANUAL_IN, MANUAL_OUT, EXPEDITION_OUT, EXPEDITION_IN, TRANSFER_OUT, TRANSFER_IN]
       quantity_change:
         type: number
         format: float
@@ -595,6 +748,40 @@ schemas:
       description:
         type: string
         nullable: true
+      type:
+        type: string
+        enum: [DAILY_GAIN, DAILY_RATION, MANUAL_IN, MANUAL_OUT, EXPEDITION_OUT, EXPEDITION_IN, TRANSFER_OUT, TRANSFER_IN]
+        description: 'Alias for log_type'
+      quantity:
+        type: number
+        format: float
+        description: 'Quantity as absolute value'
+      timestamp:
+        type: string
+        format: date-time
+        description: 'Alias for logged_at'
+      user_id:
+        type: integer
+        nullable: true
+        description: 'Alias for logged_by'
+      user:
+        type: object
+        nullable: true
+        properties:
+          username:
+            type: string
+      username:
+        type: string
+        nullable: true
+      resource_name:
+        type: string
+      unit:
+        type: string
+      resource:
+        type: object
+        properties:
+          name:
+            type: string
 
   ManualAdjustmentRequest:
     type: object
@@ -618,6 +805,56 @@ schemas:
         type: string
         maxLength: 255
         example: 'Donation received from NGO'
+
+  ManualAdjustmentResponse:
+    type: object
+    properties:
+      movement:
+        type: object
+        properties:
+          id:
+            type: integer
+          camp_id:
+            type: integer
+          resource_type_id:
+            type: integer
+          logged_by:
+            type: integer
+          log_type:
+            type: string
+            enum: [MANUAL_IN, MANUAL_OUT]
+          quantity_change:
+            type: number
+            format: float
+          logged_at:
+            type: string
+            format: date-time
+          created_at:
+            type: string
+            format: date-time
+          description:
+            type: string
+            nullable: true
+      inventory:
+        type: object
+        properties:
+          camp_id:
+            type: integer
+          resource_type_id:
+            type: integer
+          quantity:
+            type: number
+            format: float
+          last_updated:
+            type: string
+            format: date-time
+          created_at:
+            type: string
+            format: date-time
+          deleted_at:
+            type: string
+            format: date-time
+            nullable: true
 
   AdmissionRequest:
     type: object
@@ -785,6 +1022,12 @@ schemas:
         format: date-time
         nullable: true
         description: 'Soft delete timestamp (null = active)'
+      camps:
+        type: object
+        description: 'Full camp relation data'
+      users:
+        type: object
+        description: 'Full user (creator) relation data'
       allocated_resources:
         type: array
         items:
@@ -1052,6 +1295,17 @@ schemas:
         type: number
         format: float
         nullable: true
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
 
   TransferItemInput:
     type: object
@@ -1165,12 +1419,13 @@ schemas:
         type: string
         format: date-time
         nullable: true
-      created_at:
-        type: string
-        format: date-time
       session_version:
         type: integer
         example: 1
+        description: 'Incremented on logout to invalidate existing sessions'
+      created_at:
+        type: string
+        format: date-time
 
   CreateUserRequest:
     type: object
@@ -1269,10 +1524,18 @@ schemas:
       description:
         type: string
         nullable: true
-      permission_ids:
+      permissions:
         type: array
         items:
-          type: integer
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            description:
+              type: string
+              nullable: true
       created_at:
         type: string
         format: date-time

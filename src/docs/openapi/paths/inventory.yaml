@@ -117,7 +117,7 @@
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InventoryLog'
+              $ref: '#/components/schemas/ManualAdjustmentResponse'
       '400':
         description: 'Validation failed.'
         content:
