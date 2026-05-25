@@ -1,5 +1,13 @@
 import pandas as pd
 
+LEGACY_SKILL_COLUMNS = [
+    "has_technical",
+    "has_medical",
+    "has_scout",
+    "has_agricultural",
+    "has_security",
+]
+
 def get_training_data() -> pd.DataFrame:
     """
     Synthetic training data representing survivor profiles
@@ -105,7 +113,7 @@ def get_training_data() -> pd.DataFrame:
         (66, 0, 0, 0, 0, 0, 0.40, "REJECTED", "general"),
     ]
 
-    return pd.DataFrame(data, columns=[
+    legacy_df = pd.DataFrame(data, columns=[
         "age",
         "has_technical",
         "has_medical",
@@ -116,3 +124,18 @@ def get_training_data() -> pd.DataFrame:
         "decision",
         "profession_category",
     ])
+
+    skill_count = legacy_df[LEGACY_SKILL_COLUMNS].sum(axis=1)
+    legacy_df["has_skill_match"] = (skill_count > 0).astype(int)
+    legacy_df["best_profession_score"] = (skill_count * 2.0).clip(upper=6.0)
+    legacy_df["profession_match_coverage"] = (skill_count / len(LEGACY_SKILL_COLUMNS)).round(3)
+
+    return legacy_df[[
+        "age",
+        "has_skill_match",
+        "best_profession_score",
+        "profession_match_coverage",
+        "health_score",
+        "decision",
+        "profession_category",
+    ]]

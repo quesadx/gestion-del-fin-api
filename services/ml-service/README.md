@@ -44,7 +44,11 @@ curl -X POST http://localhost:8000/evaluate \
     "camp_weights": {
       "weight_technical": 1.2,
       "strict_health_check": true
-    }
+    },
+    "professions": [
+      { "id": 1, "name": "Mechanic", "description": "Repairs engines and machinery" },
+      { "id": 2, "name": "Medic", "description": "Provides medical support" }
+    ]
   }'
 ```
 
@@ -62,3 +66,4 @@ The container listens on port `8000` and is reachable from the API as `http://ml
 
 - If you use the service in production or Railway, set `ML_SERVICE_URL` to the deployed URL of the service.
 - The folder lives under `services/ml-service/` because this repository treats deployable components as separate services.
+- The profession suggestion is driven by the live catalog sent by the API, so adding or removing professions in the database changes the model output automatically.

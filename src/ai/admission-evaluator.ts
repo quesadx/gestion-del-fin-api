@@ -7,6 +7,7 @@ import {
 import { AppError } from '../shared/utils/appError.js';
 import { logger } from '../logger/logger.js';
 import { z } from 'zod';
+import { resolveProfessionSuggestion, type ProfessionRecord } from './profession-resolver.js';
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
 
@@ -28,6 +29,7 @@ type CampWeights = z.infer<typeof campWeightsSchema>;
 // Parse camp context with Groq to a useful weights for ML
 async function parseCampWeights(campContext: string): Promise<CampWeights> {
   if (!campContext || campContext === 'No context defined for this camp') {
+    logger.info('Groq camp-weights parsing skipped: empty camp context');
     return {};
   }
 
@@ -69,10 +71,24 @@ async function parseCampWeights(campContext: string): Promise<CampWeights> {
 
   try {
     const text = response.choices[0]?.message?.content;
-    if (!text) return {};
+    if (!text) {
+      logger.warn('Groq camp-weights parsing returned empty response');
+      return {};
+    }
     const parsed = JSON.parse(text);
-    return campWeightsSchema.parse(parsed); //Zod schema parsing. Reject any invalid info
-  } catch {
+    const validated = campWeightsSchema.parse(parsed); //Zod schema parsing. Reject any invalid info
+
+    logger.info('Groq camp-weights parsing audit', {
+      rawResponse: text,
+      sanitizedContext: sanitized,
+      parsedWeights: validated,
+    });
+
+    return validated;
+  } catch (error) {
+    logger.warn('Groq camp-weights parsing failed; falling back to empty weights', {
+      errorMessage: (error as Error)?.message ?? 'unknown',
+    });
     return {};
   }
 }
@@ -80,6 +96,7 @@ async function parseCampWeights(campContext: string): Promise<CampWeights> {
 async function evaluateWithDecisionTree(
   data: CreateAdmissionDTO,
   campWeights: Record<string, number | boolean>,
+  professions: ProfessionRecord[],
 ): Promise<{
   decision: 'ACCEPTED' | 'REJECTED';
   confidence: number;
@@ -87,6 +104,15 @@ async function evaluateWithDecisionTree(
   professionCategory: string;
 }> {
   try {
+    logger.info('ML evaluate request audit', {
+      age: data.applicant_age ?? null,
+      hasSkillsText: Boolean(data.applicant_skills?.trim()),
+      hasHealthNotes: Boolean(data.health_notes?.trim()),
+      campWeights,
+      professionsCount: professions.length,
+      professionsPreview: professions.slice(0, 5).map((profession) => profession.name),
+    });
+
     const response = await fetch(`${ML_SERVICE_URL}/evaluate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -95,6 +121,7 @@ async function evaluateWithDecisionTree(
         skills: data.applicant_skills ?? null,
         health_notes: data.health_notes ?? null,
         camp_weights: campWeights,
+        professions,
       }),
       signal: AbortSignal.timeout(5000),
     });
@@ -104,6 +131,13 @@ async function evaluateWithDecisionTree(
     }
 
     const result = await response.json();
+
+    logger.info('ML evaluate response audit', {
+      decision: result.decision,
+      confidence: result.confidence,
+      professionCategory: result.profession_category,
+      reasoningPath: result.reasoning_path,
+    });
 
     return {
       decision: result.decision,
@@ -128,34 +162,10 @@ async function evaluateWithDecisionTree(
   }
 }
 
-function mapCategoryToProfession(
-  category: string,
-  professions: { id: number; name: string; description: string | null }[],
-): { id: number; name: string } | null {
-  const lower = category.toLowerCase();
-
-  const exact = professions.find((p) => p.name.toLowerCase().includes(lower));
-  if (exact) return exact;
-
-  // Fallback keyword map
-  const fallbackMap: Record<string, string[]> = {
-    technical: ['engineer', 'mechanic', 'electrician', 'builder'],
-    medical: ['doctor', 'nurse', 'medic', 'surgeon'],
-    scout: ['scout', 'explorer', 'tracker', 'ranger'],
-    agricultural: ['farmer', 'cook', 'botanist', 'fisher'],
-    security: ['soldier', 'guard', 'military', 'police'],
-  };
-
-  const keywords = fallbackMap[lower] ?? [];
-  const match = professions.find((p) => keywords.some((kw) => p.name.toLowerCase().includes(kw)));
-
-  return match ?? professions[0] ?? null;
-}
-
 export async function evaluateAdmission(
   data: CreateAdmissionDTO,
   campContext: string,
-  professions: { id: number; name: string; description: string | null }[],
+  professions: ProfessionRecord[],
 ): Promise<AdmissionAIResult> {
   if (process.env.NODE_ENV === 'test') {
     return admissionAIResultSchema.parse({
@@ -169,10 +179,27 @@ export async function evaluateAdmission(
 
   const campWeights = await parseCampWeights(campContext);
 
-  const { decision, confidence, reasoningPath, professionCategory } =
-    await evaluateWithDecisionTree(data, campWeights);
+  if (!professions || professions.length === 0) {
+    logger.warn('No professions provided from DB; ML will score against empty catalog', {
+      campContextSnippet: (campContext ?? '').slice(0, 200),
+    });
+  } else {
+    logger.info('Professions from DB provided to AI', {
+      professionsCount: professions.length,
+      professionsPreview: professions.slice(0, 5).map((p) => ({ id: p.id, name: p.name })),
+    });
+  }
 
-  const profession = mapCategoryToProfession(professionCategory, professions);
+  const { decision, confidence, reasoningPath, professionCategory } =
+    await evaluateWithDecisionTree(data, campWeights, professions);
+
+  const profession = resolveProfessionSuggestion(professionCategory, professions);
+
+  logger.info('Admission AI final mapping audit', {
+    mlProfessionCategory: professionCategory,
+    mappedProfessionId: profession?.id ?? null,
+    mappedProfessionName: profession?.name ?? null,
+  });
 
   const reasoning = [...reasoningPath, `Confidence: ${(confidence * 100).toFixed(0)}%`].join(' | ');
 
