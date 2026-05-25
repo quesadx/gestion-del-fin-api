@@ -35,4 +35,5 @@ COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+#CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "echo '[startup] migrate'; NODE_OPTIONS=--trace-deprecation npx prisma migrate deploy; echo '[startup] api'; NODE_OPTIONS=--trace-deprecation npm start"]
