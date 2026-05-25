@@ -13,7 +13,7 @@ RUN npm install -g pnpm
 FROM base AS deps
 
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 FROM deps AS build
 
@@ -28,7 +28,7 @@ FROM base AS runner
 ENV NODE_ENV=production
 
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --shamefully-hoist
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/generated ./dist/generated

@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
+    "@jest/globals": "^30.0.0",
     "@playwright/test": "^1.58.2",
     "@types/cors": "^2.8.19",
     "@types/multer": "^2.0.0",
