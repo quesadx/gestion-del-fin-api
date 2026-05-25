@@ -23,6 +23,7 @@
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           nodejs_20
+          go
           openssl
           pkg-config
           prisma-engines_7

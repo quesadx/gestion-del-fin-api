@@ -30,7 +30,7 @@ services:
       start_period: 30s
 
   ml:
-    build: ./ml-service
+    build: ./services/ml-service
     container_name: gestion-del-fin-ml
     ports:
       - '8000:8000'
