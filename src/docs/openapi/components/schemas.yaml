@@ -72,7 +72,7 @@ schemas:
     properties:
       user:
         type: object
-        required: [username, role]
+        required: [username, role, permissions]
         properties:
           username:
             type: string
@@ -80,6 +80,13 @@ schemas:
           role:
             type: string
             example: 'ADMIN'
+          permissions:
+            type: array
+            items:
+              type: string
+            example:
+              - 'camps.read'
+              - 'roles.read'
       token:
         type: string
         description: 'JWT access token'

@@ -246,7 +246,11 @@ OK, LOW, CRITICAL, OVERSTOCKED
 {
   "user": {
     "username": "admin",
-    "role": "system_admin"
+    "role": "system_admin",
+    "permissions": [
+      "camps.read",
+      "roles.read"
+    ]
   },
   "token": "eyJhbGciOiJIUzI1NiIs..."
 }

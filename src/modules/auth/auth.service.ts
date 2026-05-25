@@ -72,7 +72,14 @@ export const login = async (data: LoginInput) => {
     targetId: user.id,
   });
 
-  return { user: { username: user.username, role: user.roles.name }, token };
+  return {
+    user: {
+      username: user.username,
+      role: user.roles.name,
+      permissions: user.roles.role_permissions.map((rp) => rp.permissions.name),
+    },
+    token,
+  };
 };
 
 export const logout = async (userId: number) => {
