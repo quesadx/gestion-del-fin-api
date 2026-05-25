@@ -31,11 +31,11 @@ Notes:
  
 Queue / Daemon mode
 -------------------
-To run as a daemon that consumes work from Redis set `REDIS_JOBS_URL` and run the service. Example:
+To run as a daemon that consumes work from Valkey set `VALKEY_JOBS_URL` and run the service. Example:
 
 ```bash
-export REDIS_JOBS_URL=redis://:<password>@<host>:<port>
+export VALKEY_JOBS_URL=redis://:<password>@<host>:<port>
 go run ./main.go
 ```
 
-The API scheduler (`src/jobs/scheduler.ts`) will enqueue jobs to `jobs:daily_rations` when `REDIS_JOBS_URL` is set in the API environment. This allows a safe migration: keep the old in-process job as fallback and enable queueing by setting `REDIS_JOBS_URL`.
+The API scheduler (`src/jobs/scheduler.ts`) will enqueue jobs to `jobs:daily_rations` when `VALKEY_JOBS_URL` is set in the API environment. This allows a safe migration: keep the old in-process job as fallback and enable queueing by setting `VALKEY_JOBS_URL`.
