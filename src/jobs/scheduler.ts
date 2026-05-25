@@ -3,11 +3,11 @@ import { logger } from '../logger/logger.js';
 import dailyRationsJob from './daily-rations.job.js';
 import dailyProductionJob from './daily-production.job.js';
 import resourceAlertsJob from './resource-alerts.job.js';
+import { enqueueDailyProduction, enqueueDailyRations, enqueueResourceAlerts } from './job-queue.js';
 
 const DAILY_RATIONS_CRON = process.env.DAILY_RATIONS_CRON ?? '* * * * *';
 const DAILY_PRODUCTION_CRON = process.env.DAILY_PRODUCTION_CRON ?? '0 5 * * *';
 const RESOURCE_ALERTS_CRON = process.env.RESOURCE_ALERTS_CRON ?? '0 * * * *';
-
 let dailyRationsTask: ScheduledTask | null = null;
 let dailyProductionTask: ScheduledTask | null = null;
 let resourceAlertsTask: ScheduledTask | null = null;
@@ -21,8 +21,18 @@ export function startJobScheduler() {
     logger.info('[JOB] Starting daily rations job');
 
     try {
-      await dailyRationsJob.execute();
-      logger.info('[JOB] Daily rations job finished');
+      const redisUrl = process.env.REDIS_JOBS_URL;
+      if (redisUrl) {
+        try {
+          await enqueueDailyRations(redisUrl);
+          logger.info('[JOB] Daily rations job enqueued');
+        } catch (err) {
+          logger.error('[JOB] Failed to enqueue daily rations job', err);
+        }
+      } else {
+        await dailyRationsJob.execute();
+        logger.info('[JOB] Daily rations job finished');
+      }
     } catch (error) {
       logger.error('[JOB] Daily rations job failed', error);
     }
@@ -34,8 +44,18 @@ export function startJobScheduler() {
     logger.info('[JOB] Starting daily production job');
 
     try {
-      await dailyProductionJob.execute();
-      logger.info('[JOB] Daily production job finished');
+      const redisUrl = process.env.REDIS_JOBS_URL;
+      if (redisUrl) {
+        try {
+          await enqueueDailyProduction(redisUrl);
+          logger.info('[JOB] Daily production job enqueued');
+        } catch (err) {
+          logger.error('[JOB] Failed to enqueue daily production job', err);
+        }
+      } else {
+        await dailyProductionJob.execute();
+        logger.info('[JOB] Daily production job finished');
+      }
     } catch (error) {
       logger.error('[JOB] Daily production job failed', error);
     }
@@ -47,8 +67,18 @@ export function startJobScheduler() {
     logger.info('[JOB] Starting resource alerts job');
 
     try {
-      await resourceAlertsJob.execute();
-      logger.info('[JOB] Resource alerts job finished');
+      const redisUrl = process.env.REDIS_JOBS_URL;
+      if (redisUrl) {
+        try {
+          await enqueueResourceAlerts(redisUrl);
+          logger.info('[JOB] Resource alerts job enqueued');
+        } catch (err) {
+          logger.error('[JOB] Failed to enqueue resource alerts job', err);
+        }
+      } else {
+        await resourceAlertsJob.execute();
+        logger.info('[JOB] Resource alerts job finished');
+      }
     } catch (error) {
       logger.error('[JOB] Resource alerts job failed', error);
     }
@@ -83,3 +113,5 @@ export default {
   startJobScheduler,
   stopJobScheduler,
 };
+
+export { enqueueDailyRations, enqueueDailyProduction, enqueueResourceAlerts } from './job-queue.js';
