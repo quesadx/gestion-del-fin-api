@@ -398,62 +398,66 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
 
-  // 1 — collect all distinct resource_type_ids (lightweight, just integers)
-  const allIds = await getDistinctResourceTypeIdsForCamp(campId);
-  const total = allIds.length;
-
-  // 2 — paginate the ID list
-  const paginatedIds = allIds.slice(skip, skip + effectiveLimit);
-
-  // 3 — compute global has_inconsistencies via lightweight SQL EXISTS (no full data load)
-  let hasInconsistencies = false;
-  if (allIds.length > 0) {
-    const result = await prisma.$queryRaw<Array<{ has_inconsistency: boolean }>>`
-      SELECT EXISTS (
-        SELECT 1
-        FROM inventory i
-        LEFT JOIN (
-          SELECT resource_type_id, COALESCE(SUM(quantity_change), 0) AS log_sum
-          FROM inventory_log
-          WHERE camp_id = ${campId}
-          GROUP BY resource_type_id
-        ) l ON i.resource_type_id = l.resource_type_id
-        WHERE i.camp_id = ${campId}
-          AND ABS(i.quantity - COALESCE(l.log_sum, 0)) >= 0.01
-      ) AS has_inconsistency
-    `;
-    hasInconsistencies = result[0]?.has_inconsistency ?? false;
-  }
-
-  // 4 — detailed consistency only for the paginated page (DB-level pagination)
-  const pagedConsistency =
-    paginatedIds.length > 0 ? await validateInventoryConsistency(campId, paginatedIds) : [];
-
-  // 5 — fetch resource names only for the displayed page
-  const resources =
-    paginatedIds.length > 0
-      ? await prisma.resource_types.findMany({
-          where: { id: { in: paginatedIds } },
+  const [total, logs] = await Promise.all([
+    prisma.inventory_logs.count({ where: { camp_id: campId } }),
+    prisma.inventory_logs.findMany({
+      where: { camp_id: campId },
+      skip,
+      take: effectiveLimit,
+      orderBy: { logged_at: 'desc' },
+      select: {
+        id: true,
+        camp_id: true,
+        resource_type_id: true,
+        logged_by: true,
+        log_type: true,
+        quantity_change: true,
+        logged_at: true,
+        created_at: true,
+        description: true,
+        resource_type: {
           select: { id: true, name: true, unit: true },
-        })
-      : [];
+        },
+        users: {
+          select: { username: true },
+        },
+      },
+    }),
+  ]);
 
-  const resourcesMap = new Map(
-    resources.map((r: { id: number; name: string; unit: string }) => [r.id, r]),
+  const audit = logs.map(
+    (row: {
+      id: number;
+      camp_id: number;
+      resource_type_id: number;
+      logged_by: number | null;
+      log_type: inventory_log_log_type;
+      quantity_change: Prisma.Decimal;
+      logged_at: Date;
+      created_at: Date;
+      description: string | null;
+      resource_type: { id: number; name: string; unit: string };
+      users: { username: string } | null;
+    }) => ({
+      id: row.id,
+      camp_id: row.camp_id,
+      resource_type_id: row.resource_type_id,
+      type: row.log_type,
+      log_type: row.log_type,
+      quantity: asNumber(row.quantity_change),
+      description: row.description,
+      created_at: row.logged_at,
+      timestamp: row.logged_at,
+      user_id: row.logged_by,
+      user: row.users ? { username: row.users.username } : undefined,
+      username: row.users?.username,
+      resource_name: row.resource_type.name,
+      unit: row.resource_type.unit,
+      resource: {
+        name: row.resource_type.name,
+      },
+    }),
   );
-
-  const audit = pagedConsistency.map((item) => {
-    const resource = resourcesMap.get(item.resource_type_id);
-    return {
-      resource_type_id: item.resource_type_id,
-      resource_name: resource?.name ?? null,
-      unit: resource?.unit ?? null,
-      inventory_quantity: item.inventory_quantity,
-      log_delta_sum: item.log_delta_sum,
-      is_consistent: item.is_consistent,
-      discrepancy: item.discrepancy,
-    };
-  });
 
   return {
     data: audit,
@@ -464,7 +468,6 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
       hasNextPage: page * effectiveLimit < total,
       totalPages: Math.ceil(total / effectiveLimit),
     },
-    has_inconsistencies: hasInconsistencies,
   };
 }
 
