@@ -109,6 +109,28 @@ async function gracefulShutdown(signal: 'SIGINT' | 'SIGTERM') {
   process.exit(0);
 }
 
+// Handle uncaught exceptions and unhandled rejections gracefully
+process.on('uncaughtException', (error: Error) => {
+  // Client abort errors should not crash the server
+  if (error.message === 'Request aborted' || (error as any).code === 'ABORTED') {
+    logger.debug('Client request aborted', { message: error.message });
+    return;
+  }
+  logger.error('Uncaught exception', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  });
+  // In production, consider graceful shutdown for true uncaught exceptions
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled rejection', {
+    reason,
+    promise,
+  });
+});
+
 process.on('SIGINT', () => {
   void gracefulShutdown('SIGINT');
 });

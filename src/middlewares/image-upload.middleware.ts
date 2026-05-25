@@ -28,9 +28,34 @@ export function createImageUploadMiddleware(fields: ImageUploadField[]) {
       return;
     }
 
+    // Track if request was aborted by client
+    let requestAborted = false;
+    const onAbort = () => {
+      requestAborted = true;
+    };
+
+    req.on('aborted', onAbort);
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        requestAborted = true;
+      }
+    });
+
     multerFields(req, res, async (error) => {
+      req.removeListener('aborted', onAbort);
+
+      // Silently handle client abort errors (request disconnected during upload)
+      if (error && (error.message === 'Request aborted' || error.code === 'ABORTED')) {
+        return; // Client disconnected, no need to send response
+      }
+
       if (error) {
         next(error);
+        return;
+      }
+
+      // Don't process if request was aborted
+      if (requestAborted) {
         return;
       }
 
@@ -54,7 +79,10 @@ export function createImageUploadMiddleware(fields: ImageUploadField[]) {
 
         next();
       } catch (uploadError) {
-        next(uploadError);
+        // Don't process if request was aborted
+        if (!requestAborted) {
+          next(uploadError);
+        }
       }
     });
   };

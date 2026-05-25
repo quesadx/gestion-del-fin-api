@@ -28,6 +28,16 @@ function sendErrorResponse(res: Response, statusCode: number, message: string, d
 }
 
 export function errorHandler(error: any, req: Request, res: Response, next: NextFunction) {
+  // Silently handle client abort errors (request disconnected) - don't log or respond
+  if (
+    error &&
+    (error.message === 'Request aborted' ||
+      error.code === 'ABORTED' ||
+      error.code === 'ERR_HTTP_REQUEST_TIMEOUT')
+  ) {
+    return;
+  }
+
   if (res.headersSent) {
     next(error);
     return;
