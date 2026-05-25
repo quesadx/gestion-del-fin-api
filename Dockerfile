@@ -1,8 +1,9 @@
-FROM node:22-slim AS base
+FROM node:20-slim AS base
 
 WORKDIR /app
 
 ENV PORT=3000
+ENV CI=true
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends openssl \
