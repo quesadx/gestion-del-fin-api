@@ -83,7 +83,14 @@ export const login = async (data: LoginInput) => {
     .tryUnlock(user.id, user.camp_id, 'LOGIN', { firstLogin: isFirstLogin })
     .catch((err) => logger.warn(`Achievement check failed (LOGIN): ${err?.message ?? err}`));
 
-  return { user: { username: user.username, role: user.roles.name }, token };
+  return {
+    user: {
+      username: user.username,
+      role: user.roles.name,
+      permissions: user.roles.role_permissions.map((rp) => rp.permissions.name),
+    },
+    token,
+  };
 };
 
 export const logout = async (userId: number) => {
