@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from decision_tree import admission_tree
 from contextlib import asynccontextmanager
 import logging
@@ -25,7 +25,8 @@ class AdmissionRequest(BaseModel):
     age: int | None = None
     skills: str | None = None
     health_notes: str | None = None
-    camp_weights: dict = {}
+    camp_weights: dict = Field(default_factory=dict)
+    professions: list[dict] = Field(default_factory=list)
 
 
 class AdmissionResponse(BaseModel):
@@ -53,6 +54,7 @@ def evaluate(request: AdmissionRequest):
             skills=request.skills,
             health_notes=request.health_notes,
             camp_weights=request.camp_weights,
+            professions=request.professions,
         )
         logger.info(
             f"Evaluation complete - decision: {result['decision']}, confidence: {result['confidence']:.2f}"
