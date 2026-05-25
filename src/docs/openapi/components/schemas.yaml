@@ -733,7 +733,17 @@ schemas:
         nullable: true
       log_type:
         type: string
-        enum: [DAILY_GAIN, DAILY_RATION, MANUAL_IN, MANUAL_OUT, EXPEDITION_OUT, EXPEDITION_IN, TRANSFER_OUT, TRANSFER_IN]
+        enum:
+          [
+            DAILY_GAIN,
+            DAILY_RATION,
+            MANUAL_IN,
+            MANUAL_OUT,
+            EXPEDITION_OUT,
+            EXPEDITION_IN,
+            TRANSFER_OUT,
+            TRANSFER_IN,
+          ]
       quantity_change:
         type: number
         format: float
@@ -750,7 +760,17 @@ schemas:
         nullable: true
       type:
         type: string
-        enum: [DAILY_GAIN, DAILY_RATION, MANUAL_IN, MANUAL_OUT, EXPEDITION_OUT, EXPEDITION_IN, TRANSFER_OUT, TRANSFER_IN]
+        enum:
+          [
+            DAILY_GAIN,
+            DAILY_RATION,
+            MANUAL_IN,
+            MANUAL_OUT,
+            EXPEDITION_OUT,
+            EXPEDITION_IN,
+            TRANSFER_OUT,
+            TRANSFER_IN,
+          ]
         description: 'Alias for log_type'
       quantity:
         type: number

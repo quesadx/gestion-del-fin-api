@@ -19,9 +19,16 @@ test.describe('Concurrent request stress tests', () => {
     const ctx = await request.newContext({ baseURL, extraHTTPHeaders: headers });
 
     const requests = Array.from({ length: CONCURRENT_REQUESTS }, () => ctx.get('/api/camps'));
-    const results = await Promise.all(requests.map((r, i) =>
-      r.then(async (res) => ({ ok: res.ok(), status: res.status(), body: await res.json(), idx: i })),
-    ));
+    const results = await Promise.all(
+      requests.map((r, i) =>
+        r.then(async (res) => ({
+          ok: res.ok(),
+          status: res.status(),
+          body: await res.json(),
+          idx: i,
+        })),
+      ),
+    );
 
     const allOk = results.every((r) => r.ok);
     expect(allOk).toBe(true);
@@ -39,9 +46,9 @@ test.describe('Concurrent request stress tests', () => {
     const ctx = await request.newContext({ baseURL, extraHTTPHeaders: headers });
 
     const requests = Array.from({ length: CONCURRENT_REQUESTS }, () => ctx.get('/api/professions'));
-    const results = await Promise.all(requests.map((r) =>
-      r.then(async (res) => ({ ok: res.ok(), status: res.status() })),
-    ));
+    const results = await Promise.all(
+      requests.map((r) => r.then(async (res) => ({ ok: res.ok(), status: res.status() }))),
+    );
 
     const allOk = results.every((r) => r.ok);
     expect(allOk).toBe(true);
