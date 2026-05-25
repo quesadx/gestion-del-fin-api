@@ -5,6 +5,8 @@ import { LoginInput } from './auth.schema.js';
 import { signAccessToken } from '../../shared/utils/jwt.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
+import * as achievementService from '../achievements/achievements.service.js';
+import { logger } from '../../logger/logger.js';
 
 export const login = async (data: LoginInput) => {
   const user = await prisma.users.findUnique({
@@ -12,6 +14,7 @@ export const login = async (data: LoginInput) => {
     select: {
       id: true,
       camp_id: true,
+      last_activity: true,
       session_version: true,
       username: true,
       password_hash: true,
@@ -59,6 +62,9 @@ export const login = async (data: LoginInput) => {
     isAdmin,
   );
 
+  // Detect whether this is the user's first recorded activity
+  const isFirstLogin = user.last_activity == null;
+
   await prisma.users.update({
     where: { id: user.id },
     data: { last_activity: new Date() },
@@ -71,6 +77,11 @@ export const login = async (data: LoginInput) => {
     targetType: 'users',
     targetId: user.id,
   });
+
+  // Try to unlock login-related achievements (non-blocking)
+  achievementService
+    .tryUnlock(user.id, user.camp_id, 'LOGIN', { firstLogin: isFirstLogin })
+    .catch((err) => logger.warn(`Achievement check failed (LOGIN): ${err?.message ?? err}`));
 
   return {
     user: {

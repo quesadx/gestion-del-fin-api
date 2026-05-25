@@ -6,16 +6,15 @@
 
 # Test info
 
-- Name: auth.spec.ts >> POST /api/auth/login >> returns 401 for non-existent user
-- Location: tests/e2e/auth.spec.ts:57:3
+- Name: camps.spec.ts >> GET /api/camps >> returns list of camps for admin
+- Location: tests/e2e/camps.spec.ts:8:3
 
 # Error details
 
 ```
-Error: expect(received).toBe(expected) // Object.is equality
+Error: expect(received).toBeTruthy()
 
-Expected: 401
-Received: 429
+Received: false
 ```
 
 # Test source
@@ -35,8 +34,7 @@ Received: 429
   12 |   expectedMessage?: string,
   13 | ): Promise<void> {
   14 |   response = await resolveResponse(response);
-> 15 |   expect(response.status()).toBe(expectedStatus);
-     |                             ^ Error: expect(received).toBe(expected) // Object.is equality
+  15 |   expect(response.status()).toBe(expectedStatus);
   16 |   const body = await response.json();
   17 |   expect(body).toHaveProperty('error');
   18 |   expect(body.error).toHaveProperty('statusCode', expectedStatus);
@@ -52,7 +50,8 @@ Received: 429
   28 |   minLength = 0,
   29 | ): Promise<any[]> {
   30 |   response = await resolveResponse(response);
-  31 |   expect(response.ok()).toBeTruthy();
+> 31 |   expect(response.ok()).toBeTruthy();
+     |                         ^ Error: expect(received).toBeTruthy()
   32 |   const body = await response.json();
   33 |   expect(body).toHaveProperty('data');
   34 |   expect(Array.isArray(body.data)).toBe(true);

@@ -18,6 +18,9 @@ model achievements {
   updated_at       DateTime           @updatedAt
   deleted_at       DateTime?
   user_achievements user_achievements[]
+  achievement_roles           achievement_roles[]
+  achievement_notifications   achievement_notifications[]
+  achievement_stats           achievement_stats?
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -399,6 +402,7 @@ model roles {
   deleted_at       DateTime?
   users            users[]
   role_permissions role_permissions[]
+  achievement_roles achievement_roles[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -466,6 +470,7 @@ model users {
   inventory_logs               inventory_logs[]
   person_status_logs           person_status_logs[]
   user_achievements            user_achievements[]
+    achievement_notifications   achievement_notifications[]
   camps                        camps                    @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   roles                        roles                    @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -580,6 +585,7 @@ enum audit_log_action {
   REASSIGN_PROFESSION
   CREATE_OVERRIDE
   MANUAL_INVENTORY_ADJUST
+    ACHIEVEMENT_UNLOCKED
 }
 
 enum audit_log_target_type {
@@ -590,4 +596,51 @@ enum audit_log_target_type {
   expeditions
   people
   inventory_logs
+  achievements
+}
+
+model achievement_roles {
+  achievement_id Int
+  role_id        Int
+  sort_order     Int       @default(0)
+  created_at     DateTime  @default(now())
+  
+  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  roles          roles        @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([achievement_id, role_id])
+  @@index([role_id], map: "achievement_roles_role_id_idx")
+  @@map("achievement_role")
+}
+
+model achievement_notifications {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  achievement_id Int
+  notification_sent Boolean @default(false)
+  sent_at        DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([user_id, achievement_id, created_at], map: "uq_achievement_notification")
+  @@index([notification_sent], map: "achievement_notifications_unsent_idx")
+  @@index([user_id], map: "achievement_notifications_user_id_idx")
+  @@map("achievement_notification")
+}
+
+model achievement_stats {
+  id              Int       @id @default(autoincrement())
+  achievement_id  Int       @unique(map: "uq_achievement_stats")
+  total_unlocks   Int       @default(0)
+  unlock_rate     Decimal   @default(0.00) @db.Decimal(5, 2)
+  average_unlock_days Int   @default(0)
+  last_unlock_at  DateTime?
+  updated_at      DateTime  @updatedAt
+
+  achievements    achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("achievement_stat")
 }

@@ -6,15 +6,16 @@
 
 # Test info
 
-- Name: auth.spec.ts >> POST /api/auth/login >> returns token and user on valid credentials
-- Location: tests/e2e/auth.spec.ts:8:3
+- Name: camps.spec.ts >> GET /api/camps/:id >> returns 404 for non-existent id
+- Location: tests/e2e/camps.spec.ts:37:3
 
 # Error details
 
 ```
-Error: expect(received).toBeTruthy()
+Error: expect(received).toBe(expected) // Object.is equality
 
-Received: false
+Expected: 404
+Received: 401
 ```
 
 # Test source
@@ -34,7 +35,8 @@ Received: false
   12 |   expectedMessage?: string,
   13 | ): Promise<void> {
   14 |   response = await resolveResponse(response);
-  15 |   expect(response.status()).toBe(expectedStatus);
+> 15 |   expect(response.status()).toBe(expectedStatus);
+     |                             ^ Error: expect(received).toBe(expected) // Object.is equality
   16 |   const body = await response.json();
   17 |   expect(body).toHaveProperty('error');
   18 |   expect(body.error).toHaveProperty('statusCode', expectedStatus);
@@ -65,8 +67,7 @@ Received: false
   43 |   response: APIResponse | Promise<APIResponse>,
   44 | ): Promise<Record<string, unknown>> {
   45 |   response = await resolveResponse(response);
-> 46 |   expect(response.ok()).toBeTruthy();
-     |                         ^ Error: expect(received).toBeTruthy()
+  46 |   expect(response.ok()).toBeTruthy();
   47 |   const body = await response.json();
   48 |   expect(typeof body).toBe('object');
   49 |   expect(Array.isArray(body)).toBe(false);

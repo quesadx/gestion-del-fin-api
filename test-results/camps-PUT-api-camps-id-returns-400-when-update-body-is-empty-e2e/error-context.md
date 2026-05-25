@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: auth.spec.ts >> POST /api/auth/login >> returns 400 when username exceeds max length
-- Location: tests/e2e/auth.spec.ts:66:3
+- Name: camps.spec.ts >> PUT /api/camps/:id >> returns 400 when update body is empty
+- Location: tests/e2e/camps.spec.ts:130:3
 
 # Error details
 
@@ -15,7 +15,7 @@
 Error: expect(received).toBe(expected) // Object.is equality
 
 Expected: 400
-Received: 429
+Received: 401
 ```
 
 # Test source

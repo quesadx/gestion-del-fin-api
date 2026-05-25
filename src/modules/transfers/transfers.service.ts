@@ -2,6 +2,8 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
+import { logger } from '../../logger/logger.js';
+import * as achievementService from '../achievements/achievements.service.js';
 import {
   ApproveTransferSourceDto,
   ApproveTransferTargetDto,
@@ -572,6 +574,12 @@ export async function completeTransfer(
           targetType: 'camp_transfers',
           targetId: transferId,
         });
+        // Non-blocking achievement check for transfer completion
+        achievementService
+          .tryUnlock(completedBy, actor.camp_id, 'TRANSFER_COMPLETE')
+          .catch((err) =>
+            logger.warn(`Achievement check failed (TRANSFER_COMPLETE): ${err?.message ?? err}`),
+          );
       }
       return result;
     });

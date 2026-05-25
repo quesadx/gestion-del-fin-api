@@ -2,8 +2,7 @@ import { prisma } from '../src/lib/prisma';
 import { hash } from '@node-rs/bcrypt';
 import { PERMISSIONS } from '../src/shared/constants/permissions';
 import { logger } from '../src/logger/logger';
-import { deleteByPrefix, deleteKeys } from '../src/lib/cache';
-import { cacheKeys } from '../src/shared/cache/cacheKeys';
+import { achievementSeedDefinitions } from './achievement-seed-data';
 
 async function main() {
   logger.info('Starting database seed...');
@@ -291,6 +290,52 @@ async function main() {
 
   if (rolePermissionRows.length > 0) {
     await prisma.role_permissions.createMany({ data: rolePermissionRows });
+  }
+
+  logger.info('Seeding achievements...');
+  const achievementsByName = new Map<string, { id: number; name: string }>();
+
+  for (const definition of achievementSeedDefinitions) {
+    const achievement = await prisma.achievements.create({
+      data: {
+        name: definition.name,
+        description: definition.description,
+        icon_url: definition.icon_url,
+        trigger_rule: definition.trigger_rule,
+      },
+      select: { id: true, name: true },
+    });
+
+    achievementsByName.set(achievement.name, achievement);
+  }
+
+  const achievementRoleRows: Array<{ achievement_id: number; role_id: number }> = [];
+  const achievementStatsRows: Array<{ achievement_id: number; total_unlocks: number }> = [];
+
+  for (const definition of achievementSeedDefinitions) {
+    const achievement = achievementsByName.get(definition.name);
+    if (!achievement) {
+      throw new Error(`Achievement not found when linking roles: ${definition.name}`);
+    }
+
+    achievementStatsRows.push({ achievement_id: achievement.id, total_unlocks: 0 });
+
+    for (const roleName of definition.roleNames) {
+      const roleId = roleIdByName.get(roleName);
+      if (!roleId) {
+        throw new Error(`Role not found when linking achievement: ${roleName}`);
+      }
+
+      achievementRoleRows.push({ achievement_id: achievement.id, role_id: roleId });
+    }
+  }
+
+  if (achievementRoleRows.length > 0) {
+    await prisma.achievement_roles.createMany({ data: achievementRoleRows });
+  }
+
+  if (achievementStatsRows.length > 0) {
+    await prisma.achievement_stats.createMany({ data: achievementStatsRows });
   }
 
   const engineerProfession = await prisma.professions.create({
@@ -890,31 +935,6 @@ async function main() {
   const seededAchievements = await prisma.achievements.findMany({
     where: { name: { in: achievements.map((achievement) => achievement.name) } },
     select: { id: true, name: true },
-  });
-
-  const achievementIdByName = new Map(
-    seededAchievements.map((achievement) => [achievement.name, achievement.id]),
-  );
-
-  await prisma.user_achievements.createMany({
-    data: [
-      {
-        user_id: adminUser.id,
-        achievement_id: achievementIdByName.get('First Acceptance') as number,
-      },
-      {
-        user_id: adminUser.id,
-        achievement_id: achievementIdByName.get('Expedition Veteran') as number,
-      },
-      {
-        user_id: standardUser.id,
-        achievement_id: achievementIdByName.get('Supply Stabilizer') as number,
-      },
-      {
-        user_id: standardUser.id,
-        achievement_id: achievementIdByName.get('Transfer Coordinator') as number,
-      },
-    ],
   });
 
   await prisma.contribution_overrides.createMany({
@@ -1747,9 +1767,6 @@ async function main() {
       version: '1.0.0',
     },
   });
-
-  await deleteKeys([cacheKeys.campsCatalog]);
-  await deleteByPrefix(cacheKeys.campsListPrefix);
 
   logger.info('Seed completed successfully.');
 }

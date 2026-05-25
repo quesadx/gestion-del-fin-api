@@ -5,6 +5,7 @@ import { ManualAdjustmentDto } from './inventory.schema.js';
 import { logger } from '../../logger/logger.js';
 import { getLowResourceAlerts } from '../metrics/metrics.service.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
+import * as achievementService from '../achievements/achievements.service.js';
 
 function asNumber(value: unknown): number {
   return Number(value);
@@ -501,6 +502,13 @@ export async function createManualAdjustment(data: ManualAdjustmentDto, userId: 
     targetType: 'inventory_logs',
     targetId: result.movement.id,
   });
+
+  // Non-blocking achievement evaluation for manual inventory adjustments
+  achievementService
+    .tryUnlock(userId, data.camp_id, 'INVENTORY_ADJUST', { type: data.type })
+    .catch((err) =>
+      logger.warn(`Achievement check failed (INVENTORY_ADJUST): ${err?.message ?? err}`),
+    );
 
   return result;
 }
