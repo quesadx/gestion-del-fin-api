@@ -1,37 +1,11 @@
 import { prisma } from '../../lib/prisma.js';
 import { Prisma } from '../../generated/prisma/client.js';
-import { AdmissionAIResult, CreateAdmissionDTO, ReviewAdmissionDTO } from './admission.schema.js';
+import { CreateAdmissionDTO, ReviewAdmissionDTO } from './admission.schema.js';
 import { evaluateAdmission } from '../../ai/admission-evaluator.js';
 import { createPerson } from '../people/people.service.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
-
-function prepareAdmissionCreateData(
-  campId: number,
-  data: CreateAdmissionDTO,
-  aiData: AdmissionAIResult,
-): Prisma.admission_requestsCreateInput {
-  const aiProfessionId = aiData.ai_profession_id ?? null;
-
-  return {
-    camps: {
-      connect: { id: campId },
-    },
-    applicant_name: data.applicant_name,
-    applicant_age: data.applicant_age ?? null,
-    applicant_skills: data.applicant_skills?.trim(),
-    health_notes: data.health_notes?.trim(),
-    background_notes: data.background_notes?.trim(),
-    photo_url: data.photo_url?.trim(),
-    id_card_url: data.id_card_url?.trim(),
-    ai_decision: aiData.ai_decision ?? 'PENDING',
-    ai_reasoning: aiData.ai_reasoning.trim(),
-    ai_confidence: aiData.ai_confidence ?? null,
-    ai_suggested_profession: aiData.ai_suggested_profession.trim(),
-    ai_profession: aiProfessionId ? { connect: { id: aiProfessionId } } : undefined,
-    created_at: new Date(),
-  };
-}
+import { logger } from '../../logger/logger.js';
 
 async function generateIdentificationCode(
   tx: Prisma.TransactionClient,
@@ -76,25 +50,19 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO, 
 
   const campContext = camp.ai_context_prompt;
 
-  const aiResult = await evaluateAdmission(
-    data,
-    campContext ?? 'No context defined for this camp',
-    professions,
-  );
-
-  // Validate that the AI-suggested profession exists in this camp's professions list.
-  // Guards against edge cases where the AI returns a fallback ID (e.g. 1) that does not
-  // belong to the current camp, which would cause the admission to be stuck on review.
-  const aiProfession = professions.find((p) => p.id === aiResult.ai_profession_id);
-  if (!aiProfession) {
-    throw new AppError(
-      `AI-suggested profession ID ${aiResult.ai_profession_id} not found in camp's professions`,
-      400,
-    );
-  }
-
   const admission = await prisma.admission_requests.create({
-    data: prepareAdmissionCreateData(campId, data, aiResult),
+    data: {
+      camps: { connect: { id: campId } },
+      applicant_name: data.applicant_name,
+      applicant_age: data.applicant_age ?? null,
+      applicant_skills: data.applicant_skills?.trim(),
+      health_notes: data.health_notes?.trim(),
+      background_notes: data.background_notes?.trim(),
+      photo_url: data.photo_url?.trim(),
+      id_card_url: data.id_card_url?.trim(),
+      ai_decision: 'PENDING',
+      created_at: new Date(),
+    },
   });
 
   auditLog({
@@ -104,6 +72,31 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO, 
     targetType: 'admission_requests',
     targetId: admission.id,
   });
+
+  evaluateAdmission(data, campContext ?? 'No context defined for this camp', professions)
+    .then(async (aiResult) => {
+      const aiProfession = professions.find((p) => p.id === aiResult.ai_profession_id);
+      if (!aiProfession) {
+        logger.warn(
+          `AI-suggested profession ID ${aiResult.ai_profession_id} not found in camp's professions. Admission ${admission.id} remains PENDING.`,
+        );
+        return;
+      }
+
+      await prisma.admission_requests.update({
+        where: { id: admission.id },
+        data: {
+          ai_decision: aiResult.ai_decision,
+          ai_reasoning: aiResult.ai_reasoning.trim(),
+          ai_confidence: aiResult.ai_confidence ?? null,
+          ai_suggested_profession: aiResult.ai_suggested_profession.trim(),
+          ai_profession: { connect: { id: aiResult.ai_profession_id } },
+        },
+      });
+    })
+    .catch((err) => {
+      logger.error(`AI evaluation failed for admission ${admission.id}`, err);
+    });
 
   return admission;
 }
