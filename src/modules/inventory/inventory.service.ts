@@ -415,30 +415,35 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
         logged_at: true,
         created_at: true,
         description: true,
-        resource_type: {
-          select: { id: true, name: true, unit: true },
-        },
-        users: {
-          select: { username: true },
-        },
       },
     }),
   ]);
 
-  const audit = logs.map(
-    (row: {
-      id: number;
-      camp_id: number;
-      resource_type_id: number;
-      logged_by: number | null;
-      log_type: inventory_log_log_type;
-      quantity_change: Prisma.Decimal;
-      logged_at: Date;
-      created_at: Date;
-      description: string | null;
-      resource_type: { id: number; name: string; unit: string };
-      users: { username: string } | null;
-    }) => ({
+  const resourceTypeIds = [...new Set(logs.map((l) => l.resource_type_id))];
+  const userIds = [...new Set(logs.map((l) => l.logged_by).filter(Boolean))] as number[];
+
+  const [resources, users] = await Promise.all([
+    resourceTypeIds.length > 0
+      ? prisma.resource_types.findMany({
+          where: { id: { in: resourceTypeIds } },
+          select: { id: true, name: true, unit: true },
+        })
+      : Promise.resolve([]),
+    userIds.length > 0
+      ? prisma.users.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, username: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const resourceMap = new Map(resources.map((r) => [r.id, r]));
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  const audit = logs.map((row) => {
+    const rt = resourceMap.get(row.resource_type_id);
+    const u = row.logged_by ? userMap.get(row.logged_by) : null;
+    return {
       id: row.id,
       camp_id: row.camp_id,
       resource_type_id: row.resource_type_id,
@@ -449,15 +454,15 @@ export async function getInventoryAudit(campId: number, page = 1, pageSize = 20)
       created_at: row.logged_at,
       timestamp: row.logged_at,
       user_id: row.logged_by,
-      user: row.users ? { username: row.users.username } : undefined,
-      username: row.users?.username,
-      resource_name: row.resource_type.name,
-      unit: row.resource_type.unit,
+      user: u ? { username: u.username } : undefined,
+      username: u?.username,
+      resource_name: rt?.name ?? `Resource #${row.resource_type_id}`,
+      unit: rt?.unit ?? '',
       resource: {
-        name: row.resource_type.name,
+        name: rt?.name ?? `Resource #${row.resource_type_id}`,
       },
-    }),
-  );
+    };
+  });
 
   return {
     data: audit,
