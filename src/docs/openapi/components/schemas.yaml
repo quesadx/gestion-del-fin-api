@@ -1,0 +1,1378 @@
+schemas:
+  ErrorResponse:
+    type: object
+    required: [error]
+    properties:
+      error:
+        type: object
+        required: [message, statusCode]
+        properties:
+          message:
+            type: string
+            example: 'Validation failed'
+          statusCode:
+            type: integer
+            example: 400
+          details:
+            nullable: true
+
+  MessageResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        example: 'Operation successful'
+
+  PaginationMeta:
+    type: object
+    properties:
+      page:
+        type: integer
+        example: 1
+      pageSize:
+        type: integer
+        example: 20
+      total:
+        type: integer
+        example: 50
+      hasNextPage:
+        type: boolean
+        example: true
+      totalPages:
+        type: integer
+        example: 3
+
+  PaginatedResponse:
+    type: object
+    properties:
+      data:
+        type: array
+        items: {}
+      pagination:
+        $ref: '#/components/schemas/PaginationMeta'
+
+  LoginRequest:
+    type: object
+    required: [username, password]
+    properties:
+      username:
+        type: string
+        minLength: 1
+        maxLength: 60
+        example: 'admin'
+      password:
+        type: string
+        minLength: 8
+        maxLength: 255
+        example: 'my-secure-password'
+
+  LoginResponse:
+    type: object
+    required: [user, token]
+    properties:
+      user:
+        type: object
+        required: [username, role]
+        properties:
+          username:
+            type: string
+            example: 'admin'
+          role:
+            type: string
+            example: 'ADMIN'
+      token:
+        type: string
+        description: 'JWT access token'
+        example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+  SystemTimeResponse:
+    type: object
+    description: 'Time is taken from server clock (process time), not from database'
+    required: [now, iso, today]
+    properties:
+      now:
+        type: string
+        example: '14:05:30'
+      iso:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      today:
+        type: string
+        format: date
+        example: '2026-04-25'
+
+  Camp:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      name:
+        type: string
+        example: 'Alpha Base'
+      location:
+        type: string
+        nullable: true
+        example: 'Downtown Shelter'
+      status:
+        type: string
+        enum: [ACTIVE, ABANDONED]
+        example: ACTIVE
+      ai_context_prompt:
+        type: string
+        nullable: true
+        example: 'This camp prioritizes medical personnel...'
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+
+  CreateCampRequest:
+    type: object
+    required: [name]
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        example: 'Alpha Base'
+      location:
+        type: string
+        maxLength: 100
+        example: 'Downtown Shelter'
+      status:
+        type: string
+        enum: [ACTIVE, ABANDONED]
+        default: ACTIVE
+      ai_context_prompt:
+        type: string
+        example: 'This camp prioritizes medical personnel...'
+
+  UpdateCampRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        example: 'Alpha Base'
+      location:
+        type: string
+        maxLength: 100
+        example: 'Downtown Shelter'
+      status:
+        type: string
+        enum: [ACTIVE, ABANDONED]
+      ai_context_prompt:
+        type: string
+        example: 'This camp prioritizes medical personnel...'
+
+  ResourceType:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      name:
+        type: string
+        example: 'Canned Food'
+      unit:
+        type: string
+        example: 'kg'
+      daily_ration:
+        type: number
+        format: float
+        example: 0.5
+      minimum_stock:
+        type: number
+        format: float
+        example: 100
+      auto_daily:
+        type: boolean
+        example: true
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+
+  CreateResourceRequest:
+    type: object
+    required: [name, unit, daily_ration, minimum_stock]
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 80
+        example: 'Canned Food'
+      unit:
+        type: string
+        minLength: 1
+        maxLength: 20
+        example: 'kg'
+      daily_ration:
+        type: number
+        minimum: 0
+        maximum: 999999.99
+        example: 0.5
+      minimum_stock:
+        type: number
+        minimum: 0
+        maximum: 99999999.99
+        example: 100
+      auto_daily:
+        type: boolean
+        default: false
+
+  UpdateResourceRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 80
+      unit:
+        type: string
+        minLength: 1
+        maxLength: 20
+      daily_ration:
+        type: number
+        minimum: 0
+        maximum: 999999.99
+      minimum_stock:
+        type: number
+        minimum: 0
+        maximum: 99999999.99
+      auto_daily:
+        type: boolean
+
+  Person:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      camp_id:
+        type: integer
+        example: 1
+      profession_id:
+        type: integer
+        example: 2
+      identification_code:
+        type: string
+        nullable: true
+        example: 'S-001'
+      full_name:
+        type: string
+        example: 'John Doe'
+      age:
+        type: integer
+        nullable: true
+        example: 32
+      blood_type:
+        type: string
+        nullable: true
+        example: 'O+'
+      skills_summary:
+        type: string
+        nullable: true
+        example: 'Medical training, basic combat'
+      photo_url:
+        type: string
+        nullable: true
+        example: 'https://example.com/photo.jpg'
+        description: 'May be a signed Cloudinary URL with time-limited access token'
+      status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+        example: HEALTHY
+      admitted_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+
+  CreatePersonRequest:
+    type: object
+    required: [full_name, camp_id, profession_id, admitted_at]
+    properties:
+      full_name:
+        type: string
+        minLength: 1
+        maxLength: 150
+        example: 'John Doe'
+      camp_id:
+        type: integer
+        example: 1
+      profession_id:
+        type: integer
+        example: 2
+      admitted_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+        default: HEALTHY
+      age:
+        type: integer
+        minimum: 0
+        maximum: 255
+        example: 32
+      identification_code:
+        type: string
+        maxLength: 20
+        example: 'S-001'
+      blood_type:
+        type: string
+        maxLength: 5
+        example: 'O+'
+      skills_summary:
+        type: string
+        example: 'Medical training, basic combat'
+      photo_url:
+        type: string
+        format: uri
+        maxLength: 500
+
+  UpdatePersonRequest:
+    type: object
+    properties:
+      full_name:
+        type: string
+        minLength: 1
+        maxLength: 150
+      camp_id:
+        type: integer
+      profession_id:
+        type: integer
+      admitted_at:
+        type: string
+        format: date-time
+      status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+      age:
+        type: integer
+        minimum: 0
+        maximum: 255
+      identification_code:
+        type: string
+        maxLength: 20
+      blood_type:
+        type: string
+        maxLength: 5
+      skills_summary:
+        type: string
+      photo_url:
+        type: string
+        format: uri
+        maxLength: 500
+
+  PersonStatusLog:
+    type: object
+    properties:
+      id:
+        type: integer
+      person_id:
+        type: integer
+      old_status:
+        type: string
+      new_status:
+        type: string
+      reason:
+        type: string
+        nullable: true
+      changed_by:
+        type: integer
+      changed_at:
+        type: string
+        format: date-time
+
+  CreatePersonStatusLogRequest:
+    type: object
+    required: [person_id, new_status]
+    properties:
+      person_id:
+        type: integer
+        example: 1
+      new_status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+      reason:
+        type: string
+        example: 'Wounded during expedition'
+
+  ProfessionReassignmentLog:
+    type: object
+    properties:
+      id:
+        type: integer
+      person_id:
+        type: integer
+      from_profession_id:
+        type: integer
+      to_profession_id:
+        type: integer
+      reason:
+        type: string
+        nullable: true
+      start_date:
+        type: string
+        format: date
+      end_date:
+        type: string
+        format: date
+        nullable: true
+
+  CreateProfessionReassignmentRequest:
+    type: object
+    required: [person_id, from_profession_id, to_profession_id]
+    properties:
+      person_id:
+        type: integer
+        example: 1
+      from_profession_id:
+        type: integer
+        example: 2
+      to_profession_id:
+        type: integer
+        example: 3
+      reason:
+        type: string
+        example: 'Combat skills needed'
+      start_date:
+        type: string
+        format: date
+        example: '2026-04-25'
+      end_date:
+        type: string
+        format: date
+        example: '2026-05-25'
+
+  ContributionOverride:
+    type: object
+    properties:
+      id:
+        type: integer
+      person_id:
+        type: integer
+      resource_type_id:
+        type: integer
+      reason:
+        type: string
+      start_date:
+        type: string
+        format: date
+      end_date:
+        type: string
+        format: date
+        nullable: true
+      created_by:
+        type: integer
+      amount:
+        type: number
+        format: float
+
+  CreateContributionOverrideRequest:
+    type: object
+    required: [person_id, resource_type_id, reason, amount]
+    properties:
+      person_id:
+        type: integer
+        example: 1
+      resource_type_id:
+        type: integer
+        example: 1
+      reason:
+        type: string
+        minLength: 1
+        maxLength: 255
+        example: 'Medical exemption — reduced ration'
+      amount:
+        type: number
+        minimum: -9999999999.99
+        maximum: 9999999999.99
+        example: 0.3
+      start_date:
+        type: string
+        format: date
+        example: '2026-04-25'
+      end_date:
+        type: string
+        format: date
+        example: '2026-05-25'
+
+  InventoryItem:
+    type: object
+    properties:
+      id:
+        type: integer
+      camp_id:
+        type: integer
+      resource_type_id:
+        type: integer
+      quantity:
+        type: number
+        format: float
+        example: 500
+      last_updated:
+        type: string
+        format: date-time
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+
+  InventoryLog:
+    type: object
+    properties:
+      id:
+        type: integer
+      camp_id:
+        type: integer
+      resource_type_id:
+        type: integer
+      logged_by:
+        type: integer
+        nullable: true
+      log_type:
+        type: string
+        enum:
+          [
+            DAILY_GAIN,
+            DAILY_RATION,
+            MANUAL_IN,
+            MANUAL_OUT,
+            EXPEDITION_OUT,
+            EXPEDITION_IN,
+            TRANSFER_OUT,
+            TRANSFER_IN,
+          ]
+      quantity_change:
+        type: number
+        format: float
+        description: 'Quantity change amount (positive = gain, negative = consumption)'
+      logged_at:
+        type: string
+        format: date-time
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      description:
+        type: string
+        nullable: true
+
+  ManualAdjustmentRequest:
+    type: object
+    required: [camp_id, resource_type_id, type, quantity]
+    properties:
+      camp_id:
+        type: integer
+        example: 1
+      resource_type_id:
+        type: integer
+        example: 1
+      type:
+        type: string
+        enum: [MANUAL_IN, MANUAL_OUT]
+      quantity:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 9999999999.99
+        example: 50
+      description:
+        type: string
+        maxLength: 255
+        example: 'Donation received from NGO'
+
+  AdmissionRequest:
+    type: object
+    properties:
+      id:
+        type: integer
+      camp_id:
+        type: integer
+      applicant_name:
+        type: string
+      applicant_age:
+        type: integer
+        nullable: true
+      applicant_skills:
+        type: string
+        nullable: true
+      health_notes:
+        type: string
+        nullable: true
+      background_notes:
+        type: string
+        nullable: true
+      photo_url:
+        type: string
+        nullable: true
+        maxLength: 500
+      id_card_url:
+        type: string
+        nullable: true
+        maxLength: 500
+      ai_decision:
+        type: string
+        enum: [ACCEPTED, PENDING, REJECTED]
+      ai_reasoning:
+        type: string
+        nullable: true
+      ai_confidence:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        nullable: true
+      ai_suggested_profession:
+        type: string
+        nullable: true
+      ai_profession_id:
+        type: integer
+        nullable: true
+      corrected_profession_id:
+        type: integer
+        nullable: true
+      correction_reason:
+        type: string
+        nullable: true
+      person_id:
+        type: integer
+        nullable: true
+      reviewed_by:
+        type: integer
+        nullable: true
+      final_decision:
+        type: string
+        enum: [ACCEPTED, REJECTED, PENDING]
+      reviewed_at:
+        type: string
+        format: date-time
+        nullable: true
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        example: '2026-04-25T14:05:30.000Z'
+      created_at:
+        type: string
+        format: date-time
+
+  CreateAdmissionRequest:
+    type: object
+    required: [applicant_name]
+    properties:
+      applicant_name:
+        type: string
+        minLength: 1
+        maxLength: 150
+        example: 'Jane Smith'
+      applicant_age:
+        type: integer
+        minimum: 0
+        maximum: 255
+        example: 28
+      applicant_skills:
+        type: string
+        example: 'Medical training, farming'
+      health_notes:
+        type: string
+        example: 'Minor injury on left leg'
+      background_notes:
+        type: string
+        example: 'Former military medic'
+      photo_url:
+        type: string
+        format: uri
+        maxLength: 500
+      id_card_url:
+        type: string
+        format: uri
+        maxLength: 500
+
+  ReviewAdmissionRequest:
+    type: object
+    required: [final_decision]
+    properties:
+      final_decision:
+        type: string
+        enum: [ACCEPTED, REJECTED]
+      corrected_profession_id:
+        type: integer
+        nullable: true
+        description: 'Override the AI-suggested profession when accepting'
+      correction_reason:
+        type: string
+        nullable: true
+        description: 'Reason for correcting the profession'
+
+  Exploration:
+    type: object
+    properties:
+      id:
+        type: integer
+      camp_id:
+        type: integer
+      destination:
+        type: string
+      status:
+        type: string
+        enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+      created_by:
+        type: integer
+      departure_date:
+        type: string
+        format: date
+      expected_return_date:
+        type: string
+        format: date
+      actual_return_date:
+        type: string
+        format: date
+        nullable: true
+      max_return_date:
+        type: string
+        format: date
+      notes:
+        type: string
+        nullable: true
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+      allocated_resources:
+        type: array
+        items:
+          $ref: '#/components/schemas/AllocatedResource'
+      found_resources:
+        type: array
+        items:
+          $ref: '#/components/schemas/FoundResource'
+      members:
+        type: array
+        items:
+          $ref: '#/components/schemas/ExpeditionMember'
+
+  AllocatedResource:
+    type: object
+    properties:
+      expedition_id:
+        type: integer
+      resource_type_id:
+        type: integer
+      amount:
+        type: number
+        format: float
+
+  FoundResource:
+    type: object
+    properties:
+      expedition_id:
+        type: integer
+      resource_type_id:
+        type: integer
+      amount:
+        type: number
+        format: float
+
+  ExpeditionMember:
+    type: object
+    properties:
+      expedition_id:
+        type: integer
+      person_id:
+        type: integer
+
+  CreateExplorationRequest:
+    type: object
+    required:
+      [camp_id, created_by, destination, departure_date, expected_return_date, max_return_date]
+    properties:
+      camp_id:
+        type: integer
+        example: 1
+      created_by:
+        type: integer
+        example: 1
+      destination:
+        type: string
+        minLength: 1
+        maxLength: 255
+        example: 'East Sector Mall'
+      departure_date:
+        type: string
+        format: date
+        example: '2026-04-26'
+      expected_return_date:
+        type: string
+        format: date
+        example: '2026-04-28'
+      max_return_date:
+        type: string
+        format: date
+        example: '2026-04-30'
+      actual_return_date:
+        type: string
+        format: date
+        example: '2026-04-27'
+      status:
+        type: string
+        enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+        default: PLANNED
+      notes:
+        type: string
+        example: 'Scout for supplies'
+      members:
+        type: array
+        items:
+          type: object
+          required: [person_id]
+          properties:
+            person_id:
+              type: integer
+      allocated_resources:
+        type: array
+        items:
+          type: object
+          required: [resource_type_id, amount]
+          properties:
+            resource_type_id:
+              type: integer
+            amount:
+              type: number
+              exclusiveMinimum: 0
+
+  UpdateExplorationRequest:
+    type: object
+    properties:
+      camp_id:
+        type: integer
+      created_by:
+        type: integer
+      destination:
+        type: string
+        maxLength: 255
+      departure_date:
+        type: string
+        format: date
+      expected_return_date:
+        type: string
+        format: date
+      max_return_date:
+        type: string
+        format: date
+      actual_return_date:
+        type: string
+        format: date
+      notes:
+        type: string
+      members:
+        type: array
+        items:
+          type: object
+          properties:
+            person_id:
+              type: integer
+      allocated_resources:
+        type: array
+        items:
+          type: object
+          properties:
+            resource_type_id:
+              type: integer
+            amount:
+              type: number
+              exclusiveMinimum: 0
+
+  UpdateExplorationStatusRequest:
+    type: object
+    required: [status, changed_by]
+    properties:
+      status:
+        type: string
+        enum: [PLANNED, ONGOING, RETURNED, CANCELLED]
+      actual_return_date:
+        type: string
+        format: date
+        description: 'Required if status is RETURNED'
+      notes:
+        type: string
+      changed_by:
+        type: integer
+        example: 1
+      resources_to_return:
+        type: array
+        items:
+          type: object
+          required: [resource_type_id, amount]
+          properties:
+            resource_type_id:
+              type: integer
+            amount:
+              type: number
+      members:
+        type: array
+        items:
+          type: object
+          required: [person_id]
+          properties:
+            person_id:
+              type: integer
+      return_member_status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+
+  DeleteExplorationRequest:
+    type: object
+    required: [changed_by]
+    properties:
+      changed_by:
+        type: integer
+        example: 1
+      return_member_status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+
+  Transfer:
+    type: object
+    properties:
+      id:
+        type: integer
+      requesting_camp:
+        type: integer
+      target_camp:
+        type: integer
+      status:
+        type: string
+        enum: [PENDING, APPROVED_SOURCE, APPROVED_TARGET, COMPLETED, REJECTED]
+      type:
+        type: string
+        enum: [RESOURCE, PERSON, MIXED]
+      notes:
+        type: string
+        nullable: true
+      requested_by:
+        type: integer
+      leader_person_id:
+        type: integer
+        nullable: true
+      scheduled_delivery_date:
+        type: string
+        format: date-time
+        nullable: true
+      approved_by_source:
+        type: integer
+        nullable: true
+      approved_by_target:
+        type: integer
+        nullable: true
+      approved_source_at:
+        type: string
+        format: date-time
+        nullable: true
+      approved_target_at:
+        type: string
+        format: date-time
+        nullable: true
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        example: '2026-04-25T14:05:30.000Z'
+      created_at:
+        type: string
+        format: date-time
+      items:
+        type: array
+        items:
+          $ref: '#/components/schemas/TransferItem'
+
+  TransferItem:
+    type: object
+    properties:
+      id:
+        type: integer
+      camp_transfer_id:
+        type: integer
+      item_type:
+        type: string
+        enum: [RESOURCE, PERSON]
+      resource_type_id:
+        type: integer
+        nullable: true
+      person_id:
+        type: integer
+        nullable: true
+      quantity:
+        type: number
+        format: float
+        nullable: true
+
+  TransferItemInput:
+    type: object
+    required: [item_type]
+    properties:
+      item_type:
+        type: string
+        enum: [RESOURCE, PERSON]
+      resource_type_id:
+        type: integer
+        description: 'Required if item_type is RESOURCE'
+      person_id:
+        type: integer
+        description: 'Required if item_type is PERSON'
+      quantity:
+        type: number
+        exclusiveMinimum: 0
+        description: 'Required if item_type is RESOURCE'
+
+  CreateTransferRequest:
+    type: object
+    required: [requesting_camp, target_camp, type, requested_by, items]
+    properties:
+      requesting_camp:
+        type: integer
+        example: 1
+      target_camp:
+        type: integer
+        example: 2
+      type:
+        type: string
+        enum: [RESOURCE, PERSON, MIXED]
+      notes:
+        type: string
+        example: 'Emergency supply request'
+      requested_by:
+        type: integer
+        example: 1
+      leader_person_id:
+        type: integer
+        example: 5
+      scheduled_delivery_date:
+        type: string
+        format: date-time
+      items:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/components/schemas/TransferItemInput'
+
+  ScheduleDeliveryRequest:
+    type: object
+    required: [scheduled_delivery_date]
+    properties:
+      scheduled_delivery_date:
+        type: string
+        format: date-time
+        example: '2026-04-28T10:00:00.000Z'
+
+  ApproveTransferSourceRequest:
+    type: object
+    properties:
+      notes:
+        type: string
+        example: 'Approved — supplies ready'
+      scheduled_delivery_date:
+        type: string
+        format: date-time
+
+  ApproveTransferTargetRequest:
+    type: object
+    properties:
+      notes:
+        type: string
+        example: 'Ready to receive'
+
+  CompleteTransferRequest:
+    type: object
+    properties:
+      notes:
+        type: string
+        example: 'Transfer completed successfully'
+      person_status:
+        type: string
+        enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+
+  RejectTransferRequest:
+    type: object
+    required: [reason]
+    properties:
+      reason:
+        type: string
+        minLength: 1
+        maxLength: 500
+        example: 'Insufficient resources at source camp'
+
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+      camp_id:
+        type: integer
+      role_id:
+        type: integer
+      username:
+        type: string
+      is_active:
+        type: boolean
+      last_activity:
+        type: string
+        format: date-time
+        nullable: true
+      created_at:
+        type: string
+        format: date-time
+      session_version:
+        type: integer
+        example: 1
+
+  CreateUserRequest:
+    type: object
+    required: [username, password, camp_id, role_id]
+    properties:
+      username:
+        type: string
+        minLength: 1
+        maxLength: 60
+        example: 'operator1'
+      password:
+        type: string
+        minLength: 8
+        maxLength: 255
+        example: 'my-secure-pw'
+      camp_id:
+        type: integer
+        example: 1
+      role_id:
+        type: integer
+        example: 2
+      is_active:
+        type: boolean
+        default: true
+
+  UpdateUserRequest:
+    type: object
+    properties:
+      username:
+        type: string
+        maxLength: 60
+      password:
+        type: string
+        minLength: 8
+        maxLength: 255
+      camp_id:
+        type: integer
+      role_id:
+        type: integer
+      is_active:
+        type: boolean
+
+  Profession:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      description:
+        type: string
+        nullable: true
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+
+  CreateProfessionRequest:
+    type: object
+    required: [name]
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 80
+        example: 'Scavenger'
+      description:
+        type: string
+        example: 'Specializes in resource gathering'
+
+  UpdateProfessionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        maxLength: 80
+      description:
+        type: string
+
+  Role:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      description:
+        type: string
+        nullable: true
+      permission_ids:
+        type: array
+        items:
+          type: integer
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+
+  CreateRoleRequest:
+    type: object
+    required: [name]
+    properties:
+      name:
+        type: string
+        pattern: '^[a-z_]+$'
+        minLength: 1
+        maxLength: 60
+        example: 'camp_operator'
+      description:
+        type: string
+        maxLength: 255
+      permission_ids:
+        type: array
+        items:
+          type: integer
+        example: [1, 2, 3]
+
+  UpdateRoleRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        pattern: '^[a-z_]+$'
+        maxLength: 60
+      description:
+        type: string
+        maxLength: 255
+      permission_ids:
+        type: array
+        items:
+          type: integer
+
+  Permission:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      description:
+        type: string
+        nullable: true
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-04-25T14:05:30.000Z'
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 'Soft delete timestamp (null = active)'
+
+  CreatePermissionRequest:
+    type: object
+    required: [name]
+    properties:
+      name:
+        type: string
+        pattern: '^[a-z]+(\.[a-z_]+)+$'
+        minLength: 3
+        maxLength: 80
+        example: 'camps.read'
+      description:
+        type: string
+        maxLength: 255
+
+  UpdatePermissionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        pattern: '^[a-z]+(\.[a-z_]+)+$'
+        maxLength: 80
+      description:
+        type: string
+        maxLength: 255
+
+  HealthResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        example: 'gestion-del-fin-api is alive and kicking!'
