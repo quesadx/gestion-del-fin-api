@@ -28,19 +28,9 @@ test.describe('System endpoints', () => {
     });
   });
 
-  test.describe('GET / (health check substitute)', () => {
+  test.describe('GET / (health check)', () => {
     test('should return 200 and alive message', async ({ request }) => {
-      // NOTE: /api/system/health does NOT exist in the codebase.
-      // The root endpoint GET / serves as a health-check substitute.
-      // It is defined at src/index.ts:41-43 and returns:
-      //   { message: 'gestion-del-fin-api is alive and kicking!' }
-      //
-      // IMPORTANT: baseURL is 'http://localhost:3000/api' in playwright.config.ts,
-      // so relative URLs are resolved against that. The root endpoint lives at
-      // http://localhost:3000/ (outside the /api prefix), so we use the full URL.
-
-      const resp = await request.get('http://localhost:3000/');
-
+      const resp = await request.get('/');
       expect(resp.status()).toBe(200);
       expect(resp.headers()['content-type']).toContain('application/json');
 

@@ -1,0 +1,138 @@
+/api/inventory/{campId}:
+  get:
+    tags: [Inventory]
+    summary: 'Get camp inventory'
+    description: 'Retrieves current inventory levels for a camp. Requires inventory.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: 'Page number'
+      - in: query
+        name: pageSize
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 'Items per page (max 100)'
+    responses:
+      '200':
+        description: 'Inventory retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginatedResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/inventory/audit/{campId}:
+  get:
+    tags: [Inventory]
+    summary: 'Get inventory audit log'
+    description: 'Retrieves paginated inventory audit trail for a camp. Requires inventory.audit.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: 'Page number'
+      - in: query
+        name: pageSize
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 'Items per page (max 100)'
+    responses:
+      '200':
+        description: 'Audit log retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginatedResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/inventory/adjustment:
+  post:
+    tags: [Inventory]
+    summary: 'Adjust inventory manually'
+    description: 'Manually adjusts inventory (MANUAL_IN or MANUAL_OUT). Requires inventory.adjust permission. Non-admin users can only adjust their own camp inventory.'
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ManualAdjustmentRequest'
+    responses:
+      '201':
+        description: 'Inventory adjusted.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualAdjustmentResponse'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

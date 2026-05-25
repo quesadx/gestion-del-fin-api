@@ -1,0 +1,12 @@
+/api/system/time:
+  get:
+    tags: [System]
+    summary: 'Get server time snapshot'
+    description: 'Returns current server time in multiple formats (time, ISO datetime, date). Used for client clock sync.'
+    responses:
+      '200':
+        description: 'Server time returned.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemTimeResponse'

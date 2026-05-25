@@ -1,8 +1,21 @@
-import { mkdirSync, copyFileSync } from 'fs';
-import { dirname, resolve } from 'path';
+import { mkdirSync, copyFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { dirname, resolve, join } from 'path';
 
-const source = resolve('src/docs/openapi.yaml');
-const destination = resolve('dist/docs/openapi.yaml');
+function copyDir(src, dest) {
+  if (!existsSync(src)) return;
+  mkdirSync(dest, { recursive: true });
+  const entries = readdirSync(src);
+  for (const entry of entries) {
+    const srcPath = join(src, entry);
+    const destPath = join(dest, entry);
+    if (statSync(srcPath).isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
-mkdirSync(dirname(destination), { recursive: true });
-copyFileSync(source, destination);
+const srcDir = resolve('src/docs/openapi');
+const destDir = resolve('dist/docs/openapi');
+copyDir(srcDir, destDir);
