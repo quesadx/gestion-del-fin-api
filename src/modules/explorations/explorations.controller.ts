@@ -43,6 +43,8 @@ export async function listExplorationsHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
-  const result = await getExplorations(authReq.user.campId, page, pageSize);
+  const queryCampId = Number(req.query.camp_id);
+  const campId = queryCampId && authReq.user.isAdmin ? queryCampId : authReq.user.campId;
+  const result = await getExplorations(campId, page, pageSize);
   return res.json(result);
 }
