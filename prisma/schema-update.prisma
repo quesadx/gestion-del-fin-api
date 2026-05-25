@@ -1,0 +1,141 @@
+// Actualización del Schema Prisma para sistema de Achievements
+// Ubicación: prisma/schema.prisma - AGREGAR estas líneas
+
+// ============================================================
+// MODELOS NUEVOS A AGREGAR
+// ============================================================
+
+model achievement_roles {
+  achievement_id Int
+  role_id        Int
+  sort_order     Int       @default(0)
+  created_at     DateTime  @default(now())
+  
+  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  roles          roles        @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([achievement_id, role_id])
+  @@index([role_id], map: "achievement_roles_role_id_idx")
+  @@map("achievement_role")
+}
+
+model achievement_notifications {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  achievement_id Int
+  notification_sent Boolean @default(false)
+  sent_at        DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  achievements   achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([user_id, achievement_id, created_at], map: "uq_achievement_notification")
+  @@index([notification_sent], map: "achievement_notifications_unsent_idx")
+  @@index([user_id], map: "achievement_notifications_user_id_idx")
+  @@map("achievement_notification")
+}
+
+model achievement_stats {
+  id              Int       @id @default(autoincrement())
+  achievement_id  Int       @unique(map: "uq_achievement_stats")
+  total_unlocks   Int       @default(0)
+  unlock_rate     Decimal   @default(0.00) @db.Decimal(5, 2)
+  average_unlock_days Int   @default(0)
+  last_unlock_at  DateTime?
+  updated_at      DateTime  @updatedAt
+
+  achievements    achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("achievement_stat")
+}
+
+// ============================================================
+// ACTUALIZACIÓN DE MODELOS EXISTENTES
+// ============================================================
+
+// En modelo 'achievements' (agregar relaciones):
+// Agregar estas líneas dentro del modelo achievements EXISTENTE:
+
+model achievements {
+  id                Int       @id @default(autoincrement())
+  name              String    @unique(map: "achievements_name_unique") @db.VarChar(100)
+  description       String?   @db.VarChar(255)
+  icon_url          String    @db.VarChar(500)
+  trigger_rule      String    @db.VarChar(100)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  deleted_at        DateTime?
+  
+  // Relaciones NUEVAS
+  achievement_roles         achievement_roles[]
+  achievement_notifications achievement_notifications[]
+  achievement_stats         achievement_stats?
+  
+  // Relación EXISTENTE
+  user_achievements user_achievements[]
+}
+
+// En modelo 'users' (agregar relación):
+// Ya existe 'user_achievements', agregar 'achievement_notifications':
+
+model users {
+  // ... campos existentes ...
+  
+  // Relaciones NUEVAS
+  achievement_notifications achievement_notifications[]
+  
+  // Relaciones EXISTENTES
+  user_achievements         user_achievements[]
+  // ... resto de relaciones ...
+}
+
+// En modelo 'roles' (agregar relación):
+
+model roles {
+  // ... campos existentes ...
+  
+  // Relaciones NUEVAS
+  achievement_roles achievement_roles[]
+  
+  // ... resto de relaciones ...
+}
+
+// ============================================================
+// ENUMS NUEVOS A AGREGAR (si no existen)
+// ============================================================
+
+// TODO: Agregar a audit_log_action enum si no existe:
+// ACHIEVEMENT_UNLOCKED
+
+// Ejemplo completo del enum actualizado:
+enum audit_log_action {
+  CREATE_CAMP
+  UPDATE_CAMP
+  DELETE_CAMP
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  CREATE_TRANSFER
+  APPROVE_TRANSFER_SOURCE
+  APPROVE_TRANSFER_TARGET
+  COMPLETE_TRANSFER
+  REJECT_TRANSFER
+  LOGIN
+  LOGOUT
+  CREATE_ADMISSION
+  REVIEW_ADMISSION
+  OVERRIDE_ADMISSION
+  CREATE_EXPEDITION
+  UPDATE_EXPEDITION_STATUS
+  CANCEL_EXPEDITION
+  CREATE_PERSON
+  UPDATE_PERSON
+  DELETE_PERSON
+  CHANGE_PERSON_STATUS
+  REASSIGN_PROFESSION
+  CREATE_OVERRIDE
+  MANUAL_INVENTORY_ADJUST
+  ACHIEVEMENT_UNLOCKED  // ← NUEVO
+}

@@ -2,6 +2,8 @@ import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { handleUniqueConstraintError } from '../../shared/utils/handlePrismaError.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
+import * as achievementService from '../achievements/achievements.service.js';
+import { logger } from '../../logger/logger.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import {
   CreateExplorationDto,
@@ -596,6 +598,18 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
             targetType: 'expeditions',
             targetId: result.id,
           });
+          // Non-blocking achievement check for expedition returns
+          if (data.status === 'RETURNED') {
+            achievementService
+              .tryUnlock(data.changed_by, result.camp_id, 'EXPEDITION_RETURN')
+              .catch((err) =>
+                logger?.warn
+                  ? logger.warn(
+                      `Achievement check failed (EXPEDITION_RETURN): ${err?.message ?? err}`,
+                    )
+                  : null,
+              );
+          }
         }
         return result;
       });
