@@ -21,13 +21,13 @@ try {
     const schemasFile = yaml.load(readFileSync(schemasPath, 'utf8')) as Record<string, unknown>;
     const schemas = schemasFile?.schemas;
     if (schemas && typeof schemas === 'object') {
-      doc.components = { ...(doc.components as object || {}), schemas };
+      doc.components = { ...((doc.components as object) || {}), schemas };
     }
   }
 
   const paths: Record<string, unknown> = {};
   if (existsSync(PATHS_DIR)) {
-    const files = readdirSync(PATHS_DIR).filter(f => f.endsWith('.yaml'));
+    const files = readdirSync(PATHS_DIR).filter((f) => f.endsWith('.yaml'));
     for (const file of files) {
       const filePath = join(PATHS_DIR, file);
       const pathDefs = yaml.load(readFileSync(filePath, 'utf8')) as Record<string, unknown>;
