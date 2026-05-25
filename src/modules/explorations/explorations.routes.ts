@@ -24,7 +24,13 @@ router.post(
 router.get(
   '/',
   permissionMiddleware(PERMISSIONS.EXPEDITIONS_READ),
-  validate(z.object({ query: paginationQuerySchema.extend({ camp_id: z.coerce.number().int().positive().optional() }) })),
+  validate(
+    z.object({
+      query: paginationQuerySchema.extend({
+        camp_id: z.coerce.number().int().positive().optional(),
+      }),
+    }),
+  ),
   explorationsController.listExplorationsHandler,
 );
 
