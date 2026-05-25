@@ -1,0 +1,46 @@
+openapi: '3.1.1'
+info:
+  title: 'Gestion Del Fin API'
+  version: '1.0.0'
+  description: 'API documentation for Gestion Del Fin — multi-camp zombie survival management system'
+
+servers:
+  - url: 'http://localhost:3000'
+    description: 'Development server'
+
+tags:
+  - name: System
+    description: 'System and health endpoints'
+  - name: Auth
+    description: 'Authentication and session endpoints'
+  - name: Camps
+    description: 'Camp management endpoints'
+  - name: Resources
+    description: 'Resource catalog endpoints'
+  - name: People
+    description: 'People management endpoints'
+  - name: Inventory
+    description: 'Inventory tracking and audit endpoints'
+  - name: Admission
+    description: 'Admission workflow endpoints'
+  - name: Explorations
+    description: 'Exploration lifecycle endpoints'
+  - name: Transfers
+    description: 'Inter-camp transfer workflow endpoints'
+  - name: Users
+    description: 'User management endpoints'
+  - name: Professions
+    description: 'Profession catalog endpoints'
+  - name: Roles
+    description: 'Role management endpoints'
+  - name: Permissions
+    description: 'Permission management endpoints'
+  - name: Metrics
+    description: 'Camp metrics and statistics endpoints'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

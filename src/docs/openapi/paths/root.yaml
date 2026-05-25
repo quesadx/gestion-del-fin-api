@@ -1,0 +1,12 @@
+/:
+  get:
+    tags: [System]
+    summary: 'Health check'
+    description: 'Root health check endpoint. Returns a simple message to confirm the API is running.'
+    responses:
+      '200':
+        description: 'API is running.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthResponse'

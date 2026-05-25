@@ -1,0 +1,222 @@
+/api/admission/camps/{campId}:
+  post:
+    tags: [Admission]
+    summary: 'Create admission request'
+    description: 'Creates a new admission request for a refugee. Triggers AI evaluation. Rate-limited to 10 requests per minute. Requires admission.create permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [applicant_name]
+            properties:
+              applicant_name:
+                type: string
+                minLength: 1
+                maxLength: 150
+                example: 'Jane Smith'
+              applicant_age:
+                type: integer
+                minimum: 0
+                maximum: 255
+                example: 28
+              applicant_skills:
+                type: string
+                example: 'Medical training, farming'
+              health_notes:
+                type: string
+                example: 'Minor injury on left leg'
+              background_notes:
+                type: string
+                example: 'Former military medic'
+              photo:
+                type: string
+                format: binary
+              id_card:
+                type: string
+                format: binary
+    responses:
+      '201':
+        description: 'Admission request created with AI evaluation.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmissionRequest'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '429':
+        description: 'Too many admission requests.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  get:
+    tags: [Admission]
+    summary: 'List admission requests by camp'
+    description: 'Retrieves paginated list of admission requests for a camp. Requires admission.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: 'Page number'
+      - in: query
+        name: pageSize
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 'Items per page (max 100)'
+    responses:
+      '200':
+        description: 'Admission requests retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginatedResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/admission/{id}:
+  get:
+    tags: [Admission]
+    summary: 'Get admission request by id'
+    description: 'Retrieves a single admission request by ID. Requires admission.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Admission request ID'
+    responses:
+      '200':
+        description: 'Admission request retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmissionRequest'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Admission request not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/admission/{id}/review:
+  patch:
+    tags: [Admission]
+    summary: 'Review admission request'
+    description: 'Manually overrides the AI decision for an admission request (ACCEPTED or REJECTED). Requires admission.review permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Admission request ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ReviewAdmissionRequest'
+    responses:
+      '200':
+        description: 'Admission reviewed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmissionRequest'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Admission request not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

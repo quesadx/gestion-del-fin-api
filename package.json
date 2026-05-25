@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "spell": "cspell \"src/**/*.ts\"",
     "test": "jest --passWithNoTests",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:perf": "playwright test --config=tests/perf/playwright.perf.config.ts"
   },
   "keywords": [
     "api",

@@ -1,0 +1,466 @@
+/api/camps/{campId}/people:
+  post:
+    tags: [People]
+    summary: 'Create person in camp'
+    description: 'Creates a new person record within a camp. Requires people.create permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - full_name
+              - camp_id
+              - profession_id
+              - admitted_at
+            properties:
+              full_name:
+                type: string
+                minLength: 1
+                maxLength: 150
+                example: 'John Doe'
+              camp_id:
+                type: integer
+                example: 1
+              profession_id:
+                type: integer
+                example: 2
+              admitted_at:
+                type: string
+                format: date-time
+                example: '2026-04-25T14:05:30.000Z'
+              status:
+                type: string
+                enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+                default: HEALTHY
+              age:
+                type: integer
+                minimum: 0
+                maximum: 255
+                example: 32
+              identification_code:
+                type: string
+                maxLength: 20
+                example: 'S-001'
+              blood_type:
+                type: string
+                maxLength: 5
+                example: 'O+'
+              skills_summary:
+                type: string
+                example: 'Medical training, basic combat'
+              photo:
+                type: string
+                format: binary
+    responses:
+      '201':
+        description: 'Person created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Camp not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  get:
+    tags: [People]
+    summary: 'List people by camp'
+    description: 'Retrieves a paginated list of people within a camp. Requires people.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: 'Page number'
+      - in: query
+        name: pageSize
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 'Items per page (max 100)'
+    responses:
+      '200':
+        description: 'People retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginatedResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/camps/{campId}/people/{id}:
+  get:
+    tags: [People]
+    summary: 'Get person by id'
+    description: 'Retrieves a single person by ID within a camp. Requires people.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Person ID'
+    responses:
+      '200':
+        description: 'Person retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Person not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  put:
+    tags: [People]
+    summary: 'Update person'
+    description: 'Updates a person record. Requires people.update permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Person ID'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              full_name:
+                type: string
+                minLength: 1
+                maxLength: 150
+              camp_id:
+                type: integer
+              profession_id:
+                type: integer
+              admitted_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+                enum: [SICK, HEALTHY, INJURED, AWAY, DEAD]
+              age:
+                type: integer
+                minimum: 0
+                maximum: 255
+              identification_code:
+                type: string
+                maxLength: 20
+              blood_type:
+                type: string
+                maxLength: 5
+              skills_summary:
+                type: string
+              photo:
+                type: string
+                format: binary
+    responses:
+      '200':
+        description: 'Person updated.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Person not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  delete:
+    tags: [People]
+    summary: 'Delete person'
+    description: 'Deletes a person record. Requires people.delete permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Person ID'
+    responses:
+      '204':
+        description: 'Person deleted.'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Person not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/camps/{campId}/people/status-log:
+  post:
+    tags: [People]
+    summary: 'Create person status log'
+    description: 'Records a status change for a person (e.g. HEALTHY → INJURED). Requires people.status_log.create permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreatePersonStatusLogRequest'
+    responses:
+      '201':
+        description: 'Status log created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonStatusLog'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/camps/{campId}/people/profession-reassignments:
+  post:
+    tags: [People]
+    summary: 'Reassign person profession'
+    description: 'Creates a profession reassignment log entry. Requires people.profession_reassign.create permission. from_profession_id and to_profession_id must be different.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateProfessionReassignmentRequest'
+    responses:
+      '201':
+        description: 'Reassignment created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfessionReassignmentLog'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/camps/{campId}/people/contribution-overrides:
+  post:
+    tags: [People]
+    summary: 'Create contribution override'
+    description: "Creates a contribution override for a person's daily resource contribution. Requires people.contribution_override.create permission."
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: campId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Camp ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateContributionOverrideRequest'
+    responses:
+      '201':
+        description: 'Override created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContributionOverride'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

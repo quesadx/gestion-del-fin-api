@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-17)
 Phase: 05 (complete)
 Plan: 03 completed (3/3 plans done)
 Status: Completed
-Last activity: 2026-05-17 - Completed plan 05-03 (rename delta→quantity_change, audit fields, soft-delete)
+Last activity: 2026-05-25 - Completed quick task 250525-001: Update e2e tests for CI compatibility + add performance tests
 
 Progress: [████████████████████] 100%
 
@@ -88,6 +88,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 20260517 | Fix Prisma schema: cyclic refs, FK actions, snake_case relations, person_status_log enum | 2026-05-17 | `028cd7f` | [fix-prisma-schema](./quick/20260517-fix-prisma-schema/) |
 | 20260517-deferred | Fix deferred schema review: datasource, persons→people rename, led_transfers, admission→person link, SetNull fixes, VarChar consistency | 2026-05-17 | `9302b9c` | [fix-deferred-schema](./quick/20260517-fix-deferred-schema/) |
+| 250525-001 | Update e2e tests for CI compatibility + add performance tests | 2026-05-25 | `21ec25b` | [update-e2e-tests-ci](./quick/20260525-update-e2e-tests-ci/) |
 
 ## Deferred Items
 

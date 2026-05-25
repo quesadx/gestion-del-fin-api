@@ -1,0 +1,57 @@
+/api/auth/login:
+  post:
+    tags: [Auth]
+    summary: 'Authenticate and get access token'
+    description: 'Validates username/password credentials and returns a JWT access token. Rate-limited to 5 attempts per 15 minutes.'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LoginRequest'
+    responses:
+      '200':
+        description: 'Login successful.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginResponse'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Invalid credentials or inactive account.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '429':
+        description: 'Too many login attempts.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/auth/logout:
+  post:
+    tags: [Auth]
+    summary: 'Logout and invalidate session'
+    description: 'Invalidates the current session by incrementing the session version and clearing last_activity.'
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: 'Logged out successfully.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

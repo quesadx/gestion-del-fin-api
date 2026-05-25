@@ -1,258 +1,257 @@
-# gestion-del-fin-api
+# Gestión del Fin API
 
-Secure API for **Gestión del fin** (EIF209). Handles multi-camp management, resources, AI-driven ingress decisions, and audit logs. Features server-side time consistency, RBAC, 20min session security, and support for resource transfers and expeditions. Built with Node.js and TypeScript. Universidad Nacional 2026.
+Multi-camp zombie survival management system. Built for **EIF209** at **Universidad Nacional, Costa Rica** (2026).
 
-# Database
+**Deployed:** https://gestion-del-fin-api-production.up.railway.app  
+**Swagger UI:** https://gestion-del-fin-api-production.up.railway.app/api/docs
 
-This project uses **PostgreSQL** via [Supabase](https://supabase.com) in production, and a local PostgreSQL instance (via Docker Compose) for development.
+---
 
-### Environment variables
+## Overview
 
-Copy `.env.example` and fill in the values:
+Manages multiple survival camps in a post-apocalyptic scenario: tracks people, resources, expeditions, inter-camp transfers, and AI-assisted admission decisions. Every camp is fully isolated — one camp cannot see another's data.
+
+### Current Test Status
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| Unit (Jest) | 1 | ✅ Passing |
+| E2E (Playwright) | 193 (187 ✓ + 6 skip) | ✅ 16.6s |
+| Performance (Playwright) | 42 | ✅ 8.9s |
+
+---
+
+## Tech Stack
+
+### Node.js / Express (TypeScript)
+
+**Why:** Express is the most mature Node.js framework with the largest middleware ecosystem. TypeScript was chosen for strict type safety across ~~60+ endpoint definitions, Zod schemas, and Prisma models. The `module: Node16` + ESM setup ensures compatibility with modern tooling.
+
+### PostgreSQL + Prisma ORM
+
+**Why:** PostgreSQL provides robust JSON support, window functions for metrics, and `pg_stat_statements` for query profiling. Prisma 7.x offers type-safe queries, auto-generated clients, and a declarative schema that stays the single source of truth. The `@prisma/adapter-pg` driver is used for native PostgreSQL protocol access.
+
+**Production:** Supabase (managed PostgreSQL with connection pooling).  
+**Local:** Docker Compose (PostgreSQL 16 Alpine).
+
+### Valkey (Redis-compatible Cache)
+
+**Why:** Valkey is a Redis OSS alternative that remains fully open-source after Redis's license change. Used for cache-aside reads on frequently-queried catalog endpoints and for the job queue (daily rations, resource alerts). No external Redis license concerns in production.
+
+### Python ML Microservice
+
+**Why:** Python's scikit-learn provides battle-tested ML tooling. A Decision Tree Classifier evaluates refugee admission eligibility based on applicant data. Falls back to a rule-based evaluator if the service is unavailable, with `[FALLBACK MODE]` labeling for auditability.
+
+### Go Microservice (Planned)
+
+**Why:** Go's lightweight goroutines and low memory footprint make it ideal for high-throughput operations like image processing and real-time metrics aggregation that could block the Node.js event loop.
+
+### Groq AI SDK
+
+**Why:** Groq provides low-latency LLM inference via API. Used for admission evaluations and profession assignment, supplementing the Python ML service with natural language reasoning.
+
+### Infrastructure
+
+| Component | Production | Local |
+|-----------|-----------|-------|
+| API Server | Railway (Node.js 20) | `npm run dev` |
+| Database | Supabase PostgreSQL | Docker Compose |
+| Cache | Serverless Redis (Railway) | Valkey (Docker) |
+| ML Service | Python microservice (Railway) | Uvicorn (manual) |
+| Auth | JWT (jsonwebtoken) | Same |
+
+---
+
+## Architecture
+
+### Module Structure
+
+```
+src/
+  modules/
+    auth/       — JWT login/logout, session validation
+    camps/      — Camp CRUD, nested people routes
+    people/     — Survivor records, status logs, profession reassignment
+    resources/  — Resource type definitions
+    inventory/  — Stock tracking, adjustments, audit log
+    professions/ — Job catalog
+    expeditions/ — Scheduling, status transitions (PLANNED→ONGOING→RETURNED)
+    transfers/  — Inter-camp resource/people movement + approval workflow
+    admission/  — AI refugee evaluation + manual override
+    users/      — Admin user management
+    roles/      — Role definitions
+    permissions/ — Permission definitions
+    metrics/    — Dashboard, resources, people, expedition aggregation
+    system/     — Server time (client clock sync), health
+  middlewares/
+    auth.middleware.ts      — JWT verification (401)
+    session.middleware.ts   — 20-min inactivity timeout (401)
+    camp.middleware.ts      — Camp-scoped data isolation
+    permission.middleware.ts — Role-based access (403)
+    rateLimit.middleware.ts — Login + admission rate limiting
+    image-upload.middleware.ts — Cloudinary upload for admission/people photos
+```
+
+### Request Flow
+
+```
+Client → globalRateLimit → auth → session → camp → permission → validate(Zod) → controller → service → Prisma
+                                                                                                   ↓
+                                                                                              PostgreSQL
+```
+
+### Key Design Decisions
+
+- **Server-side time only:** No client timestamps are trusted for business logic. `GET /api/system/time` provides clock sync.
+- **Camp-scoped isolation:** Every query filters by `campId: req.camp.id`. No global queries.
+- **20-min sliding session:** Session resets on each request, not total lifetime.
+- **All roles get all permissions in test setup:** Enables testing error cases for all endpoints without seeding complex permission trees.
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- Docker Compose (for PostgreSQL + Valkey)
+- npm
+
+### Setup
 
 ```bash
-cp .env.example .env
+# 1. Install dependencies
+npm install
+
+# 2. Start infrastructure
+docker compose up -d db valkey
+
+# 3. Generate Prisma client
+npx prisma generate
+
+# 4. Push schema to local database
+npx prisma db push
+
+# 5. Start dev server
+npm run dev
 ```
 
-For **local development**, set the database URLs to your local PostgreSQL instance:
+The server starts at `http://localhost:3000`.
 
-```env
-DATABASE_URL="postgresql://postgres:secret@localhost:5432/gestion_del_fin"
-DATABASE_DIRECT_URL="postgresql://postgres:secret@localhost:5432/gestion_del_fin"
-```
+### Environment
 
-For **production (Supabase)**, use the connection strings from your Supabase project dashboard under Project Settings → Database → Connection string:
+Copy `.env.test` patterns for local development — the actual `.env` contains production credentials for Supabase and should never be committed.
 
-```env
-DATABASE_URL="postgresql://postgres.xxx:password@aws-x-xx.pooler.supabase.com:5432/postgres"
-DATABASE_DIRECT_URL="postgresql://postgres:password@db.xxx.supabase.co:5432/postgres"
-```
+---
 
-### Migrations
+## Running Tests
 
-To apply migrations to the **local** database:
+### Unit Tests
 
 ```bash
-npx prisma migrate dev
+npm test
 ```
 
-To apply migrations to **Supabase** (production):
+Jest — currently 1 test covering the Redis job queue enqueue function.
+
+### E2E Tests
 
 ```bash
-npx prisma migrate deploy
+# Ensure PostgreSQL is running
+docker compose up -d db
+
+# Push schema to test database
+npx dotenv -e .env.test -- npx prisma db push
+
+# Run all 193 tests
+npm run test:e2e
 ```
 
-> Migrations are applied automatically on deploy via Railway.
+The `global.setup.ts` truncates and re-seeds the test database, generates JWT tokens for 6 test users, and the Playwright `webServer` auto-starts the Express server. Tests run serially (`workers: 1`) to prevent session middleware race conditions.
 
-### Seed
-
-To populate the database with initial data:
+### Performance Tests
 
 ```bash
-npx prisma db seed
+# Local
+npm run test:perf
+
+# Against deployed Railway
+PERF_TARGET_URL=https://gestion-del-fin-api-production.up.railway.app \
+  E2E_USER=<username> E2E_PASS=<password> \
+  npm run test:perf
+```
+
+Measures response times (lists ≤2s, metrics ≤5s), verifies concurrent request handling (10 simultaneous), and checks login rate-limit behavior.
+
+### CI Pipeline
+
+GitHub Actions runs on every push/PR:
+
+```
+lint-and-unit → ESLint + Prettier + cspell + Jest
+         e2e → PostgreSQL service → prisma db push → playwright install → e2e + perf tests
 ```
 
 ---
 
-## Development Setup
+## Deployed API
 
-This project can be run using either **manual Node setup** (recommended) or **Nix**.
+The API is live at `gestion-del-fin-api-production.up.railway.app`. All endpoints except `POST /api/auth/*` and `GET /api/system/**` require a Bearer JWT token.
 
-> **Before committing:** format all files with Prettier:
->
-> ```bash
-> npm run format
-> ```
+### Sample Request
 
-### Option 1: Manual (Node.js)
+```bash
+# Public
+curl https://gestion-del-fin-api-production.up.railway.app/api/system/time
 
-1. Ensure Node 20+ is installed:
+# Authenticated
+TOKEN=$(curl -s -X POST https://gestion-del-fin-api-production.up.railway.app/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"..."}' | jq -r '.token')
 
-   ```bash
-   node --version
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file (use `.env.example` if available) and configure your database connection.
-
-4. Generate the Prisma client:
-
-   ```bash
-   npx prisma generate
-   ```
-
-5. Apply migrations to keep the database schema in sync:
-
-   ```bash
-   npx prisma migrate dev
-   ```
-
-6. (Optional) Seed the database (recommended after migrations):
-
-   ```bash
-   npx prisma db seed
-   ```
-
-7. Start the dev server:
-
-   ```bash
-   npm run dev
-   ```
+curl -H "Authorization: Bearer $TOKEN" \
+  https://gestion-del-fin-api-production.up.railway.app/api/camps
+```
 
 ---
 
-## Cache (Valkey)
+## Project Structure
 
-This API uses Valkey for cache-aside reads in Tier 1 catalog modules.
-
-### Environment variables
-
-Add these to your `.env`:
-
-```env
-VALKEY_URL=redis://localhost:6379
-CACHE_ENABLED=true
 ```
-
-Cache is disabled when `NODE_ENV=test`.
-
-### Local Valkey with Docker
-
-Start only Valkey:
-
-```bash
-docker compose up -d valkey
+.
+├── docker/
+│   └── db/init/         # PostgreSQL init scripts (test DB, shadow DB)
+├── docs/                # Admission AI docs, cache docs, project PDF
+├── services/
+│   └── ml-service/      # Python Decision Tree microservice
+├── prisma/
+│   └── schema.prisma    # Database schema (25 models, 40+ indexes)
+├── src/
+│   ├── ai/              # Groq admission evaluator + role assigner
+│   ├── jobs/            # Scheduled tasks (daily rations, resource alerts)
+│   ├── lib/             # Prisma client, cache, Cloudinary
+│   ├── middlewares/     # Auth, session, camp, permissions, rate-limit
+│   ├── modules/         # 14 domain modules
+│   └── shared/          # Constants, utils, schemas
+├── tests/
+│   ├── e2e/             # 20 test files, 193 tests (Playwright)
+│   ├── perf/            # 3 test files, 42 tests (Playwright)
+│   └── unit/            # Jest unit tests
+├── AGENTS.md            # AI agent guidelines for code generation
+└── docker-compose.yml   # PostgreSQL 16, Valkey 7, ML service
 ```
-
-Stop:
-
-```bash
-docker compose stop valkey
-```
-
-See [docs/cache.md](docs/cache.md) for TTLs, invalidation, and verification steps.
-
-### Option 2: Nix
-
-1. Enter the development shell:
-
-   ```bash
-   nix develop
-   ```
-
-2. If using direnv, allow it:
-
-   ```bash
-   direnv allow
-   ```
-
-3. Install dependencies (if needed):
-
-   ```bash
-   npm install
-   ```
-
-4. Generate the Prisma client:
-
-   ```bash
-   npx prisma generate
-   ```
-
-5. Apply migrations to keep the database schema in sync:
-
-   ```bash
-   npx prisma migrate dev
-   ```
-
-6. (Optional) Seed the database (recommended after migrations):
-
-   ```bash
-   npx prisma db seed
-   ```
-
-7. Start the dev server:
-
-   ```bash
-   npm run dev
-   ```
-
-> **Before committing:** format all files with Prettier:
->
-> ```bash
-> npm run format
-> ```
 
 ---
 
-## ML Service
+## Key Numbers
 
-The admission system uses a Python microservice that runs a Decision Tree Classifier. It must be running locally for the admission evaluation to work.
-
-> See [admission_ai.md](./docs/admission_ai.md) for full documentation on how the AI admission system works.
-
-### Installing Python dependencies
-
-**With Nix** — dependencies are provided automatically by the flake, no extra steps needed.
-
-**Without Nix** — install manually using a virtual environment:
-
-```bash
-cd ml-service
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Running the ML service locally
-
-In a separate terminal from your API:
-
-```bash
-cd ml-service
-uvicorn main:app --port 8000
-```
-
-The service trains the model on startup and prints the decision tree structure. You should see:
-
-```
-✓ Decision tree trained successfully
-INFO: Application startup complete.
-```
-
-### Verifying the service is up
-
-```bash
-curl http://localhost:8000/health
-```
-
-Should return:
-
-```json
-{ "status": "ok", "model_trained": true }
-```
-
-### Environment variable
-
-Add this to your `.env`:
-
-```env
-ML_SERVICE_URL=http://localhost:8000
-```
-
-If the ML service is unreachable, the admission system automatically falls back to a rule-based evaluator. Decisions made in fallback mode are labeled `[FALLBACK MODE]` in the reasoning field.
-
-### Re-training the model
-
-If you modify the training data in `ml-service/data.py`, verify the model still performs well:
-
-```bash
-cd ml-service
-python trainer.py
-```
-
-This prints accuracy and a full classification report.
+| Metric | Value |
+|--------|-------|
+| API Endpoints | 60+ |
+| Database Tables | 25 |
+| E2E Tests | 193 (187 pass) |
+| Performance Tests | 42 (all pass) |
+| Test Database Tables Truncated | 24 |
+| Test Users Seeded | 7 |
+| Average E2E Test Duration | 16.6s |
+| JWT Session Timeout | 20 min inactivity |

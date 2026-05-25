@@ -1,0 +1,274 @@
+/api/expeditions:
+  post:
+    tags: [Explorations]
+    summary: 'Create expedition'
+    description: 'Creates a new expedition with members and allocated resources. Requires expeditions.create permission.'
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateExplorationRequest'
+    responses:
+      '201':
+        description: 'Expedition created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Exploration'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  get:
+    tags: [Explorations]
+    summary: 'List expeditions'
+    description: "Retrieves paginated list of expeditions for the authenticated user's camp. Requires expeditions.read permission."
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: 'Page number'
+      - in: query
+        name: pageSize
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 'Items per page (max 100)'
+    responses:
+      '200':
+        description: 'Expeditions retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginatedResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/expeditions/{id}:
+  get:
+    tags: [Explorations]
+    summary: 'Get expedition by id'
+    description: 'Retrieves a single expedition with its members and resources. Requires expeditions.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Expedition ID'
+    responses:
+      '200':
+        description: 'Expedition retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Exploration'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Expedition not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  put:
+    tags: [Explorations]
+    summary: 'Update expedition'
+    description: 'Updates expedition details. Cannot change status — use PATCH /status instead. Requires expeditions.update permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Expedition ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateExplorationRequest'
+    responses:
+      '200':
+        description: 'Expedition updated.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Exploration'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Expedition not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  delete:
+    tags: [Explorations]
+    summary: 'Delete expedition'
+    description: 'Cancels and cleans up an expedition. Requires expeditions.delete permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Expedition ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeleteExplorationRequest'
+    responses:
+      '204':
+        description: 'Expedition deleted.'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Expedition not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/expeditions/{id}/status:
+  patch:
+    tags: [Explorations]
+    summary: 'Update expedition status'
+    description: 'Changes expedition status (e.g. PLANNED → ONGOING → RETURNED). Requires expeditions.update_status permission. actual_return_date is required when status is RETURNED.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Expedition ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateExplorationStatusRequest'
+    responses:
+      '200':
+        description: 'Status updated.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Exploration'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Expedition not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

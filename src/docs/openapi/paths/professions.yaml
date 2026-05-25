@@ -1,0 +1,221 @@
+/api/professions:
+  post:
+    tags: [Professions]
+    summary: 'Create profession'
+    description: 'Creates a new profession in the catalog. Requires professions.create permission.'
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateProfessionRequest'
+    responses:
+      '201':
+        description: 'Profession created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profession'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: 'Profession name already exists.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  get:
+    tags: [Professions]
+    summary: 'List professions'
+    description: 'Retrieves paginated list of all professions. Requires professions.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: 'Page number'
+      - in: query
+        name: pageSize
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: 'Items per page (max 100)'
+    responses:
+      '200':
+        description: 'Professions retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginatedResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/professions/{id}:
+  get:
+    tags: [Professions]
+    summary: 'Get profession by id'
+    description: 'Retrieves a single profession by ID. Requires professions.read permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Profession ID'
+    responses:
+      '200':
+        description: 'Profession retrieved.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profession'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Profession not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  put:
+    tags: [Professions]
+    summary: 'Update profession'
+    description: 'Updates a profession. Requires professions.update permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Profession ID'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateProfessionRequest'
+    responses:
+      '200':
+        description: 'Profession updated.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profession'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Profession not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '409':
+        description: 'Profession name already exists.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  delete:
+    tags: [Professions]
+    summary: 'Delete profession'
+    description: 'Deletes a profession. Requires professions.delete permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Profession ID'
+    responses:
+      '204':
+        description: 'Profession deleted.'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Profession not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

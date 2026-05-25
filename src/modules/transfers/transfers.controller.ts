@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
-import { AppError } from '../../shared/utils/appError.js';
 import {
   approveTransferBySource,
   approveTransferByTarget,
