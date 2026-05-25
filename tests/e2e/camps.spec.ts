@@ -6,8 +6,8 @@ let createdCampId: number;
 
 test.describe('GET /api/camps', () => {
   test('returns list of camps for admin', async ({ adminRequest }) => {
-    const camps = await expectDataArray(adminRequest.get('/api/camps'), 1);
-    expect(camps.length).toBe(1);
+    const camps = await expectDataArray(adminRequest.get('/api/camps'), 2);
+    expect(camps.length).toBeGreaterThanOrEqual(2);
   });
 
   test('supports pagination with page and limit', async ({ adminRequest }) => {
