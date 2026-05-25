@@ -83,3 +83,10 @@ jobs:
 
       - name: Run e2e tests
         run: npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://gestion_user:admin@localhost:5432/gestion_del_fin_test
+
+      - name: Run performance tests
+        run: npm run test:perf
+        env:
+          DATABASE_URL: postgresql://gestion_user:admin@localhost:5432/gestion_del_fin_test
