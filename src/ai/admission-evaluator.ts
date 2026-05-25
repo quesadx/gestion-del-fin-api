@@ -29,6 +29,7 @@ type CampWeights = z.infer<typeof campWeightsSchema>;
 // Parse camp context with Groq to a useful weights for ML
 async function parseCampWeights(campContext: string): Promise<CampWeights> {
   if (!campContext || campContext === 'No context defined for this camp') {
+    logger.info('Groq camp-weights parsing skipped: empty camp context');
     return {};
   }
 
@@ -70,10 +71,24 @@ async function parseCampWeights(campContext: string): Promise<CampWeights> {
 
   try {
     const text = response.choices[0]?.message?.content;
-    if (!text) return {};
+    if (!text) {
+      logger.warn('Groq camp-weights parsing returned empty response');
+      return {};
+    }
     const parsed = JSON.parse(text);
-    return campWeightsSchema.parse(parsed); //Zod schema parsing. Reject any invalid info
-  } catch {
+    const validated = campWeightsSchema.parse(parsed); //Zod schema parsing. Reject any invalid info
+
+    logger.info('Groq camp-weights parsing audit', {
+      rawResponse: text,
+      sanitizedContext: sanitized,
+      parsedWeights: validated,
+    });
+
+    return validated;
+  } catch (error) {
+    logger.warn('Groq camp-weights parsing failed; falling back to empty weights', {
+      errorMessage: (error as Error)?.message ?? 'unknown',
+    });
     return {};
   }
 }
@@ -89,6 +104,15 @@ async function evaluateWithDecisionTree(
   professionCategory: string;
 }> {
   try {
+    logger.info('ML evaluate request audit', {
+      age: data.applicant_age ?? null,
+      hasSkillsText: Boolean(data.applicant_skills?.trim()),
+      hasHealthNotes: Boolean(data.health_notes?.trim()),
+      campWeights,
+      professionsCount: professions.length,
+      professionsPreview: professions.slice(0, 5).map((profession) => profession.name),
+    });
+
     const response = await fetch(`${ML_SERVICE_URL}/evaluate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -107,6 +131,13 @@ async function evaluateWithDecisionTree(
     }
 
     const result = await response.json();
+
+    logger.info('ML evaluate response audit', {
+      decision: result.decision,
+      confidence: result.confidence,
+      professionCategory: result.profession_category,
+      reasoningPath: result.reasoning_path,
+    });
 
     return {
       decision: result.decision,
@@ -152,6 +183,12 @@ export async function evaluateAdmission(
     await evaluateWithDecisionTree(data, campWeights, professions);
 
   const profession = resolveProfessionSuggestion(professionCategory, professions);
+
+  logger.info('Admission AI final mapping audit', {
+    mlProfessionCategory: professionCategory,
+    mappedProfessionId: profession?.id ?? null,
+    mappedProfessionName: profession?.name ?? null,
+  });
 
   const reasoning = [...reasoningPath, `Confidence: ${(confidence * 100).toFixed(0)}%`].join(' | ');
 

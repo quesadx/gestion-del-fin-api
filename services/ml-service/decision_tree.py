@@ -3,6 +3,7 @@ from sklearn.tree import DecisionTreeClassifier, export_text
 import pandas as pd
 import re
 import unicodedata
+import logging
 from data import get_training_data
 
 FEATURE_NAMES = [
@@ -13,13 +14,7 @@ FEATURE_NAMES = [
     "health_score",
 ]
 
-SKILL_KEYWORDS = {
-    "technical":    ["engineer", "mechanic", "electrician", "technical", "builder", "programmer"],
-    "medical":      ["doctor", "nurse", "medic", "medical", "surgeon", "surgical", "surgery", "pharmacist", "clinical"],
-    "scout":        ["scout", "explorer", "tracker", "spy", "ranger", "survival", "wilderness", "navigation"],
-    "agricultural": ["farmer", "cook", "botanist", "agriculture", "gardener", "fisher"],
-    "security":     ["soldier", "guard", "military", "security", "fighter", "police", "combat", "martial", "self-defense", "defense", "tactical"],
-}
+logger = logging.getLogger("admission_ml_service.decision_tree")
 
 DANGEROUS_HEALTH_KEYWORDS = [
     "infected", "terminal", "contagious", "plague",
@@ -29,6 +24,44 @@ DANGEROUS_HEALTH_KEYWORDS = [
 STOPWORDS = {
     "and", "or", "the", "a", "an", "for", "with", "from", "to", "of",
     "in", "on", "at", "by", "general", "labor", "worker", "works", "work",
+}
+
+CANONICAL_TOKEN_MAP = {
+    "doctor": "medical",
+    "doctora": "medical",
+    "medic": "medical",
+    "medico": "medical",
+    "medica": "medical",
+    "medical": "medical",
+    "medicina": "medical",
+    "medicine": "medical",
+    "clinical": "medical",
+    "clinico": "medical",
+    "clinica": "medical",
+    "surgeon": "medical",
+    "surgical": "medical",
+    "surgery": "medical",
+    "cirujano": "medical",
+    "cirujana": "medical",
+    "cirugia": "medical",
+    "cirugias": "medical",
+    "medicinas": "medical",
+    "enfermos": "medical",
+    "heridos": "medical",
+    "health": "health",
+    "salud": "health",
+    "hygiene": "hygiene",
+    "higiene": "hygiene",
+    "survival": "survival",
+    "supervivencia": "survival",
+    "wilderness": "survival",
+    "explorer": "scout",
+    "explorador": "scout",
+    "exploradora": "scout",
+    "navigation": "navigation",
+    "navegacion": "navigation",
+    "tracker": "tracking",
+    "rastreador": "tracking",
 }
 
 
@@ -43,7 +76,25 @@ def normalize_text(value: str | None) -> str:
 
 def tokenize_text(value: str | None) -> set[str]:
     tokens = re.findall(r"[a-z0-9]+", normalize_text(value))
-    return {token for token in tokens if len(token) > 2 and token not in STOPWORDS}
+    canonical_tokens = {
+        CANONICAL_TOKEN_MAP.get(token, token)
+        for token in tokens
+        if len(token) > 2 and token not in STOPWORDS
+    }
+    return canonical_tokens
+
+
+def get_profession_scores(skills: str | None, professions: list[dict]) -> list[dict]:
+    score_rows = []
+    for profession in professions:
+        score_rows.append(
+            {
+                "id": profession.get("id"),
+                "name": str(profession.get("name") or ""),
+                "score": round(score_profession_match(skills, profession), 3),
+            }
+        )
+    return sorted(score_rows, key=lambda row: row["score"], reverse=True)
 
 
 def extract_features(
@@ -58,19 +109,6 @@ def extract_features(
     # Age
     resolved_age = age if age is not None else 25
 
-    # Skills → binary flags (legacy categories kept as a fallback signal)
-    skills_lower = (skills or "").lower()
-    skill_flags = {
-        category: int(any(kw in skills_lower for kw in keywords))
-        for category, keywords in SKILL_KEYWORDS.items()
-    }
-
-    # Apply camp weights to skill flags
-    for category in skill_flags:
-        weight_key = f"weight_{category}"
-        if weight_key in camp_weights:
-            skill_flags[category] *= camp_weights[weight_key]
-
     # Health score
     health_lower = (health_notes or "").lower()
     if any(kw in health_lower for kw in DANGEROUS_HEALTH_KEYWORDS):
@@ -84,9 +122,9 @@ def extract_features(
     if camp_weights.get("strict_health_check") and health_score < 0.6:
         health_score *= 0.5
 
-    profession_scores = [score_profession_match(skills, profession) for profession in professions]
-    best_profession_score = max(profession_scores) if profession_scores else 0.0
-    matched_professions = sum(1 for score in profession_scores if score >= 0.25)
+    scored_professions = get_profession_scores(skills, professions)
+    best_profession_score = scored_professions[0]["score"] if scored_professions else 0.0
+    matched_professions = sum(1 for row in scored_professions if row["score"] >= 0.25)
     profession_match_coverage = (
         matched_professions / len(professions) if professions else 0.0
     )
@@ -100,22 +138,6 @@ def extract_features(
         round(profession_match_coverage, 3),
         health_score,
     ]
-
-
-def detect_profession_category(skills: str | None) -> str:
-    """Detect the most relevant profession category from skills."""
-    skills_lower = (skills or "").lower()
-
-    best_category = "general"
-    best_score = 0
-
-    for category, keywords in SKILL_KEYWORDS.items():
-        score = sum(1 for kw in keywords if kw in skills_lower)
-        if score > best_score:
-            best_category = category
-            best_score = score
-
-    return best_category
 
 
 def score_profession_match(skills: str | None, profession: dict) -> float:
@@ -149,16 +171,15 @@ def select_profession(skills: str | None, professions: list[dict]) -> dict | Non
     if not professions:
         return None
 
-    best_profession = professions[0]
-    best_score = score_profession_match(skills, best_profession)
+    scored_professions = get_profession_scores(skills, professions)
+    if not scored_professions:
+        return professions[0]
 
-    for profession in professions[1:]:
-        score = score_profession_match(skills, profession)
-        if score > best_score:
-            best_profession = profession
-            best_score = score
-
-    return best_profession
+    best_name = scored_professions[0]["name"]
+    return next(
+        (profession for profession in professions if str(profession.get("name") or "") == best_name),
+        professions[0],
+    )
 
 
 class AdmissionDecisionTree:
@@ -204,6 +225,15 @@ class AdmissionDecisionTree:
 
         features = extract_features(age, skills, health_notes, camp_weights, professions)
         X = np.array([features])
+
+        scored_professions = get_profession_scores(skills, professions)
+        skill_tokens = sorted(tokenize_text(skills))
+        logger.info(
+            "decision_tree_parsing_audit | skills_tokens=%s | top_professions=%s | features=%s",
+            skill_tokens,
+            scored_professions[:5],
+            [round(float(value), 3) for value in features],
+        )
 
         decision = self.classifier.predict(X)[0]
         confidence = float(self.classifier.predict_proba(X).max())
