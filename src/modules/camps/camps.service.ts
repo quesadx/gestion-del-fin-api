@@ -107,19 +107,15 @@ export async function getAllCamps() {
   });
 }
 
-export async function getCamps(
-  page = 1,
-  pageSize = 20,
-  actorCampId?: number,
-  isAdmin = false,
-) {
+export async function getCamps(page = 1, pageSize = 20, actorCampId?: number, isAdmin = false) {
   const effectiveLimit = Math.min(pageSize, 100);
   const skip = (page - 1) * effectiveLimit;
   const where = isAdmin || !actorCampId ? {} : { id: actorCampId };
 
-  const cacheKey = isAdmin || !actorCampId
-    ? cacheKeys.campsList(page, effectiveLimit)
-    : `${cacheKeys.campsList(page, effectiveLimit)}:camp:${actorCampId}`;
+  const cacheKey =
+    isAdmin || !actorCampId
+      ? cacheKeys.campsList(page, effectiveLimit)
+      : `${cacheKeys.campsList(page, effectiveLimit)}:camp:${actorCampId}`;
   return getOrSetCacheJson(cacheKey, cacheTtl.camps, async () => {
     const [records, total] = await Promise.all([
       prisma.camps.findMany({ where, skip, take: effectiveLimit }),
