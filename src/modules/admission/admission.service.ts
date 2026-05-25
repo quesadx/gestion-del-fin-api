@@ -74,13 +74,24 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO, 
   });
   if (professions.length === 0) throw new AppError('Professions not found', 404);
 
-  const campContext = camp.ai_context_prompt;
-
-  const aiResult = await evaluateAdmission(
-    data,
-    campContext ?? 'No context defined for this camp',
-    professions,
-  );
+  let aiResult: AdmissionAIResult;
+  try {
+    const campContext = camp.ai_context_prompt;
+    aiResult = await evaluateAdmission(
+      data,
+      campContext ?? 'No context defined for this camp',
+      professions,
+    );
+  } catch (error) {
+    // Fallback: Mark for manual review when AI evaluation fails
+    aiResult = {
+      ai_decision: 'PENDING',
+      ai_reasoning: `AI evaluation unavailable: ${(error as Error)?.message ?? 'Service error'}. Manual review required.`,
+      ai_confidence: 0,
+      ai_suggested_profession: professions[0]?.name ?? 'General Labor',
+      ai_profession_id: professions[0]?.id ?? 1,
+    };
+  }
 
   // Validate that the AI-suggested profession exists in this camp's professions list.
   // Guards against edge cases where the AI returns a fallback ID (e.g. 1) that does not

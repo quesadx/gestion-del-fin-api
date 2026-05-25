@@ -5,6 +5,7 @@ import {
   admissionAIResultSchema,
 } from '../modules/admission/admission.schema.js';
 import { AppError } from '../shared/utils/appError.js';
+import { logger } from '../logger/logger.js';
 import { z } from 'zod';
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
@@ -85,30 +86,46 @@ async function evaluateWithDecisionTree(
   reasoningPath: string[];
   professionCategory: string;
 }> {
-  const response = await fetch(`${ML_SERVICE_URL}/evaluate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      age: data.applicant_age ?? null,
-      skills: data.applicant_skills ?? null,
-      health_notes: data.health_notes ?? null,
-      camp_weights: campWeights,
-    }),
-    signal: AbortSignal.timeout(5000),
-  });
+  try {
+    const response = await fetch(`${ML_SERVICE_URL}/evaluate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        age: data.applicant_age ?? null,
+        skills: data.applicant_skills ?? null,
+        health_notes: data.health_notes ?? null,
+        camp_weights: campWeights,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
 
-  if (!response.ok) {
-    throw new AppError('Decision tree service unavailable', 502);
+    if (!response.ok) {
+      throw new AppError('Decision tree service unavailable', 502);
+    }
+
+    const result = await response.json();
+
+    return {
+      decision: result.decision,
+      confidence: result.confidence,
+      reasoningPath: result.reasoning_path,
+      professionCategory: result.profession_category,
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    const err = error as Error;
+    const errorDetails = {
+      mlServiceUrl: ML_SERVICE_URL,
+      errorName: err?.name ?? 'Unknown',
+      errorMessage: err?.message ?? 'No message',
+      isTimeout: err?.name === 'AbortError',
+    };
+
+    logger.error('ML service evaluation failed', errorDetails);
+
+    throw new AppError(`ML admission evaluation failed: ${err?.message ?? 'Unknown error'}`, 502);
   }
-
-  const result = await response.json();
-
-  return {
-    decision: result.decision,
-    confidence: result.confidence,
-    reasoningPath: result.reasoning_path,
-    professionCategory: result.profession_category,
-  };
 }
 
 function mapCategoryToProfession(

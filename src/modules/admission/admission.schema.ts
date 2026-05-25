@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const finalDecisionEnum = z.enum(['ACCEPTED', 'REJECTED']);
-export const aiDecisionEnum = z.enum(['ACCEPTED', 'REJECTED']);
+export const aiDecisionEnum = z.enum(['ACCEPTED', 'PENDING', 'REJECTED']);
 
 export const admissionAIResultSchema = z.object({
   ai_decision: aiDecisionEnum,
