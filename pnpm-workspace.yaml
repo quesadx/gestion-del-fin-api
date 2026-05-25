@@ -4,3 +4,4 @@ allowBuilds:
   esbuild: true
   prisma: true
   unrs-resolver: true
+shamefullyHoist: true
