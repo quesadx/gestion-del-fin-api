@@ -27,6 +27,7 @@ import transfersRoutes from './modules/transfers/transfers.routes.js';
 import metricsRoutes from './modules/metrics/metrics.routes.js';
 import rolesRoutes from './modules/roles/roles.routes.js';
 import permissionsRoutes from './modules/permissions/permissions.routes.js';
+import { achievementsRouter } from './modules/achievements/achievements.routes.js';
 const app = express();
 
 app.use(
@@ -70,6 +71,7 @@ app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inv
 app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
 app.use('/api/transfers', authMiddleware, sessionMiddleware, campMiddleware, transfersRoutes);
 app.use('/api/metrics', authMiddleware, sessionMiddleware, campMiddleware, metricsRoutes);
+app.use('/api/achievements', achievementsRouter);
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/api/docs.json', (req, res) => {
