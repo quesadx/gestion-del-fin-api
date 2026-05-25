@@ -179,6 +179,17 @@ export async function evaluateAdmission(
 
   const campWeights = await parseCampWeights(campContext);
 
+  if (!professions || professions.length === 0) {
+    logger.warn('No professions provided from DB; ML will score against empty catalog', {
+      campContextSnippet: (campContext ?? '').slice(0, 200),
+    });
+  } else {
+    logger.info('Professions from DB provided to AI', {
+      professionsCount: professions.length,
+      professionsPreview: professions.slice(0, 5).map((p) => ({ id: p.id, name: p.name })),
+    });
+  }
+
   const { decision, confidence, reasoningPath, professionCategory } =
     await evaluateWithDecisionTree(data, campWeights, professions);
 
