@@ -7,17 +7,15 @@ from data import get_training_data
 
 FEATURE_NAMES = [
     "age",
-    "has_technical",
-    "has_medical",
-    "has_scout",
-    "has_agricultural",
-    "has_security",
+    "has_skill_match",
+    "best_profession_score",
+    "profession_match_coverage",
     "health_score",
 ]
 
 SKILL_KEYWORDS = {
     "technical":    ["engineer", "mechanic", "electrician", "technical", "builder", "programmer"],
-    "medical":      ["doctor", "nurse", "medic", "medical", "surgeon", "pharmacist"],
+    "medical":      ["doctor", "nurse", "medic", "medical", "surgeon", "surgical", "surgery", "pharmacist", "clinical"],
     "scout":        ["scout", "explorer", "tracker", "spy", "ranger", "survival", "wilderness", "navigation"],
     "agricultural": ["farmer", "cook", "botanist", "agriculture", "gardener", "fisher"],
     "security":     ["soldier", "guard", "military", "security", "fighter", "police", "combat", "martial", "self-defense", "defense", "tactical"],
@@ -53,13 +51,14 @@ def extract_features(
     skills: str | None,
     health_notes: str | None,
     camp_weights: dict,
+    professions: list[dict],
 ) -> list[float]:
     """Convert raw applicant data into numeric features for the tree."""
 
     # Age
     resolved_age = age if age is not None else 25
 
-    # Skills → binary flags
+    # Skills → binary flags (legacy categories kept as a fallback signal)
     skills_lower = (skills or "").lower()
     skill_flags = {
         category: int(any(kw in skills_lower for kw in keywords))
@@ -85,13 +84,20 @@ def extract_features(
     if camp_weights.get("strict_health_check") and health_score < 0.6:
         health_score *= 0.5
 
+    profession_scores = [score_profession_match(skills, profession) for profession in professions]
+    best_profession_score = max(profession_scores) if profession_scores else 0.0
+    matched_professions = sum(1 for score in profession_scores if score >= 0.25)
+    profession_match_coverage = (
+        matched_professions / len(professions) if professions else 0.0
+    )
+
+    has_skill_match = int(best_profession_score >= 0.25)
+
     return [
         resolved_age,
-        skill_flags["technical"],
-        skill_flags["medical"],
-        skill_flags["scout"],
-        skill_flags["agricultural"],
-        skill_flags["security"],
+        has_skill_match,
+        round(best_profession_score, 2),
+        round(profession_match_coverage, 3),
         health_score,
     ]
 
@@ -196,7 +202,7 @@ class AdmissionDecisionTree:
                 "profession_category": profession_label,
             }
 
-        features = extract_features(age, skills, health_notes, camp_weights)
+        features = extract_features(age, skills, health_notes, camp_weights, professions)
         X = np.array([features])
 
         decision = self.classifier.predict(X)[0]
@@ -217,25 +223,20 @@ class AdmissionDecisionTree:
         confidence: float,
     ) -> list[str]:
         """Build a human-readable reasoning path from the features evaluated."""
-        age, has_technical, has_medical, has_scout, has_agricultural, has_security, health_score = features
+        age, has_skill_match, best_profession_score, profession_match_coverage, health_score = features
         reasons = []
 
         # Age
         reasons.append(f"Age ({int(age)}) — {'meets' if age >= 18 else 'below'} adult threshold (18)")
 
         # Skills
-        skill_map = {
-            "Technical":    has_technical,
-            "Medical":      has_medical,
-            "Scout":        has_scout,
-            "Agricultural": has_agricultural,
-            "Security":     has_security,
-        }
-        detected = [name for name, val in skill_map.items() if val > 0]
-        if detected:
-            reasons.append(f"Skills detected: {', '.join(detected)} ✓")
+        if has_skill_match >= 1:
+            reasons.append(
+                "Skills match active camp professions "
+                f"(best score: {best_profession_score:.2f}, coverage: {profession_match_coverage:.2f}) ✓"
+            )
         else:
-            reasons.append("No critical survival skills detected ✗")
+            reasons.append("No relevant match against current camp profession catalog ✗")
 
         # Health
         if health_score >= 0.7:
