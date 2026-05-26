@@ -10,7 +10,7 @@ const getKey = (req: any) => {
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
-  skip: () => isTest,
+  skip: () => isTest || process.env.DISABLE_RATE_LIMIT === 'true',
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: getKey,
@@ -25,7 +25,7 @@ export const globalRateLimit = rateLimit({
 export const loginRateLimit = rateLimit({
   windowMs: isTest ? 60 * 1000 : 15 * 60 * 1000,
   max: isTest ? 100 : 5,
-  skip: () => isTest,
+  skip: () => isTest || process.env.DISABLE_RATE_LIMIT === 'true',
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
@@ -41,7 +41,7 @@ export const loginRateLimit = rateLimit({
 export const admissionRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
-  skip: () => isTest,
+  skip: () => isTest || process.env.DISABLE_RATE_LIMIT === 'true',
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: getKey,
