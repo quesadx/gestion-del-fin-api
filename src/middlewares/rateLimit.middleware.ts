@@ -8,6 +8,10 @@ export const globalRateLimit = rateLimit({
   skip: () => isTest,
   standardHeaders: true,
   legacyHeaders: false,
+
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
+  },
   message: {
     error: {
       message: 'Too many requests, please try again later',
@@ -23,6 +27,9 @@ export const loginRateLimit = rateLimit({
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
+  },
   message: {
     error: {
       message: 'Too many login attempts, please try again later',
@@ -37,6 +44,9 @@ export const admissionRateLimit = rateLimit({
   skip: () => isTest,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
+  },
   message: {
     error: {
       message: 'Too many admission requests, please try again later',
