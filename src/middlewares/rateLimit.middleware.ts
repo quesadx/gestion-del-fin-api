@@ -2,20 +2,15 @@ import rateLimit from 'express-rate-limit';
 
 const isTest = process.env.NODE_ENV === 'test';
 
-// Esto va en tu app principal (index.ts/app.ts), ANTES de los middlewares:
-// app.set('trust proxy', 1);
-
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   skip: () => isTest,
   standardHeaders: true,
   legacyHeaders: false,
-  // Leer la IP real del header que pone Railway
+
   keyGenerator: (req) => {
-    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() 
-      || req.ip 
-      || 'unknown';
+    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
   },
   message: {
     error: {
@@ -33,9 +28,7 @@ export const loginRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim()
-      || req.ip
-      || 'unknown';
+    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
   },
   message: {
     error: {
@@ -52,9 +45,7 @@ export const admissionRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim()
-      || req.ip
-      || 'unknown';
+    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
   },
   message: {
     error: {
