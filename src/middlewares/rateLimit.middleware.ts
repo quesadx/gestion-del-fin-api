@@ -1,6 +1,11 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 const isTest = process.env.NODE_ENV === 'test';
+
+const getKey = (req: any) => {
+  const forwarded = req.headers['x-forwarded-for']?.toString().split(',')[0].trim();
+  return forwarded ? ipKeyGenerator(forwarded) : ipKeyGenerator(req.ip ?? 'unknown');
+};
 
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -8,10 +13,7 @@ export const globalRateLimit = rateLimit({
   skip: () => isTest,
   standardHeaders: true,
   legacyHeaders: false,
-
-  keyGenerator: (req) => {
-    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
-  },
+  keyGenerator: getKey,
   message: {
     error: {
       message: 'Too many requests, please try again later',
@@ -27,9 +29,7 @@ export const loginRateLimit = rateLimit({
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
-  },
+  keyGenerator: getKey,
   message: {
     error: {
       message: 'Too many login attempts, please try again later',
@@ -44,9 +44,7 @@ export const admissionRateLimit = rateLimit({
   skip: () => isTest,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown';
-  },
+  keyGenerator: getKey,
   message: {
     error: {
       message: 'Too many admission requests, please try again later',
