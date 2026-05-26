@@ -610,7 +610,7 @@ model achievement_roles {
 
   @@id([achievement_id, role_id])
   @@index([role_id], map: "achievement_roles_role_id_idx")
-  @@map("achievement_role")
+  @@map("achievement_roles")
 }
 
 model achievement_notifications {
@@ -628,7 +628,7 @@ model achievement_notifications {
   @@unique([user_id, achievement_id, created_at], map: "uq_achievement_notification")
   @@index([notification_sent], map: "achievement_notifications_unsent_idx")
   @@index([user_id], map: "achievement_notifications_user_id_idx")
-  @@map("achievement_notification")
+  @@map("achievement_notifications")
 }
 
 model achievement_stats {
@@ -642,5 +642,5 @@ model achievement_stats {
 
   achievements    achievements @relation(fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@map("achievement_stat")
+  @@map("achievement_stats")
 }
