@@ -331,11 +331,24 @@ async function main() {
   }
 
   if (achievementRoleRows.length > 0) {
-    await prisma.achievement_roles.createMany({ data: achievementRoleRows });
+    // Use raw SQL to insert into the plural table names to match DB
+    for (const row of achievementRoleRows) {
+      await prisma.$executeRaw`
+        INSERT INTO achievement_roles (achievement_id, role_id)
+        VALUES (${row.achievement_id}, ${row.role_id})
+        ON CONFLICT (achievement_id, role_id) DO NOTHING
+      `;
+    }
   }
 
   if (achievementStatsRows.length > 0) {
-    await prisma.achievement_stats.createMany({ data: achievementStatsRows });
+    for (const row of achievementStatsRows) {
+      await prisma.$executeRaw`
+        INSERT INTO achievement_stats (achievement_id, total_unlocks, updated_at)
+        VALUES (${row.achievement_id}, ${row.total_unlocks}, CURRENT_TIMESTAMP)
+        ON CONFLICT (achievement_id) DO NOTHING
+      `;
+    }
   }
 
   const engineerProfession = await prisma.professions.create({
