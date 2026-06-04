@@ -144,7 +144,12 @@ class HealthEmbeddingScorer:
         notes_emb = self._model.encode(health_notes)
         risk_sim = float(cosine_similarity([notes_emb], self._risk_embeddings).max())
         safe_sim = float(cosine_similarity([notes_emb], self._safe_embeddings).max())
-        raw = safe_sim - risk_sim
+
+        if risk_sim > safe_sim:
+            raw = (safe_sim - risk_sim) * 2.0
+        else:
+            raw = (safe_sim - risk_sim) * 1.2
+
         return float(np.clip((raw + 1) / 2, 0.05, 0.95))
 
 
