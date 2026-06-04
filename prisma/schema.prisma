@@ -133,9 +133,10 @@ model camps {
   target_transfers     camp_transfers[]     @relation("transfer_target_camp")
   expeditions          expeditions[]
   inventories          inventories[]
-  inventory_logs       inventory_logs[]
-  persons              people[]
-  users                users[]
+  inventory_logs                 inventory_logs[]
+  inventory_adjustment_requests  inventory_adjustment_requests[]
+  persons                        people[]
+  users                          users[]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -274,6 +275,32 @@ model inventory_logs {
   @@map("inventory_log")
 }
 
+model inventory_adjustment_requests {
+  id               Int                                    @id @default(autoincrement())
+  camp_id          Int
+  created_by       Int
+  status           inventory_adjustment_request_status    @default(PENDING)
+  adjustment_type  inventory_log_log_type
+  resource_type_id Int
+  quantity         Decimal                                @db.Decimal(12, 2)
+  reason           String?                                @db.VarChar(255)
+  reviewed_by      Int?
+  reviewed_at      DateTime?
+  created_at       DateTime                               @default(now())
+  updated_at       DateTime                               @updatedAt
+
+  camps            camps                                  @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  created_by_user  users                                  @relation("adjustment_request_creator", fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reviewed_by_user users?                                 @relation("adjustment_request_reviewer", fields: [reviewed_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  resource_type    resource_types                         @relation(fields: [resource_type_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([camp_id], map: "inventory_adjustment_requests_camp_id_idx")
+  @@index([created_by], map: "inventory_adjustment_requests_created_by_idx")
+  @@index([reviewed_by], map: "inventory_adjustment_requests_reviewed_by_idx")
+  @@index([status], map: "inventory_adjustment_requests_status_idx")
+  @@map("inventory_adjustment_request")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model person_status_logs {
   id         Int            @id @default(autoincrement())
@@ -385,9 +412,10 @@ model resource_types {
   contribution_overrides         contribution_overrides[]
   expedition_allocated_resources expedition_allocated_resources[]
   expedition_found_resources     expedition_found_resources[]
-  inventories                    inventories[]
-  inventory_logs                 inventory_logs[]
-  professions_resources_amounts  professions_resources_amounts[]
+  inventories                       inventories[]
+  inventory_logs                    inventory_logs[]
+  inventory_adjustment_requests     inventory_adjustment_requests[]
+  professions_resources_amounts     professions_resources_amounts[]
 
   @@map("resource_type")
 }
@@ -468,9 +496,11 @@ model users {
   contribution_overrides       contribution_overrides[]
   expeditions                  expeditions[]
   inventory_logs               inventory_logs[]
+  inventory_adjustment_requests_created  inventory_adjustment_requests[] @relation("adjustment_request_creator")
+  inventory_adjustment_requests_reviewed inventory_adjustment_requests[] @relation("adjustment_request_reviewer")
   person_status_logs           person_status_logs[]
   user_achievements            user_achievements[]
-    achievement_notifications   achievement_notifications[]
+  achievement_notifications   achievement_notifications[]
   camps                        camps                    @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   roles                        roles                    @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -494,6 +524,12 @@ model audit_logs {
   @@index([camp_id], map: "audit_logs_camp_id_idx")
   @@index([created_at], map: "audit_logs_created_at_idx")
   @@map("audit_log")
+}
+
+enum inventory_adjustment_request_status {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum camp_transfer_item_item_type {
@@ -585,7 +621,9 @@ enum audit_log_action {
   REASSIGN_PROFESSION
   CREATE_OVERRIDE
   MANUAL_INVENTORY_ADJUST
-    ACHIEVEMENT_UNLOCKED
+  CREATE_INVENTORY_ADJUSTMENT_REQUEST
+  REVIEW_INVENTORY_ADJUSTMENT_REQUEST
+  ACHIEVEMENT_UNLOCKED
 }
 
 enum audit_log_target_type {
@@ -596,6 +634,7 @@ enum audit_log_target_type {
   expeditions
   people
   inventory_logs
+  inventory_adjustment_requests
   achievements
 }
 
