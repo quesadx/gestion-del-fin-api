@@ -31,6 +31,8 @@ HEALTH_SAFE_REFERENCES = [
     "healthy, no injuries, no fever, no bite marks",
     "minor injuries, stable condition, fully oriented",
     "dehydrated but recovering, no infectious symptoms",
+    "minor scratches and cuts, no infection, no fever",
+    "small wounds from travel, healing normally, alert",
 ]
 
 STOPWORDS = {
@@ -202,12 +204,13 @@ class AdmissionDecisionTree:
         )
         self.trained = False
 
-    def train(self):
-        df = get_training_data()
+    def train(self, n_professions: int = 4) -> None:
+        df = get_training_data(n_professions)
         X = df[FEATURE_NAMES].values
         y = df["decision"].values
         self.classifier.fit(X, y)
         self.trained = True
+        self._trained_with_n_professions = n_professions
         print("✓ Decision tree trained successfully")
         print(export_text(self.classifier, feature_names=FEATURE_NAMES))
 
@@ -219,8 +222,11 @@ class AdmissionDecisionTree:
         camp_weights: dict,
         professions: list[dict],
     ) -> dict:
-        if not self.trained:
-            raise RuntimeError("Model not trained yet")
+
+        n = len(professions)
+        if not self.trained or getattr(self, "_trained_with_n_professions", None) != n:
+            logger.info("Retraining decision tree for n_professions=%d", n)
+            self.train(n_professions=n)
 
         selected_profession = select_profession(skills, professions)
         profession_label = (

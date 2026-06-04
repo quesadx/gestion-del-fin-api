@@ -3,7 +3,7 @@ import random
 import pandas as pd
 
 
-def get_training_data() -> pd.DataFrame:
+def get_training_data(n_professions: int = 4) -> pd.DataFrame:
     random.seed(42)
     data = []
 
@@ -22,7 +22,8 @@ def get_training_data() -> pd.DataFrame:
         if has_skill_match == 0:
             profession_match_coverage = 0.00
         else:
-            profession_match_coverage = random.choice([0.33, 0.40, 0.67, 1.00])
+            matched = random.randint(1, n_professions)
+            profession_match_coverage = round(matched / n_professions, 3)
 
         if has_skill_match == 0:
             best_profession_score = round(random.uniform(0.00, 0.15), 2)
