@@ -1666,3 +1666,129 @@ schemas:
       message:
         type: string
         example: 'gestion-del-fin-api is alive and kicking!'
+
+  AdjustmentRequest:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      camp_id:
+        type: integer
+        example: 1
+      created_by:
+        type: integer
+        example: 1
+      status:
+        type: string
+        enum: [PENDING, APPROVED, REJECTED]
+        example: PENDING
+      adjustment_type:
+        type: string
+        enum: [MANUAL_IN, MANUAL_OUT]
+        example: MANUAL_IN
+      resource_type_id:
+        type: integer
+        example: 1
+      quantity:
+        type: number
+        format: float
+        example: 50
+      reason:
+        type: string
+        nullable: true
+        example: 'Emergency supply restock'
+      reviewed_by:
+        type: integer
+        nullable: true
+        example: 2
+      reviewed_at:
+        type: string
+        format: date-time
+        nullable: true
+        example: '2026-06-04T12:00:00.000Z'
+      created_at:
+        type: string
+        format: date-time
+        example: '2026-06-04T10:00:00.000Z'
+      updated_at:
+        type: string
+        format: date-time
+        example: '2026-06-04T10:00:00.000Z'
+      created_by_user:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          username:
+            type: string
+      reviewed_by_user:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          username:
+            type: string
+      resource_type:
+        type: object
+        nullable: true
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+          unit:
+            type: string
+
+  CreateAdjustmentRequest:
+    type: object
+    required: [camp_id, resource_type_id, adjustment_type, quantity]
+    properties:
+      camp_id:
+        type: integer
+        example: 1
+      resource_type_id:
+        type: integer
+        example: 1
+      adjustment_type:
+        type: string
+        enum: [MANUAL_IN, MANUAL_OUT]
+      quantity:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 9999999999.99
+        example: 50
+      reason:
+        type: string
+        maxLength: 255
+        example: 'Emergency supply restock'
+
+  InventoryMovement:
+    type: object
+    properties:
+      id:
+        type: integer
+        example: 1
+      camp_id:
+        type: integer
+      resource_type_id:
+        type: integer
+      logged_by:
+        type: integer
+      log_type:
+        type: string
+        enum: [MANUAL_IN, MANUAL_OUT]
+      quantity_change:
+        type: number
+        format: float
+      logged_at:
+        type: string
+        format: date-time
+      created_at:
+        type: string
+        format: date-time
+      description:
+        type: string
+        nullable: true

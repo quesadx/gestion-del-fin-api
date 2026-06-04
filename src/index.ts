@@ -22,6 +22,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/users/users.routes.js';
 import professionsRoutes from './modules/professions/professions.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
+import inventoryAdjustmentRequestsRoutes from './modules/inventory-adjustment-requests/inventory-adjustment-requests.routes.js';
 import admissionRoutes from './modules/admission/admission.routes.js';
 import transfersRoutes from './modules/transfers/transfers.routes.js';
 import metricsRoutes from './modules/metrics/metrics.routes.js';
@@ -68,6 +69,13 @@ app.use('/api/permissions', authMiddleware, sessionMiddleware, campMiddleware, p
 app.use('/api/professions', authMiddleware, sessionMiddleware, campMiddleware, professionsRoutes);
 
 app.use('/api/inventory', authMiddleware, sessionMiddleware, campMiddleware, inventoryRoutes);
+app.use(
+  '/api/inventory-adjustment-requests',
+  authMiddleware,
+  sessionMiddleware,
+  campMiddleware,
+  inventoryAdjustmentRequestsRoutes,
+);
 app.use('/api/admission', authMiddleware, sessionMiddleware, campMiddleware, admissionRoutes);
 app.use('/api/transfers', authMiddleware, sessionMiddleware, campMiddleware, transfersRoutes);
 app.use('/api/metrics', authMiddleware, sessionMiddleware, campMiddleware, metricsRoutes);

@@ -53,6 +53,10 @@ export const PERMISSIONS = {
   PERMISSIONS_UPDATE: 'permissions.update',
   PERMISSIONS_DELETE: 'permissions.delete',
   ADMIN_BYPASS_CAMP_SCOPING: 'admin.bypass_camp_scoping',
+  INVENTORY_ADJUSTMENT_REQUESTS_CREATE: 'inventory_adjustment_requests.create',
+  INVENTORY_ADJUSTMENT_REQUESTS_READ_OWN: 'inventory_adjustment_requests.read_own',
+  INVENTORY_ADJUSTMENT_REQUESTS_READ: 'inventory_adjustment_requests.read',
+  INVENTORY_ADJUSTMENT_REQUESTS_REVIEW: 'inventory_adjustment_requests.review',
 } as const;
 
 export type PermissionName = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
