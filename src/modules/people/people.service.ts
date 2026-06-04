@@ -329,7 +329,7 @@ export async function getActivePeopleWithProfessionsByCamp(campId: number) {
   await ensureCampExists(campId);
 
   return prisma.people.findMany({
-    where: { camp_id: campId, status: { not: persons_status.DEAD } },
+    where: { camp_id: campId, status: { notIn: [persons_status.DEAD, persons_status.AWAY] } },
     include: { professions: true },
     orderBy: [{ id: 'asc' }],
   });

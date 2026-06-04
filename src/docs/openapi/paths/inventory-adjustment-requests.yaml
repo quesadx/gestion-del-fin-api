@@ -1,0 +1,197 @@
+/api/inventory-adjustment-requests:
+  post:
+    tags: [Inventory Adjustment Requests]
+    summary: 'Create adjustment request'
+    description: 'Creates a new inventory adjustment request. Requires inventory_adjustment_requests.create permission. Workers can only create requests for their own camp.'
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateAdjustmentRequest'
+    responses:
+      '201':
+        description: 'Request created.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustmentRequest'
+      '400':
+        description: 'Validation failed.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Forbidden: cannot create request for another camp.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+  get:
+    tags: [Inventory Adjustment Requests]
+    summary: 'Get all adjustment requests'
+    description: 'Retrieves all adjustment requests for the authenticated user camp. Requires inventory_adjustment_requests.read permission.'
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: 'Requests retrieved.'
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdjustmentRequest'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/inventory-adjustment-requests/my:
+  get:
+    tags: [Inventory Adjustment Requests]
+    summary: 'Get own adjustment requests'
+    description: 'Retrieves the authenticated user adjustment requests. Requires inventory_adjustment_requests.read_own permission.'
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: 'Requests retrieved.'
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdjustmentRequest'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/inventory-adjustment-requests/{id}/approve:
+  patch:
+    tags: [Inventory Adjustment Requests]
+    summary: 'Approve adjustment request'
+    description: 'Approves a pending adjustment request and applies the inventory change. Requires inventory_adjustment_requests.review permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Adjustment request ID'
+    responses:
+      '200':
+        description: 'Request approved and inventory adjusted.'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                request:
+                  $ref: '#/components/schemas/AdjustmentRequest'
+                movement:
+                  $ref: '#/components/schemas/InventoryMovement'
+      '400':
+        description: 'Request is not pending or insufficient inventory.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Request not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+
+/api/inventory-adjustment-requests/{id}/reject:
+  patch:
+    tags: [Inventory Adjustment Requests]
+    summary: 'Reject adjustment request'
+    description: 'Rejects a pending adjustment request. Inventory is NOT modified. Requires inventory_adjustment_requests.review permission.'
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+        description: 'Adjustment request ID'
+    responses:
+      '200':
+        description: 'Request rejected.'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                request:
+                  $ref: '#/components/schemas/AdjustmentRequest'
+      '400':
+        description: 'Request is not pending.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '401':
+        description: 'Missing or invalid authentication.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '403':
+        description: 'Insufficient permissions.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '404':
+        description: 'Request not found.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'

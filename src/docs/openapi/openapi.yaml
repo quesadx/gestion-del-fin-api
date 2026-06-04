@@ -37,6 +37,8 @@ tags:
     description: 'Permission management endpoints'
   - name: Metrics
     description: 'Camp metrics and statistics endpoints'
+  - name: Inventory Adjustment Requests
+    description: 'Inventory adjustment request and approval workflow endpoints'
 
 components:
   securitySchemes:

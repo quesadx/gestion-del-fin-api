@@ -17,6 +17,7 @@
         pandas
         numpy
         pydantic
+        sentence-transformers
       ]);
     in
     {
