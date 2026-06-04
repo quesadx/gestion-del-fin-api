@@ -21,18 +21,76 @@ FEATURE_NAMES = [
 logger = logging.getLogger("admission_ml_service.decision_tree")
 
 HEALTH_RISK_REFERENCES = [
-    "dangerous infection, bite wound, possible zombie infection",
-    "high fever, tremors, disoriented, aggressive behavior",
-    "refuses medical inspection, hiding injury",
-    "terminal illness, contagious disease, plague symptoms",
+    # Infectious Diseases and Symptoms
+    "severe laceration, bleeding heavily, signs of shock",
+    "persistent cough, coughing up blood, labored breathing",
+    "unexplained rash, swollen lymph nodes, extreme fatigue",
+    "gangrene setting in, foul odor, blackened necrotic tissue",
+    "pale skin, unnatural dark veins, craving raw meat, unresponsive",
+    "infected scratch, red streaks radiating from wound, hot to touch",
+    "parasitic infection, severe cramps, rapid dangerous weight loss",
+    "rabies symptoms, hydrophobia, excessive salivation, confusion",
+    "radiation sickness, hair falling out, bleeding gums, nausea",
+    "tetanus symptoms, lockjaw, severe uncontrollable muscle spasms",
+    "zombie bite on torso, spreading black veins, sweating profusely",
+    "unexplained bruising, bleeding gums, suspected hemorrhagic fever",
+    "respiratory distress, wheezing, cyanosis in lips and nails",
+    # Physical Trauma and Injuries
+    "untreated stump, severe phantom pain, high infection risk",
+    "third-degree burns, blistered skin, extreme risk of sepsis",
+    "exposed bone, compound fracture, immobile and in agony",
+    "frostbite, necrotic extremities, complete loss of sensation",
+    "vomiting blood, severe abdominal pain, internal bleeding suspected",
+    "untreated head trauma, concussed, unequal pupil size",
+    "deep puncture wound, rusted metal, high fever developing",
+    "deep animal bite, crushing damage to muscle, high rabies risk",
+    "infected blisters, weeping pus, inability to wear footwear",
+    # Mental and Neurological Deterioration
+    "hallucinations, paranoia, erratic and violent movements",
+    "severe dehydration, sunken eyes, unresponsive to stimuli",
+    "chronic wasting, skeletal appearance, too weak to stand",
+    "severe allergic reaction, swelling airways, struggling to breathe",
+    "muttering incoherently, catatonic state, staring blankly",
+    "infested with maggots, open festering sores, severe neglect",
+    "suspected poisoning, blue lips, convulsions, pinpoint pupils",
+    "severe malnutrition, hair loss, weakened immune response",
 ]
 
 HEALTH_SAFE_REFERENCES = [
-    "healthy, no injuries, no fever, no bite marks",
-    "minor injuries, stable condition, fully oriented",
-    "dehydrated but recovering, no infectious symptoms",
-    "minor scratches and cuts, no infection, no fever",
-    "small wounds from travel, healing normally, alert",
+    # General health indicators
+    "well-rested, hydrated, normal heart rate and temperature",
+    "well-nourished, strong immune system, high energy levels",
+    "strong cardiovascular health, excellent stamina, normal blood pressure",
+    "regular appetite, digesting rations normally, good hydration",
+    "negative blood test, normal white blood cell count, robust",
+    "excellent dental hygiene, no signs of scurvy or vitamin deficiency",
+    "clean clothing, good personal hygiene, no lice or fleas",
+    # Inmunity and Vaccinations
+    "fully vaccinated, immune to local strains, clear skin",
+    "cleared by medical officer, negative for all known pathogens",
+    "recent tetanus booster, up to date on all survival inoculations",
+    "cleared from quarantine, negative swabs, zero contagion risk",
+    "mild seasonal allergies, managed with antihistamines, clear airways",
+    # Minor Injuries and Adaptation to Environment
+    "minor bruising, fading scars, excellent mobility",
+    "superficial burns, properly bandaged, healing without infection",
+    "minor sprain, heavily taped, fully weight-bearing and stable",
+    "minor sunburn, aloe treated, peeling but completely painless",
+    "superficial frostnip, skin pink and warm, no tissue damage",
+    "minor insect bites, treated with ointment, no swelling or itching",
+    "shallow razor nicks, stopped bleeding, healing normally",
+    "minor paper cuts and scrapes, cleaned and ignored, no risk",
+    # Physical and Mental Resilience
+    "slight fatigue, easily resolved with rest, mentally sharp",
+    "calloused hands, minor blisters, accustomed to harsh conditions",
+    "stable prosthetics, well-maintained, no discomfort or chafing",
+    "steady hands, sharp reflexes, high situational awareness",
+    "properly dressed for weather, core temperature perfectly normal",
+    "psychological evaluation passed, resilient, calm under pressure",
+    "mild muscle soreness from travel, stretching it out, no injury",
+    "minor altitude sickness, acclimatizing well, oxygen levels normal",
+    "recent mild cold, fully recovered, no lingering symptoms",
+    "mild headache, dissipating, fully capable of physical exertion",
 ]
 
 STOPWORDS = {
