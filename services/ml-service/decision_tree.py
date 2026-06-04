@@ -1,10 +1,14 @@
-import numpy as np
-from sklearn.tree import DecisionTreeClassifier, export_text
-import pandas as pd
+import logging
 import re
 import unicodedata
-import logging
+from typing import cast
+
+import numpy as np
+import pandas as pd
 from data import get_training_data
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.tree import DecisionTreeClassifier, export_text
 
 FEATURE_NAMES = [
     "age",
@@ -17,51 +21,36 @@ FEATURE_NAMES = [
 logger = logging.getLogger("admission_ml_service.decision_tree")
 
 DANGEROUS_HEALTH_KEYWORDS = [
-    "infected", "terminal", "contagious", "plague",
-    "rabies", "undead", "dying", "critical"
+    "infected",
+    "terminal",
+    "contagious",
+    "plague",
+    "rabies",
+    "undead",
+    "dying",
+    "critical",
 ]
 
 STOPWORDS = {
-    "and", "or", "the", "a", "an", "for", "with", "from", "to", "of",
-    "in", "on", "at", "by", "general", "labor", "worker", "works", "work",
-}
-
-CANONICAL_TOKEN_MAP = {
-    "doctor": "medical",
-    "doctora": "medical",
-    "medic": "medical",
-    "medico": "medical",
-    "medica": "medical",
-    "medical": "medical",
-    "medicina": "medical",
-    "medicine": "medical",
-    "clinical": "medical",
-    "clinico": "medical",
-    "clinica": "medical",
-    "surgeon": "medical",
-    "surgical": "medical",
-    "surgery": "medical",
-    "cirujano": "medical",
-    "cirujana": "medical",
-    "cirugia": "medical",
-    "cirugias": "medical",
-    "medicinas": "medical",
-    "enfermos": "medical",
-    "heridos": "medical",
-    "health": "health",
-    "salud": "health",
-    "hygiene": "hygiene",
-    "higiene": "hygiene",
-    "survival": "survival",
-    "supervivencia": "survival",
-    "wilderness": "survival",
-    "explorer": "scout",
-    "explorador": "scout",
-    "exploradora": "scout",
-    "navigation": "navigation",
-    "navegacion": "navigation",
-    "tracker": "tracking",
-    "rastreador": "tracking",
+    "and",
+    "or",
+    "the",
+    "a",
+    "an",
+    "for",
+    "with",
+    "from",
+    "to",
+    "of",
+    "in",
+    "on",
+    "at",
+    "by",
+    "general",
+    "labor",
+    "worker",
+    "works",
+    "work",
 }
 
 
@@ -70,18 +59,42 @@ def normalize_text(value: str | None) -> str:
         return ""
 
     normalized = unicodedata.normalize("NFKD", value)
-    without_accents = "".join(char for char in normalized if not unicodedata.combining(char))
+    without_accents = "".join(
+        char for char in normalized if not unicodedata.combining(char)
+    )
     return without_accents.lower()
 
 
 def tokenize_text(value: str | None) -> set[str]:
     tokens = re.findall(r"[a-z0-9]+", normalize_text(value))
-    canonical_tokens = {
-        CANONICAL_TOKEN_MAP.get(token, token)
-        for token in tokens
-        if len(token) > 2 and token not in STOPWORDS
-    }
-    return canonical_tokens
+    return {token for token in tokens if len(token) > 2 and token not in STOPWORDS}
+
+
+class ProfessionEmbeddingCache:
+    def __init__(self):
+        self._model = SentenceTransformer("all-MiniLM-L6-v2")
+        self._cache: dict[int, np.ndarray] = {}
+
+    def score(self, skills: str, profession: dict) -> float:
+        skills_emb = self._model.encode(skills)
+        profession_id: int | None = profession.get("id")
+
+        text = f"{profession.get('name', '')}. {profession.get('description', '')}"
+
+        if profession_id is not None and profession_id in self._cache:
+            profession_emb = self._cache[profession_id]
+        else:
+            profession_emb = self._model.encode(text)
+            if profession_id is not None:
+                self._cache[profession_id] = profession_emb
+
+        return float(cosine_similarity([skills_emb], [profession_emb])[0][0])
+
+    def invalidate(self, profession_id: int) -> None:
+        self._cache.pop(profession_id, None)
+
+
+profession_cache = ProfessionEmbeddingCache()
 
 
 def get_profession_scores(skills: str | None, professions: list[dict]) -> list[dict]:
@@ -123,7 +136,9 @@ def extract_features(
         health_score *= 0.5
 
     scored_professions = get_profession_scores(skills, professions)
-    best_profession_score = scored_professions[0]["score"] if scored_professions else 0.0
+    best_profession_score = (
+        scored_professions[0]["score"] if scored_professions else 0.0
+    )
     matched_professions = sum(1 for row in scored_professions if row["score"] >= 0.25)
     profession_match_coverage = (
         matched_professions / len(professions) if professions else 0.0
@@ -141,30 +156,9 @@ def extract_features(
 
 
 def score_profession_match(skills: str | None, profession: dict) -> float:
-    skill_tokens = tokenize_text(skills)
-    profession_name = str(profession.get("name") or "")
-    profession_description = str(profession.get("description") or "")
-    profession_tokens = tokenize_text(f"{profession_name} {profession_description}")
-
-    if not skill_tokens or not profession_tokens:
+    if not skills:
         return 0.0
-
-    exact_overlap = len(skill_tokens & profession_tokens) * 2.0
-
-    fuzzy_overlap = 0.0
-    for skill_token in skill_tokens:
-        for profession_token in profession_tokens:
-            if skill_token == profession_token:
-                continue
-            if skill_token in profession_token or profession_token in skill_token:
-                fuzzy_overlap += 0.5
-            elif skill_token[:4] == profession_token[:4]:
-                fuzzy_overlap += 0.25
-
-    if normalize_text(profession_name) and normalize_text(profession_name) in normalize_text(skills):
-        exact_overlap += 2.0
-
-    return exact_overlap + fuzzy_overlap
+    return profession_cache.score(skills, profession)
 
 
 def select_profession(skills: str | None, professions: list[dict]) -> dict | None:
@@ -177,7 +171,11 @@ def select_profession(skills: str | None, professions: list[dict]) -> dict | Non
 
     best_name = scored_professions[0]["name"]
     return next(
-        (profession for profession in professions if str(profession.get("name") or "") == best_name),
+        (
+            profession
+            for profession in professions
+            if str(profession.get("name") or "") == best_name
+        ),
         professions[0],
     )
 
@@ -212,18 +210,24 @@ class AdmissionDecisionTree:
             raise RuntimeError("Model not trained yet")
 
         selected_profession = select_profession(skills, professions)
-        profession_label = selected_profession["name"] if selected_profession else "general"
+        profession_label = (
+            selected_profession["name"] if selected_profession else "general"
+        )
 
         # Minor → automatic acceptance
         if age is not None and age < 18:
             return {
                 "decision": "ACCEPTED",
                 "confidence": 1.0,
-                "reasoning_path": ["Applicant is a minor — automatic protection policy applied"],
+                "reasoning_path": [
+                    "Applicant is a minor — automatic protection policy applied"
+                ],
                 "profession_category": profession_label,
             }
 
-        features = extract_features(age, skills, health_notes, camp_weights, professions)
+        features = extract_features(
+            age, skills, health_notes, camp_weights, professions
+        )
         X = np.array([features])
 
         scored_professions = get_profession_scores(skills, professions)
@@ -236,7 +240,8 @@ class AdmissionDecisionTree:
         )
 
         decision = self.classifier.predict(X)[0]
-        confidence = float(self.classifier.predict_proba(X).max())
+        proba = cast(np.ndarray, self.classifier.predict_proba(X))
+        confidence = float(proba.max())
         reasoning_path = self._build_reasoning(features, decision, confidence)
 
         return {
@@ -253,11 +258,19 @@ class AdmissionDecisionTree:
         confidence: float,
     ) -> list[str]:
         """Build a human-readable reasoning path from the features evaluated."""
-        age, has_skill_match, best_profession_score, profession_match_coverage, health_score = features
+        (
+            age,
+            has_skill_match,
+            best_profession_score,
+            profession_match_coverage,
+            health_score,
+        ) = features
         reasons = []
 
         # Age
-        reasons.append(f"Age ({int(age)}) — {'meets' if age >= 18 else 'below'} adult threshold (18)")
+        reasons.append(
+            f"Age ({int(age)}) — {'meets' if age >= 18 else 'below'} adult threshold (18)"
+        )
 
         # Skills
         if has_skill_match >= 1:
@@ -266,7 +279,9 @@ class AdmissionDecisionTree:
                 f"(best score: {best_profession_score:.2f}, coverage: {profession_match_coverage:.2f}) ✓"
             )
         else:
-            reasons.append("No relevant match against current camp profession catalog ✗")
+            reasons.append(
+                "No relevant match against current camp profession catalog ✗"
+            )
 
         # Health
         if health_score >= 0.7:
