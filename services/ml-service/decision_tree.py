@@ -74,17 +74,19 @@ class ProfessionEmbeddingCache:
     def __init__(self):
         self._model = SentenceTransformer("all-MiniLM-L6-v2")
         self._cache: dict[int, np.ndarray] = {}
+        self._model.encode("warmup")
 
     def score(self, skills: str, profession: dict) -> float:
-        skills_emb = self._model.encode(skills)
         profession_id: int | None = profession.get("id")
-
         text = f"{profession.get('name', '')}. {profession.get('description', '')}"
 
         if profession_id is not None and profession_id in self._cache:
             profession_emb = self._cache[profession_id]
+            skills_emb = self._model.encode(skills)
         else:
-            profession_emb = self._model.encode(text)
+            embeddings = self._model.encode([skills, text])
+            skills_emb = embeddings[0]
+            profession_emb = embeddings[1]
             if profession_id is not None:
                 self._cache[profession_id] = profession_emb
 
