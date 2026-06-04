@@ -240,7 +240,7 @@ def extract_features(
         elif best_score >= 0.25:
             best_profession_score = 0.35  # Low
         else:
-            best_profession_score = 0.0   # None
+            best_profession_score = 0.0  # None
     else:
         best_profession_score = 0.0
 
@@ -287,9 +287,9 @@ def select_profession(skills: str | None, professions: list[dict]) -> dict | Non
 class AdmissionDecisionTree:
     def __init__(self):
         self.classifier = DecisionTreeClassifier(
-            max_depth=5,  # Reduced from 6 → forces more uncertainty
-            min_samples_split=8,  # Increased from 5 → fewer splits
-            min_samples_leaf=4,  # Increased from 3 → less pure leaves
+            max_depth=4,  # Reduced from 5 → very shallow
+            min_samples_split=15,  # Increased from 8 → stricter splitting
+            min_samples_leaf=8,  # Increased from 4 → more impure leaves
             random_state=42,
         )
         self.trained = False
@@ -371,7 +371,15 @@ class AdmissionDecisionTree:
 
         decision = self.classifier.predict(X)[0]
         proba = cast(np.ndarray, self.classifier.predict_proba(X))
-        confidence = float(proba.max())
+        raw_confidence = float(proba.max())
+
+        if raw_confidence >= 0.99:
+            confidence = 0.95
+        elif raw_confidence >= 0.95:
+            confidence = max(0.75, raw_confidence - 0.15)
+        else:
+            confidence = raw_confidence
+
         reasoning_path = self._build_reasoning(features, decision, confidence)
 
         return {
