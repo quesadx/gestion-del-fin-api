@@ -230,14 +230,17 @@ def extract_features(
     if scored_professions and len(scored_professions) > 0:
         best_score = scored_professions[0]["score"]
         # Quantize to quality tiers (independent of catalog size)
-        if best_score >= 0.50:
-            best_profession_score = 0.80
+        # Keep granularity: more tiers = closer to original continuous values
+        if best_score >= 0.65:
+            best_profession_score = 0.90  # Very high
+        elif best_score >= 0.50:
+            best_profession_score = 0.80  # High
         elif best_score >= 0.35:
-            best_profession_score = 0.55
+            best_profession_score = 0.60  # Medium
         elif best_score >= 0.25:
-            best_profession_score = 0.30
+            best_profession_score = 0.35  # Low
         else:
-            best_profession_score = 0.0
+            best_profession_score = 0.0   # None
     else:
         best_profession_score = 0.0
 
