@@ -163,7 +163,10 @@ class HealthEmbeddingScorer:
 
 class ProfessionEmbeddingCache:
     def __init__(self):
+        # Set seeds for determinism
+        np.random.seed(42)
         self._model = SentenceTransformer("all-MiniLM-L6-v2")
+        self._model.eval()  # Disable dropout for deterministic results
         self._cache: dict[int, np.ndarray] = {}
         self._model.encode("warmup")
         self.health_scorer = HealthEmbeddingScorer(self._model)
@@ -335,12 +338,33 @@ class AdmissionDecisionTree:
 
         scored_professions = get_profession_scores(skills, professions)
         skill_tokens = sorted(tokenize_text(skills))
-        logger.info(
-            "decision_tree_parsing_audit | skills_tokens=%s | top_professions=%s | features=%s",
-            skill_tokens,
-            scored_professions[:5],
-            [round(float(value), 3) for value in features],
-        )
+
+        if scored_professions:
+            best_raw_score = scored_professions[0]["score"]
+            if best_raw_score >= 0.50:
+                tier = "HIGH"
+            elif best_raw_score >= 0.35:
+                tier = "MEDIUM"
+            elif best_raw_score >= 0.25:
+                tier = "LOW"
+            else:
+                tier = "NONE"
+            logger.info(
+                "decision_tree_parsing_audit | skills_tokens=%s | top_professions=%s | "
+                "best_score_raw=%.3f → tier=%s(%.2f) | features=%s",
+                skill_tokens,
+                scored_professions[:5],
+                best_raw_score,
+                tier,
+                features[2],
+                [round(float(value), 3) for value in features],
+            )
+        else:
+            logger.info(
+                "decision_tree_parsing_audit | skills_tokens=%s | no_profession_match | features=%s",
+                skill_tokens,
+                [round(float(value), 3) for value in features],
+            )
 
         decision = self.classifier.predict(X)[0]
         proba = cast(np.ndarray, self.classifier.predict_proba(X))
