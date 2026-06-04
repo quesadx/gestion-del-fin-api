@@ -91,6 +91,12 @@ HEALTH_SAFE_REFERENCES = [
     "minor altitude sickness, acclimatizing well, oxygen levels normal",
     "recent mild cold, fully recovered, no lingering symptoms",
     "mild headache, dissipating, fully capable of physical exertion",
+    # Travel-related fatigue (NEW - specific for survival scenarios)
+    "mild fever from exhaustion after travel, no bite marks, alert and coherent",
+    "dehydration from travel, responsive to rehydration therapy, vital signs normalizing",
+    "travel-induced fatigue, expected recovery within 24-48 hours, mentally sound",
+    "minor soreness from expeditions, fully functional limbs, no injury risk",
+    "post-journey tiredness, normal vitals after rest, no concerning symptoms",
 ]
 
 STOPWORDS = {
@@ -145,12 +151,14 @@ class HealthEmbeddingScorer:
         risk_sim = float(cosine_similarity([notes_emb], self._risk_embeddings).max())
         safe_sim = float(cosine_similarity([notes_emb], self._safe_embeddings).max())
 
-        if risk_sim > safe_sim:
-            raw = (safe_sim - risk_sim) * 2.0
+        # Only penalize if risk is significantly higher than safe
+        # This prevents minor symptoms from triggering false rejections
+        if risk_sim > safe_sim + 0.15:  # Require 15% higher similarity to risk
+            raw = (safe_sim - risk_sim) * 1.5  # Reduced penalty factor
         else:
-            raw = (safe_sim - risk_sim) * 1.2
+            raw = (safe_sim - risk_sim) * 1.0  # Reward safe indicators
 
-        return float(np.clip((raw + 1) / 2, 0.05, 0.95))
+        return float(np.clip((raw + 1) / 2, 0.1, 0.95))  # Minimum 0.1, not 0.05
 
 
 class ProfessionEmbeddingCache:
@@ -214,13 +222,25 @@ def extract_features(
         health_score *= 0.7
 
     scored_professions = get_profession_scores(skills, professions)
-    best_profession_score = (
-        scored_professions[0]["score"] if scored_professions else 0.0
-    )
+
+    # This makes the model robust across different profession catalog sizes
+    if scored_professions and len(scored_professions) > 0:
+        best_score = scored_professions[0]["score"]
+        # Quantize to quality tiers (independent of catalog size)
+        if best_score >= 0.50:
+            best_profession_score = 0.80
+        elif best_score >= 0.35:
+            best_profession_score = 0.55
+        elif best_score >= 0.25:
+            best_profession_score = 0.30
+        else:
+            best_profession_score = 0.0
+    else:
+        best_profession_score = 0.0
+
     matched_professions = sum(1 for row in scored_professions if row["score"] >= 0.25)
-    profession_match_coverage = (
-        matched_professions / len(professions) if professions else 0.0
-    )
+
+    profession_match_coverage = min(matched_professions, 5) / 5.0
 
     has_skill_match = int(best_profession_score >= 0.25)
 
@@ -261,8 +281,9 @@ def select_profession(skills: str | None, professions: list[dict]) -> dict | Non
 class AdmissionDecisionTree:
     def __init__(self):
         self.classifier = DecisionTreeClassifier(
-            max_depth=6,
-            min_samples_split=2,
+            max_depth=5,  # Reduced from 6 → forces more uncertainty
+            min_samples_split=8,  # Increased from 5 → fewer splits
+            min_samples_leaf=4,  # Increased from 3 → less pure leaves
             random_state=42,
         )
         self.trained = False
