@@ -20,15 +20,17 @@ FEATURE_NAMES = [
 
 logger = logging.getLogger("admission_ml_service.decision_tree")
 
-DANGEROUS_HEALTH_KEYWORDS = [
-    "infected",
-    "terminal",
-    "contagious",
-    "plague",
-    "rabies",
-    "undead",
-    "dying",
-    "critical",
+HEALTH_RISK_REFERENCES = [
+    "dangerous infection, bite wound, possible zombie infection",
+    "high fever, tremors, disoriented, aggressive behavior",
+    "refuses medical inspection, hiding injury",
+    "terminal illness, contagious disease, plague symptoms",
+]
+
+HEALTH_SAFE_REFERENCES = [
+    "healthy, no injuries, no fever, no bite marks",
+    "minor injuries, stable condition, fully oriented",
+    "dehydrated but recovering, no infectious symptoms",
 ]
 
 STOPWORDS = {
@@ -70,11 +72,28 @@ def tokenize_text(value: str | None) -> set[str]:
     return {token for token in tokens if len(token) > 2 and token not in STOPWORDS}
 
 
+class HealthEmbeddingScorer:
+    def __init__(self, model: SentenceTransformer):
+        self._model = model
+        self._risk_embeddings = model.encode(HEALTH_RISK_REFERENCES)
+        self._safe_embeddings = model.encode(HEALTH_SAFE_REFERENCES)
+
+    def score(self, health_notes: str | None) -> float:
+        if not health_notes:
+            return 0.8
+        notes_emb = self._model.encode(health_notes)
+        risk_sim = float(cosine_similarity([notes_emb], self._risk_embeddings).max())
+        safe_sim = float(cosine_similarity([notes_emb], self._safe_embeddings).max())
+        raw = safe_sim - risk_sim
+        return float(np.clip((raw + 1) / 2, 0.05, 0.95))
+
+
 class ProfessionEmbeddingCache:
     def __init__(self):
         self._model = SentenceTransformer("all-MiniLM-L6-v2")
         self._cache: dict[int, np.ndarray] = {}
         self._model.encode("warmup")
+        self.health_scorer = HealthEmbeddingScorer(self._model)
 
     def score(self, skills: str, profession: dict) -> float:
         profession_id: int | None = profession.get("id")
@@ -125,17 +144,9 @@ def extract_features(
     resolved_age = age if age is not None else 25
 
     # Health score
-    health_lower = (health_notes or "").lower()
-    if any(kw in health_lower for kw in DANGEROUS_HEALTH_KEYWORDS):
-        health_score = 0.1
-    elif health_notes:
-        health_score = 0.7  # Has notes but nothing dangerous
-    else:
-        health_score = 0.8  # No notes = assumed healthy
-
-    # Apply strict health check from camp weights
-    if camp_weights.get("strict_health_check") and health_score < 0.6:
-        health_score *= 0.5
+    health_score = profession_cache.health_scorer.score(health_notes)
+    if camp_weights.get("strict_health_check"):
+        health_score *= 0.7
 
     scored_professions = get_profession_scores(skills, professions)
     best_profession_score = (
