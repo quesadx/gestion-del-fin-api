@@ -67,6 +67,9 @@ def get_training_data(n_professions: int = 4) -> pd.DataFrame:
                     S_noisy = S + random.uniform(-0.15, 0.15)
                     decision = "ACCEPTED" if S_noisy > 1.25 else "REJECTED"
 
+        if age >= 18 and random.random() < 0.08:
+            decision = "REJECTED" if decision == "ACCEPTED" else "ACCEPTED"
+
         data.append(
             (
                 age,

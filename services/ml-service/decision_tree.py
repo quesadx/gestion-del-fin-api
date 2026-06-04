@@ -163,91 +163,119 @@ class HealthEmbeddingScorer:
 
 class ProfessionEmbeddingCache:
     def __init__(self):
-        # Set seeds for determinism
         np.random.seed(42)
         self._model = SentenceTransformer("all-MiniLM-L6-v2")
-        self._model.eval()  # Disable dropout for deterministic results
-        self._cache: dict[int, np.ndarray] = {}
+        self._model.eval()
+        self._profession_cache: dict[int, np.ndarray] = {}
+        self._skills_cache: dict[str, np.ndarray] = {}
         self._model.encode("warmup")
         self.health_scorer = HealthEmbeddingScorer(self._model)
 
+    def get_skills_embedding(self, skills: str) -> np.ndarray:
+        if skills not in self._skills_cache:
+            self._skills_cache[skills] = self._model.encode(skills)
+        return self._skills_cache[skills]
+
+    def batch_score_professions(
+        self, skills: str | None, professions: list[dict]
+    ) -> list[dict]:
+        if not skills or not professions:
+            return [
+                {
+                    "id": p.get("id"),
+                    "name": str(p.get("name") or ""),
+                    "score": 0.0,
+                }
+                for p in (professions or [])
+            ]
+
+        skills_emb = self.get_skills_embedding(skills)
+
+        uncached = [
+            (i, p)
+            for i, p in enumerate(professions)
+            if p.get("id") is not None and p["id"] not in self._profession_cache
+        ]
+        if uncached:
+            texts = [
+                f"{p.get('name', '')}. {p.get('description', '')}" for _, p in uncached
+            ]
+            for (_, p), emb in zip(uncached, self._model.encode(texts)):
+                self._profession_cache[p["id"]] = emb
+
+        results = []
+        for p in professions:
+            pid = p.get("id")
+            if pid is not None and pid in self._profession_cache:
+                score = float(
+                    cosine_similarity([skills_emb], [self._profession_cache[pid]])[0][0]
+                )
+            else:
+                score = 0.0
+            results.append(
+                {
+                    "id": pid,
+                    "name": str(p.get("name") or ""),
+                    "score": round(score, 3),
+                }
+            )
+
+        return sorted(results, key=lambda r: r["score"], reverse=True)
+
     def score(self, skills: str, profession: dict) -> float:
-        profession_id: int | None = profession.get("id")
+        pid = profession.get("id")
         text = f"{profession.get('name', '')}. {profession.get('description', '')}"
+        skills_emb = self.get_skills_embedding(skills)
 
-        if profession_id is not None and profession_id in self._cache:
-            profession_emb = self._cache[profession_id]
-            skills_emb = self._model.encode(skills)
+        if pid is not None and pid in self._profession_cache:
+            prof_emb = self._profession_cache[pid]
         else:
-            embeddings = self._model.encode([skills, text])
-            skills_emb = embeddings[0]
-            profession_emb = embeddings[1]
-            if profession_id is not None:
-                self._cache[profession_id] = profession_emb
+            prof_emb = self._model.encode(text)
+            if pid is not None:
+                self._profession_cache[pid] = prof_emb
 
-        return float(cosine_similarity([skills_emb], [profession_emb])[0][0])
+        return float(cosine_similarity([skills_emb], [prof_emb])[0][0])
 
     def invalidate(self, profession_id: int) -> None:
-        self._cache.pop(profession_id, None)
+        self._profession_cache.pop(profession_id, None)
 
 
 profession_cache = ProfessionEmbeddingCache()
 
 
 def get_profession_scores(skills: str | None, professions: list[dict]) -> list[dict]:
-    score_rows = []
-    for profession in professions:
-        score_rows.append(
-            {
-                "id": profession.get("id"),
-                "name": str(profession.get("name") or ""),
-                "score": round(score_profession_match(skills, profession), 3),
-            }
-        )
-    return sorted(score_rows, key=lambda row: row["score"], reverse=True)
+    return profession_cache.batch_score_professions(skills, professions)
 
 
 def extract_features(
     age: int | None,
-    skills: str | None,
     health_notes: str | None,
     camp_weights: dict,
-    professions: list[dict],
+    scored_professions: list[dict],
 ) -> list[float]:
-    """Convert raw applicant data into numeric features for the tree."""
-
-    # Age
     resolved_age = age if age is not None else 25
 
-    # Health score
     health_score = profession_cache.health_scorer.score(health_notes)
     if camp_weights.get("strict_health_check"):
         health_score *= 0.7
 
-    scored_professions = get_profession_scores(skills, professions)
-
-    # This makes the model robust across different profession catalog sizes
     if scored_professions and len(scored_professions) > 0:
         best_score = scored_professions[0]["score"]
-        # Quantize to quality tiers (independent of catalog size)
-        # Keep granularity: more tiers = closer to original continuous values
         if best_score >= 0.65:
-            best_profession_score = 0.90  # Very high
+            best_profession_score = 0.90
         elif best_score >= 0.50:
-            best_profession_score = 0.80  # High
+            best_profession_score = 0.80
         elif best_score >= 0.35:
-            best_profession_score = 0.60  # Medium
+            best_profession_score = 0.60
         elif best_score >= 0.25:
-            best_profession_score = 0.35  # Low
+            best_profession_score = 0.35
         else:
-            best_profession_score = 0.0  # None
+            best_profession_score = 0.0
     else:
         best_profession_score = 0.0
 
     matched_professions = sum(1 for row in scored_professions if row["score"] >= 0.25)
-
     profession_match_coverage = min(matched_professions, 5) / 5.0
-
     has_skill_match = int(best_profession_score >= 0.25)
 
     return [
@@ -269,11 +297,11 @@ def select_profession(skills: str | None, professions: list[dict]) -> dict | Non
     if not professions:
         return None
 
-    scored_professions = get_profession_scores(skills, professions)
-    if not scored_professions:
+    scored = profession_cache.batch_score_professions(skills, professions)
+    if not scored:
         return professions[0]
 
-    best_name = scored_professions[0]["name"]
+    best_name = scored[0]["name"]
     return next(
         (
             profession
@@ -323,7 +351,6 @@ class AdmissionDecisionTree:
             selected_profession["name"] if selected_profession else "general"
         )
 
-        # Minor → automatic acceptance
         if age is not None and age < 18:
             return {
                 "decision": "ACCEPTED",
@@ -334,12 +361,12 @@ class AdmissionDecisionTree:
                 "profession_category": profession_label,
             }
 
-        features = extract_features(
-            age, skills, health_notes, camp_weights, professions
+        scored_professions = profession_cache.batch_score_professions(
+            skills, professions
         )
-        X = np.array([features])
 
-        scored_professions = get_profession_scores(skills, professions)
+        features = extract_features(age, health_notes, camp_weights, scored_professions)
+
         skill_tokens = sorted(tokenize_text(skills))
 
         if scored_professions:
@@ -369,16 +396,10 @@ class AdmissionDecisionTree:
                 [round(float(value), 3) for value in features],
             )
 
+        X = np.array([features])
         decision = self.classifier.predict(X)[0]
         proba = cast(np.ndarray, self.classifier.predict_proba(X))
-        raw_confidence = float(proba.max())
-
-        if raw_confidence >= 0.99:
-            confidence = 0.95
-        elif raw_confidence >= 0.95:
-            confidence = max(0.75, raw_confidence - 0.15)
-        else:
-            confidence = raw_confidence
+        confidence = float(proba.max())
 
         reasoning_path = self._build_reasoning(features, decision, confidence)
 
