@@ -6,6 +6,8 @@ import { createPerson } from '../people/people.service.js';
 import { AppError } from '../../shared/utils/appError.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
 
+const AI_AUTO_ACCEPT_THRESHOLD = 0.85;
+
 function prepareAdmissionCreateData(
   campId: number,
   data: CreateAdmissionDTO,
@@ -59,6 +61,61 @@ async function generateIdentificationCode(
   return `${prefix}-${String(nextNumber).padStart(3, '0')}`;
 }
 
+async function autoAcceptAdmission(
+  campId: number,
+  data: CreateAdmissionDTO,
+  aiResult: AdmissionAIResult,
+  createdBy: number,
+) {
+  const professionId = aiResult.ai_profession_id;
+  if (!professionId) {
+    throw new AppError('Cannot auto-accept: no profession assigned by AI', 400);
+  }
+
+  return await prisma.$transaction(async (tx) => {
+    const admission = await tx.admission_requests.create({
+      data: {
+        ...prepareAdmissionCreateData(campId, data, aiResult),
+        admitted_by: 'AI',
+        final_decision: 'ACCEPTED',
+      },
+    });
+
+    const identificationCode = await generateIdentificationCode(tx, professionId);
+
+    const person = await createPerson(
+      campId,
+      {
+        full_name: data.applicant_name,
+        age: data.applicant_age ?? undefined,
+        skills_summary: data.applicant_skills ?? undefined,
+        profession_id: professionId,
+        camp_id: campId,
+        admitted_at: new Date().toISOString(),
+        identification_code: identificationCode,
+        photo_url: data.photo_url ?? undefined,
+      },
+      createdBy,
+      tx,
+    );
+
+    const linkedAdmission = await tx.admission_requests.update({
+      where: { id: admission.id },
+      data: { person_id: person.id },
+    });
+
+    auditLog({
+      userId: createdBy,
+      campId,
+      action: 'REVIEW_ADMISSION',
+      targetType: 'admission_requests',
+      targetId: admission.id,
+    });
+
+    return linkedAdmission;
+  });
+}
+
 export async function createAdmission(campId: number, data: CreateAdmissionDTO, createdBy: number) {
   const camp = await prisma.camps.findUnique({
     where: { id: campId },
@@ -83,7 +140,6 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO, 
       professions,
     );
   } catch (error) {
-    // Fallback: Mark for manual review when AI evaluation fails
     aiResult = {
       ai_decision: 'PENDING',
       ai_reasoning: `AI evaluation unavailable: ${(error as Error)?.message ?? 'Service error'}. Manual review required.`,
@@ -93,15 +149,16 @@ export async function createAdmission(campId: number, data: CreateAdmissionDTO, 
     };
   }
 
-  // Validate that the AI-suggested profession exists in this camp's professions list.
-  // Guards against edge cases where the AI returns a fallback ID (e.g. 1) that does not
-  // belong to the current camp, which would cause the admission to be stuck on review.
   const aiProfession = professions.find((p) => p.id === aiResult.ai_profession_id);
   if (!aiProfession) {
     throw new AppError(
       `AI-suggested profession ID ${aiResult.ai_profession_id} not found in camp's professions`,
       400,
     );
+  }
+
+  if (aiResult.ai_decision === 'ACCEPTED' && aiResult.ai_confidence > AI_AUTO_ACCEPT_THRESHOLD) {
+    return await autoAcceptAdmission(campId, data, aiResult, createdBy);
   }
 
   const admission = await prisma.admission_requests.create({
