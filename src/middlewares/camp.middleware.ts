@@ -31,45 +31,20 @@ async function hasAdminBypass(userId: number): Promise<boolean> {
 }
 
 /**
- * Extracts a camp ID from known URL patterns used by camp-scoped routes.
+ * Extracts a camp ID from URL for routes where :id represents a camp ID.
  *
- * Handles these route families:
- *   - /camps/<id>[/...]           (camp-scoped resource routes)
- *   - /inventory/audit/<id>[/...] (audit routes)
- *   - /inventory/<id>[/...]       (inventory lookup by camp)
- *   - /admission/camps/<id>[/...] (admission by camp)
- *   - /resources/<id>[/...]       (resources scoped to camp)
- *   - /expeditions/<id>[/...]     (expeditions scoped to camp)
- *   - /professions/<id>[/...]     (professions scoped to camp)
- *   - /transfers/<id>[/...]       (transfers scoped to camp)
- *   - /users/<id>[/...]           (users scoped to camp)
- *   - /roles/<id>[/...]           (roles scoped to camp)
- *   - /permissions/<id>[/...]     (permissions scoped to camp)
- *   - /metrics/<id>[/...]         (metrics scoped to camp)
+ * Only /camps/:id uses :id as camp ID — all other camp-scoped routes
+ * (inventory, admission) use :campId as the param name, handled by
+ * req.params.campId directly.
  *
- * Query strings are stripped before matching to avoid false-positive
- * camp ID extraction from user-supplied query parameters.
+ * Routes like /resources/:id, /transfers/:id, /expeditions/:id etc. use :id
+ * for entity IDs, not camp IDs, so they are intentionally excluded.
  */
 function extractCampIdFromUrl(url: string): number | null {
   const pathOnly = url.split('?')[0];
-  const match = pathOnly.match(
-    /\/(?:camps\/(\d+)|inventory\/audit\/(\d+)|inventory\/(\d+)|admission\/camps\/(\d+)|resources\/(\d+)|expeditions\/(\d+)|professions\/(\d+)|transfers\/(\d+)|users\/(\d+)|roles\/(\d+)|permissions\/(\d+)|metrics\/(\d+))(?:\/|$)/,
-  );
+  const match = pathOnly.match(/\/camps\/(\d+)(?:\/|$)/);
   if (!match) return null;
-  const id =
-    match[1] ||
-    match[2] ||
-    match[3] ||
-    match[4] ||
-    match[5] ||
-    match[6] ||
-    match[7] ||
-    match[8] ||
-    match[9] ||
-    match[10] ||
-    match[11] ||
-    match[12];
-  return id ? Number(id) : null;
+  return match[1] ? Number(match[1]) : null;
 }
 
 export const campMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
