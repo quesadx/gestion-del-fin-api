@@ -59,7 +59,7 @@ export const createExplorationSchema = explorationBaseSchema.superRefine((data, 
 });
 
 export const updateExplorationSchema = explorationBaseSchema
-  .omit({ status: true })
+  .omit({ status: true, camp_id: true, created_by: true })
   .partial()
   .strict();
 

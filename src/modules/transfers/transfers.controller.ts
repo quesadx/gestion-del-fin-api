@@ -13,7 +13,13 @@ import {
 } from './transfers.service.js';
 
 export async function createTransferHandler(req: Request, res: Response) {
-  const result = await createTransfer(req.body);
+  const authReq = req as AuthenticatedRequest;
+  const body = {
+    ...req.body,
+    requested_by: authReq.user.userId,
+    requesting_camp: authReq.user.campId,
+  };
+  const result = await createTransfer(body);
   return res.status(201).json(result);
 }
 
@@ -28,8 +34,9 @@ export async function listTransfersHandler(req: Request, res: Response) {
 }
 
 export async function getTransferHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
-  const result = await getTransfer(id);
+  const result = await getTransfer(id, authReq.user.campId);
   return res.json(result);
 }
 
