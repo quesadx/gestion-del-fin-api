@@ -44,6 +44,8 @@ model admission_requests {
   correction_reason       String?                           @db.VarChar(255)
   person_id               Int?
   reviewed_by             Int?
+  /// Identifies auto-admission by AI ('AI'), null otherwise
+  admitted_by             String?                           @db.VarChar(10)
   /// Human reviewer's final override decision
   final_decision          admission_requests_final_decision @default(PENDING)
   reviewed_at             DateTime?
