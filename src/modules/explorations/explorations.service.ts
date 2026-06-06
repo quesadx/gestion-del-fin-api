@@ -347,8 +347,6 @@ function prepareUpdateData(data: UpdateExplorationDto) {
     max_return_date: maxReturnDate,
     actual_return_date: actualReturnDate,
     notes: data.notes?.trim(),
-    camps: data.camp_id ? { connect: { id: data.camp_id } } : undefined,
-    users: data.created_by ? { connect: { id: data.created_by } } : undefined,
   };
 }
 
@@ -442,8 +440,6 @@ export async function createExploration(data: CreateExplorationDto) {
 export async function updateExploration(id: number, data: UpdateExplorationDto) {
   const expedition = await prisma.expeditions.findUnique({ where: { id } });
   if (!expedition) throw new AppError(`Expedition not found: ${id}`, 404);
-
-  await validateReferences(data.camp_id, data.created_by);
 
   const departureDate = parseDate(data.departure_date) ?? expedition.departure_date;
   const expectedReturnDate =

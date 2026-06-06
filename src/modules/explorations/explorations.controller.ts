@@ -11,7 +11,13 @@ import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 
 export async function createExplorationHandler(req: Request, res: Response) {
-  const result = await createExploration(req.body);
+  const authReq = req as AuthenticatedRequest;
+  const body = {
+    ...req.body,
+    camp_id: authReq.user.campId,
+    created_by: authReq.user.userId,
+  };
+  const result = await createExploration(body);
   return res.status(201).json(result);
 }
 
@@ -22,14 +28,24 @@ export async function updateExplorationHandler(req: Request, res: Response) {
 }
 
 export async function updateExplorationStatusHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
-  const result = await updateExpeditionStatus(id, req.body);
+  const body = {
+    ...req.body,
+    changed_by: authReq.user.userId,
+  };
+  const result = await updateExpeditionStatus(id, body);
   return res.json(result);
 }
 
 export async function deleteExplorationHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
-  await deleteExploration(id, req.body);
+  const body = {
+    ...req.body,
+    changed_by: authReq.user.userId,
+  };
+  await deleteExploration(id, body);
   return res.status(204).send();
 }
 

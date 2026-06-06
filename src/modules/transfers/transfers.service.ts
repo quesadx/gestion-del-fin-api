@@ -628,7 +628,7 @@ export async function rejectTransfer(
     });
 }
 
-export async function getTransfer(id: number) {
+export async function getTransfer(id: number, userCampId?: number) {
   const transfer = await prisma.camp_transfers.findUnique({
     where: { id },
     include: {
@@ -638,6 +638,14 @@ export async function getTransfer(id: number) {
 
   if (!transfer) {
     throw new AppError(`Transfer not found: ${id}`, 404);
+  }
+
+  if (
+    userCampId &&
+    userCampId !== transfer.requesting_camp &&
+    userCampId !== transfer.target_camp
+  ) {
+    throw new AppError('Forbidden', 403);
   }
 
   return transfer;
