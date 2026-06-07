@@ -96,6 +96,7 @@ model camp_transfers {
   notes                   String?               @db.Text
   requested_by            Int
   leader_person_id        Int?
+  required_profession_id  Int?
   scheduled_delivery_date DateTime?
   approved_by_source      Int?
   approved_by_target      Int?
@@ -104,12 +105,14 @@ model camp_transfers {
   created_at              DateTime              @default(now())
   updated_at              DateTime              @updatedAt
   camp_transfer_items     camp_transfer_items[]
+  person_transfer_logs    person_transfer_logs[]
   approved_by_source_ref  users?                @relation("transfer_approved_by_source", fields: [approved_by_source], references: [id], onDelete: SetNull, onUpdate: Cascade)
   approved_by_target_ref  users?                @relation("transfer_approved_by_target", fields: [approved_by_target], references: [id], onDelete: SetNull, onUpdate: Cascade)
   requested_by_ref        users                 @relation("transfer_requested_by", fields: [requested_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
   requesting_camp_ref     camps                 @relation("transfer_requesting_camp", fields: [requesting_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
   target_camp_ref         camps                 @relation("transfer_target_camp", fields: [target_camp], references: [id], onDelete: Restrict, onUpdate: Cascade)
   leader_person_ref       people?               @relation("transfer_leader", fields: [leader_person_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  required_profession     professions?          @relation(fields: [required_profession_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([approved_by_source], map: "camp_transfers_approved_by_source_idx")
   @@index([approved_by_target], map: "camp_transfers_approved_by_target_idx")
@@ -117,6 +120,7 @@ model camp_transfers {
   @@index([requesting_camp], map: "camp_transfers_requesting_camp_idx")
   @@index([target_camp], map: "camp_transfers_target_camp_idx")
   @@index([leader_person_id], map: "camp_transfers_leader_person_id_idx")
+  @@index([required_profession_id], map: "camp_transfers_required_profession_id_idx")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -138,6 +142,8 @@ model camps {
   inventory_logs                 inventory_logs[]
   inventory_adjustment_requests  inventory_adjustment_requests[]
   persons                        people[]
+  origin_person_transfer_logs    person_transfer_logs[] @relation("person_transfer_origin")
+  destination_person_transfer_logs person_transfer_logs[] @relation("person_transfer_destination")
   users                          users[]
 }
 
@@ -333,6 +339,27 @@ model person_status_logs {
   @@map("person_status_log")
 }
 
+model person_transfer_logs {
+  id                  Int      @id @default(autoincrement())
+  person_id           Int
+  transfer_id         Int
+  origin_camp_id       Int
+  destination_camp_id  Int
+  changed_by          Int
+  transferred_at      DateTime @default(now())
+  persons             people   @relation(fields: [person_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  camp_transfers      camp_transfers @relation(fields: [transfer_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  origin_camp         camps    @relation("person_transfer_origin", fields: [origin_camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  destination_camp    camps    @relation("person_transfer_destination", fields: [destination_camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  users               users    @relation(fields: [changed_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([person_id], map: "person_transfer_logs_person_id_idx")
+  @@index([transfer_id], map: "person_transfer_logs_transfer_id_idx")
+  @@index([origin_camp_id], map: "person_transfer_logs_origin_camp_id_idx")
+  @@index([destination_camp_id], map: "person_transfer_logs_destination_camp_id_idx")
+  @@map("person_transfer_log")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model people {
   id                          Int                           @id @default(autoincrement())
@@ -354,6 +381,7 @@ model people {
   contribution_overrides      contribution_overrides[]
   expedition_members          expedition_members[]
   person_status_logs          person_status_logs[]
+  person_transfer_logs        person_transfer_logs[]
   camps                       camps                         @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   professions                 professions                   @relation(fields: [profession_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   profession_reassignment_logs profession_reassignment_logs[]
@@ -398,6 +426,7 @@ model professions {
   from_profession_logs          profession_reassignment_logs[]  @relation("profession_log_from_profession")
   to_profession_logs            profession_reassignment_logs[]  @relation("profession_log_to_profession")
   professions_resources_amounts professions_resources_amounts[]
+  required_profession_transfers camp_transfers[]
 }
 
 model professions_resources_amounts {
@@ -515,6 +544,7 @@ model users {
   inventory_adjustment_requests_created  inventory_adjustment_requests[] @relation("adjustment_request_creator")
   inventory_adjustment_requests_reviewed inventory_adjustment_requests[] @relation("adjustment_request_reviewer")
   person_status_logs           person_status_logs[]
+  person_transfer_logs         person_transfer_logs[]
   user_achievements            user_achievements[]
   achievement_notifications   achievement_notifications[]
   camps                        camps                    @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)

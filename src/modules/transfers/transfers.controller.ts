@@ -36,7 +36,8 @@ export async function listTransfersHandler(req: Request, res: Response) {
 export async function getTransferHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   const id = parseIdParam(req.params.id);
-  const result = await getTransfer(id, authReq.user.campId);
+  const campId = authReq.user.isAdmin ? undefined : authReq.user.campId;
+  const result = await getTransfer(id, campId);
   return res.json(result);
 }
 
