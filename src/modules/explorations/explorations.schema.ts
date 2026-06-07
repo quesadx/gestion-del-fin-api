@@ -63,15 +63,21 @@ export const updateExplorationSchema = explorationBaseSchema
   .partial()
   .strict();
 
+const memberOutcomeSchema = z.object({
+  person_id: z.number().int().positive(),
+  status: personStatusEnum,
+});
+
 export const updateExplorationStatusSchema = z
   .object({
     status: expeditionStatusEnum,
     actual_return_date: dateStringSchema.optional(),
     notes: z.string().optional(),
     changed_by: z.number().int().positive(),
-    resources_to_return: z.array(resourceAllocationSchema).optional(),
-    members: z.array(explorationMemberSchema).optional(),
-    return_member_status: personStatusEnum.optional(),
+    returned_allocated_resources: z.array(resourceAllocationSchema).optional(),
+    found_resources: z.array(resourceAllocationSchema).optional(),
+    default_member_status: personStatusEnum.optional(),
+    member_outcomes: z.array(memberOutcomeSchema).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.status === 'RETURNED' && !data.actual_return_date) {
@@ -85,7 +91,8 @@ export const updateExplorationStatusSchema = z
 
 export const deleteExplorationSchema = z.object({
   changed_by: z.number({ message: 'changed_by is required' }).int().positive(),
-  return_member_status: personStatusEnum.optional(),
+  default_member_status: personStatusEnum.optional(),
+  member_outcomes: z.array(memberOutcomeSchema).optional(),
 });
 
 export type CreateExplorationDto = z.infer<typeof createExplorationSchema>;

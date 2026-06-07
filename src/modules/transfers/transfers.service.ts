@@ -4,6 +4,10 @@ import { AppError } from '../../shared/utils/appError.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
 import { logger } from '../../logger/logger.js';
 import * as achievementService from '../achievements/achievements.service.js';
+
+const RATION_RESOURCE_TYPE_NAME = process.env.RATION_RESOURCE_TYPE_NAME ?? 'FOOD_RATION';
+const RATION_PER_PERSON_PER_DAY = Number(process.env.RATION_PER_PERSON_PER_DAY) || 2;
+const RATION_TRAVEL_DAYS = Number(process.env.RATION_TRAVEL_DAYS) || 3;
 import {
   ApproveTransferSourceDto,
   ApproveTransferTargetDto,
@@ -110,8 +114,11 @@ async function ensurePeopleExistInSourceCamp(
       throw new AppError(`Person ${person.id} does not belong to source camp ${sourceCampId}`, 400);
     }
 
-    if (person.status === 'DEAD') {
-      throw new AppError(`Person ${person.id} cannot be transferred (status DEAD)`, 400);
+    if (person.status !== 'HEALTHY') {
+      throw new AppError(
+        `Person ${person.id} cannot be transferred (status ${person.status}). Only HEALTHY people can be transferred.`,
+        400,
+      );
     }
   }
 }
@@ -255,6 +262,14 @@ async function applyPeopleTransfer(
     throw new AppError('One or more transfer people do not exist', 404);
   }
 
+  const personTransferLogs: Array<{
+    person_id: number;
+    transfer_id: number;
+    origin_camp_id: number;
+    destination_camp_id: number;
+    changed_by: number;
+  }> = [];
+
   for (const person of people) {
     if (person.camp_id !== input.sourceCampId) {
       throw new AppError(
@@ -282,6 +297,18 @@ async function applyPeopleTransfer(
         },
       });
     }
+
+    personTransferLogs.push({
+      person_id: person.id,
+      transfer_id: input.transferId,
+      origin_camp_id: input.sourceCampId,
+      destination_camp_id: input.targetCampId,
+      changed_by: input.changedBy,
+    });
+  }
+
+  if (personTransferLogs.length > 0) {
+    await tx.person_transfer_logs.createMany({ data: personTransferLogs });
   }
 }
 
@@ -315,6 +342,32 @@ export async function createTransfer(data: CreateTransferDto) {
         throw new AppError('requested_by must belong to requesting_camp', 400);
       }
 
+      if (data.required_profession_id) {
+        const profession = await tx.professions.findUnique({
+          where: { id: data.required_profession_id },
+          select: { id: true },
+        });
+        if (!profession) {
+          throw new AppError(`Required profession not found: ${data.required_profession_id}`, 404);
+        }
+
+        if (personIds.length > 0) {
+          const people = await tx.people.findMany({
+            where: { id: { in: personIds } },
+            select: { id: true, profession_id: true },
+          });
+
+          for (const person of people) {
+            if (person.profession_id !== data.required_profession_id) {
+              throw new AppError(
+                `Person ${person.id} does not match required profession. Expected profession_id: ${data.required_profession_id}`,
+                400,
+              );
+            }
+          }
+        }
+      }
+
       const transfer = await tx.camp_transfers.create({
         data: {
           requesting_camp: data.requesting_camp,
@@ -324,6 +377,7 @@ export async function createTransfer(data: CreateTransferDto) {
           notes: data.notes?.trim(),
           requested_by: data.requested_by,
           leader_person_id: data.leader_person_id,
+          required_profession_id: data.required_profession_id,
           scheduled_delivery_date: scheduledDeliveryDate,
         },
       });
@@ -537,6 +591,36 @@ export async function completeTransfer(
 
       if (personIds.length > 0 && resourceItems.length === 0) {
         throw new AppError('Person transfer must include travel rations (RESOURCE items)', 400);
+      }
+
+      if (personIds.length > 0) {
+        const rationType = await tx.resource_types.findUnique({
+          where: { name: RATION_RESOURCE_TYPE_NAME },
+          select: { id: true },
+        });
+
+        if (!rationType) {
+          throw new AppError(
+            `Travel ration resource type "${RATION_RESOURCE_TYPE_NAME}" not found. Configure RATION_RESOURCE_TYPE_NAME environment variable.`,
+            400,
+          );
+        }
+
+        const rationItem = resourceItems.find((r) => r.resource_type_id === rationType.id);
+        if (!rationItem) {
+          throw new AppError(
+            `Travel rations (${RATION_RESOURCE_TYPE_NAME}) are required for person transfers`,
+            400,
+          );
+        }
+
+        const minimumRations = personIds.length * RATION_PER_PERSON_PER_DAY * RATION_TRAVEL_DAYS;
+        if (rationItem.quantity < minimumRations) {
+          throw new AppError(
+            `Insufficient travel rations. Minimum required: ${minimumRations} (${personIds.length} people × ${RATION_PER_PERSON_PER_DAY} rations/day × ${RATION_TRAVEL_DAYS} days). Provided: ${rationItem.quantity}`,
+            400,
+          );
+        }
       }
 
       await applyResourceTransfer(tx, {

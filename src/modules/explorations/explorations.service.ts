@@ -11,6 +11,7 @@ import {
   UpdateExplorationStatusDto,
   DeleteExplorationDto,
 } from './explorations.schema.js';
+import { persons_status } from '../../generated/prisma/enums.js';
 
 function parseDate(dateStr?: string) {
   if (!dateStr) return undefined;
@@ -128,8 +129,11 @@ async function validateMembers(tx: Prisma.TransactionClient, campId: number, mem
       throw new AppError(`Person ${person.id} does not belong to camp ${campId}`, 400);
     }
 
-    if (person.status === 'DEAD') {
-      throw new AppError(`Person ${person.id} cannot join an expedition (status DEAD)`, 400);
+    if (person.status !== 'HEALTHY') {
+      throw new AppError(
+        `Person ${person.id} cannot join an expedition (status ${person.status}). Only HEALTHY people can be assigned.`,
+        400,
+      );
     }
   }
 }
@@ -259,6 +263,7 @@ export async function handleResourceReturn(
     loggedBy: number;
     expeditionId: number;
     resources: Array<{ resource_type_id: number; amount: number }>;
+    description?: string;
   },
 ) {
   const client = tx as unknown as typeof prisma;
@@ -266,6 +271,8 @@ export async function handleResourceReturn(
   const resourceIds = Array.from(aggregatedResources.keys());
 
   if (resourceIds.length === 0) return;
+
+  const desc = input.description ?? `Expedition #${input.expeditionId} resource return`;
 
   for (const resourceId of resourceIds) {
     const amount = aggregatedResources.get(resourceId)!;
@@ -295,7 +302,7 @@ export async function handleResourceReturn(
         logged_by: input.loggedBy,
         log_type: 'EXPEDITION_IN',
         quantity_change: amount,
-        description: `Expedition #${input.expeditionId} resource return`,
+        description: desc,
       },
     });
   }
@@ -483,47 +490,12 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
     return await prisma
       .$transaction(async (tx: Prisma.TransactionClient) => {
         const client = tx as unknown as typeof prisma;
-        let resourcesToReturn = data.resources_to_return ?? [];
-
-        if (data.status === 'RETURNED' && resourcesToReturn.length === 0) {
-          const allocated = await client.expedition_allocated_resources.findMany({
-            where: { expedition_id: id },
-            select: { resource_type_id: true, amount: true },
-          });
-
-          resourcesToReturn = allocated.map((resource) => ({
-            resource_type_id: resource.resource_type_id,
-            amount: asNumber(resource.amount),
-          }));
-        }
-
-        const normalizedResourcesToReturn = Array.from(aggregateResources(resourcesToReturn)).map(
-          ([resource_type_id, amount]) => ({ resource_type_id, amount }),
-        );
-
         const expeditionMemberIds = await getExpeditionMemberIds(tx, id);
 
-        let memberIds = expeditionMemberIds;
-        if (data.members) {
-          const requestedMemberIds = Array.from(
-            new Set(data.members.map((member) => member.person_id)),
-          );
-          const expeditionMemberSet = new Set(expeditionMemberIds);
-
-          for (const memberId of requestedMemberIds) {
-            if (!expeditionMemberSet.has(memberId)) {
-              throw new AppError(`Person ${memberId} is not a member of expedition ${id}`, 400);
-            }
-          }
-
-          await validateMembers(tx, expedition.camp_id, requestedMemberIds);
-          memberIds = requestedMemberIds;
-        }
-
-        if (data.status === 'ONGOING' && memberIds.length > 0) {
+        if (data.status === 'ONGOING' && expeditionMemberIds.length > 0) {
           await changeMemberStatus(
             tx,
-            memberIds,
+            expeditionMemberIds,
             'AWAY',
             data.changed_by,
             `Expedition #${id} switched to ONGOING`,
@@ -531,33 +503,130 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
         }
 
         if (data.status === 'RETURNED' || data.status === 'CANCELLED') {
-          if (memberIds.length > 0) {
-            await changeMemberStatus(
-              tx,
-              memberIds,
-              data.return_member_status ?? 'HEALTHY',
-              data.changed_by,
-              `Expedition #${id} switched to ${data.status}`,
-            );
+          const memberOutcomes = data.member_outcomes ?? [];
+          const defaultStatus = data.default_member_status;
+          const outcomeMap = new Map<number, string>();
+
+          for (const outcome of memberOutcomes) {
+            if (!expeditionMemberIds.includes(outcome.person_id)) {
+              throw new AppError(
+                `Person ${outcome.person_id} is not a member of expedition ${id}`,
+                400,
+              );
+            }
+            outcomeMap.set(outcome.person_id, outcome.status);
+          }
+
+          const membersToUpdate: Array<{ person_id: number; status: string }> = [];
+          for (const memberId of expeditionMemberIds) {
+            if (outcomeMap.has(memberId)) {
+              membersToUpdate.push({ person_id: memberId, status: outcomeMap.get(memberId)! });
+            } else if (defaultStatus) {
+              membersToUpdate.push({ person_id: memberId, status: defaultStatus });
+            } else if (data.status === 'RETURNED') {
+              throw new AppError(
+                `Member ${memberId} has no defined outcome. Provide default_member_status or include person_id in member_outcomes`,
+                400,
+              );
+            }
+          }
+
+          for (const member of membersToUpdate) {
+            const person = await client.people.findUnique({
+              where: { id: member.person_id },
+              select: { status: true },
+            });
+
+            if (person && person.status !== member.status) {
+              await client.people.update({
+                where: { id: member.person_id },
+                data: { status: member.status as persons_status },
+              });
+
+              await client.person_status_logs.create({
+                data: {
+                  person_id: member.person_id,
+                  old_status: person.status,
+                  new_status: member.status as persons_status,
+                  reason: `Expedition #${id} switched to ${data.status}`,
+                  changed_by: data.changed_by,
+                },
+              });
+            }
           }
         }
 
-        if (data.status === 'RETURNED' && normalizedResourcesToReturn.length > 0) {
-          await handleResourceReturn(tx, {
-            campId: expedition.camp_id,
-            loggedBy: data.changed_by,
-            expeditionId: id,
-            resources: normalizedResourcesToReturn,
-          });
+        if (data.status === 'RETURNED') {
+          const returnedAllocated = data.returned_allocated_resources ?? [];
+          if (returnedAllocated.length > 0) {
+            const aggregatedReturned = Array.from(aggregateResources(returnedAllocated)).map(
+              ([resource_type_id, amount]) => ({ resource_type_id, amount }),
+            );
 
-          await client.expedition_found_resources.createMany({
-            data: normalizedResourcesToReturn.map((resource) => ({
-              expedition_id: id,
-              resource_type_id: resource.resource_type_id,
-              amount: resource.amount,
-            })),
-            skipDuplicates: true,
-          });
+            const allocated = await client.expedition_allocated_resources.findMany({
+              where: { expedition_id: id },
+            });
+            const allocatedMap = new Map(
+              allocated.map((r) => [r.resource_type_id, asNumber(r.amount)]),
+            );
+
+            for (const resource of aggregatedReturned) {
+              const allocatedAmount = allocatedMap.get(resource.resource_type_id);
+              if (allocatedAmount === undefined) {
+                throw new AppError(
+                  `Resource type ${resource.resource_type_id} was not allocated to expedition ${id}`,
+                  400,
+                );
+              }
+              if (resource.amount > allocatedAmount) {
+                throw new AppError(
+                  `Cannot return more than allocated for resource_type_id ${resource.resource_type_id}. Allocated: ${allocatedAmount}, Requested return: ${resource.amount}`,
+                  400,
+                );
+              }
+            }
+
+            await handleResourceReturn(tx, {
+              campId: expedition.camp_id,
+              loggedBy: data.changed_by,
+              expeditionId: id,
+              resources: aggregatedReturned,
+              description: `Returned allocated resources from expedition #${id}`,
+            });
+
+            await client.expedition_returned_resources.createMany({
+              data: aggregatedReturned.map((resource) => ({
+                expedition_id: id,
+                resource_type_id: resource.resource_type_id,
+                amount: resource.amount,
+              })),
+              skipDuplicates: true,
+            });
+          }
+
+          const foundResources = data.found_resources ?? [];
+          if (foundResources.length > 0) {
+            const aggregatedFound = Array.from(aggregateResources(foundResources)).map(
+              ([resource_type_id, amount]) => ({ resource_type_id, amount }),
+            );
+
+            await handleResourceReturn(tx, {
+              campId: expedition.camp_id,
+              loggedBy: data.changed_by,
+              expeditionId: id,
+              resources: aggregatedFound,
+              description: `Found resources during expedition #${id}`,
+            });
+
+            await client.expedition_found_resources.createMany({
+              data: aggregatedFound.map((resource) => ({
+                expedition_id: id,
+                resource_type_id: resource.resource_type_id,
+                amount: resource.amount,
+              })),
+              skipDuplicates: true,
+            });
+          }
         }
 
         await client.expeditions.update({
@@ -579,6 +648,7 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
             users: true,
             expedition_members: true,
             expedition_allocated_resources: true,
+            expedition_returned_resources: true,
             expedition_found_resources: true,
           },
         });
@@ -594,7 +664,6 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
             targetType: 'expeditions',
             targetId: result.id,
           });
-          // Non-blocking achievement check for expedition returns
           if (data.status === 'RETURNED') {
             achievementService
               .tryUnlock(data.changed_by, result.camp_id, 'EXPEDITION_RETURN')
@@ -625,6 +694,7 @@ export async function getExploration(id: number) {
       users: true,
       expedition_members: true,
       expedition_allocated_resources: true,
+      expedition_returned_resources: true,
       expedition_found_resources: true,
     },
   });
@@ -650,6 +720,7 @@ export async function getExplorations(campId: number, page = 1, pageSize = 20) {
         users: true,
         expedition_members: true,
         expedition_allocated_resources: true,
+        expedition_returned_resources: true,
         expedition_found_resources: true,
       },
       orderBy: { id: 'desc' },
@@ -685,16 +756,49 @@ export async function deleteExploration(id: number, data: DeleteExplorationDto) 
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const client = tx as unknown as typeof prisma;
-    const memberIds = await getExpeditionMemberIds(tx, id);
+    const expeditionMemberIds = await getExpeditionMemberIds(tx, id);
+    const memberOutcomes = data.member_outcomes ?? [];
+    const defaultStatus = data.default_member_status ?? 'HEALTHY';
+    const outcomeMap = new Map<number, string>();
 
-    if (memberIds.length > 0) {
-      await changeMemberStatus(
-        tx,
-        memberIds,
-        data.return_member_status ?? 'HEALTHY',
-        data.changed_by,
-        `Expedition #${id} cancelled`,
-      );
+    for (const outcome of memberOutcomes) {
+      if (!expeditionMemberIds.includes(outcome.person_id)) {
+        throw new AppError(`Person ${outcome.person_id} is not a member of expedition ${id}`, 400);
+      }
+      outcomeMap.set(outcome.person_id, outcome.status);
+    }
+
+    const membersToUpdate: Array<{ person_id: number; status: string }> = [];
+    for (const memberId of expeditionMemberIds) {
+      if (outcomeMap.has(memberId)) {
+        membersToUpdate.push({ person_id: memberId, status: outcomeMap.get(memberId)! });
+      } else {
+        membersToUpdate.push({ person_id: memberId, status: defaultStatus });
+      }
+    }
+
+    for (const member of membersToUpdate) {
+      const person = await client.people.findUnique({
+        where: { id: member.person_id },
+        select: { status: true },
+      });
+
+      if (person && person.status !== member.status) {
+        await client.people.update({
+          where: { id: member.person_id },
+          data: { status: member.status as persons_status },
+        });
+
+        await client.person_status_logs.create({
+          data: {
+            person_id: member.person_id,
+            old_status: person.status,
+            new_status: member.status as persons_status,
+            reason: `Expedition #${id} cancelled`,
+            changed_by: data.changed_by,
+          },
+        });
+      }
     }
 
     await client.expeditions.update({
