@@ -1,5 +1,12 @@
 import { Request, Response } from 'express';
-import { createCamp, updateCamp, deleteCamp, getCamp, getCamps } from './camps.service.js';
+import {
+  createCamp,
+  updateCamp,
+  deleteCamp,
+  getCamp,
+  getCamps,
+  getAllCamps,
+} from './camps.service.js';
 import { parseIdParam } from '../../shared/utils/parseIdParam.js';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware.js';
 
@@ -34,5 +41,10 @@ export async function getCampsHandler(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
   const result = await getCamps(page, pageSize, authReq.user.campId, authReq.user.isAdmin);
+  return res.json(result);
+}
+
+export async function getCampsCatalogHandler(_req: Request, res: Response) {
+  const result = await getAllCamps();
   return res.json(result);
 }

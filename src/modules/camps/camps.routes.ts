@@ -25,6 +25,12 @@ router.get(
 );
 
 router.get(
+  '/catalog',
+  permissionMiddleware(PERMISSIONS.CAMPS_READ),
+  campsController.getCampsCatalogHandler,
+);
+
+router.get(
   '/:id',
   permissionMiddleware(PERMISSIONS.CAMPS_READ),
   validate(z.object({ params: idParamsSchema })),
