@@ -83,6 +83,7 @@ export const createTransferSchema = z
     notes: z.string().optional(),
     requested_by: z.number().int().positive(),
     leader_person_id: z.number().int().positive().optional(),
+    required_profession_id: z.number().int().positive().optional(),
     scheduled_delivery_date: dateTimeSchema.optional(),
     items: z.array(transferItemSchema).min(1),
   })
