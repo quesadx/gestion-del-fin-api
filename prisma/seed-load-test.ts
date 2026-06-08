@@ -1381,6 +1381,7 @@ async function main() {
     final_decision: string;
     reviewed_by: number | null;
     reviewed_at: Date | null;
+    admitted_by: string | null;
     person_id: number | null;
   }> = [];
 
@@ -1398,6 +1399,28 @@ async function main() {
     const createdAt = randomDate(SYSTEM_START, NOW);
 
     const profSuggestion = randomElement(professions);
+    const campUsers = users.filter((u) => u.camp_id === camp.id);
+    const reviewedByUser = campUsers.length > 0 ? randomElement(campUsers) : null;
+
+    let reviewedBy: number | null = null;
+    let reviewedAt: Date | null = null;
+    let admittedBy: string | null = null;
+
+    if (finalDecision !== 'PENDING') {
+      const useAi = Math.random() > 0.5;
+      if (useAi) {
+        admittedBy = 'AI';
+      } else {
+        reviewedBy = reviewedByUser?.id ?? null;
+        reviewedAt =
+          reviewedBy !== null
+            ? randomDate(
+                new Date(createdAt.getTime() + 1 * 24 * 60 * 60 * 1000),
+                new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000),
+              )
+            : null;
+      }
+    }
 
     admissionRows.push({
       camp_id: camp.id,
@@ -1413,8 +1436,9 @@ async function main() {
       ai_suggested_profession: aiDecision !== 'PENDING' ? profSuggestion.name : null,
       ai_profession_id: aiDecision !== 'PENDING' ? profSuggestion.id : null,
       final_decision: finalDecision,
-      reviewed_by: null,
-      reviewed_at: null,
+      reviewed_by: reviewedBy,
+      reviewed_at: reviewedAt,
+      admitted_by: admittedBy,
       person_id: null,
     });
   }
