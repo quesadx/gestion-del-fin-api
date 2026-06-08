@@ -1,0 +1,57 @@
+id,name,description,icon_url,trigger_rule,created_at,deleted_at,updated_at
+1,Login Novice,Unlock your first session in the system.,https://placehold.co/128x128/0f172a/f8fafc?text=LN,LOGIN,2026-05-26 00:38:25.473,,2026-05-26 00:38:25.473
+2,Consistent Access,Return often and keep your account active.,https://placehold.co/128x128/0f172a/f8fafc?text=CA,LOGIN,2026-05-26 00:38:25.568,,2026-05-26 00:38:25.568
+3,Night Watch Ready,Stay present when the camp needs steady hands.,https://placehold.co/128x128/0f172a/f8fafc?text=NW,LOGIN,2026-05-26 00:38:25.662,,2026-05-26 00:38:25.662
+4,Camp Manager Novice,Create your first camp without hesitation.,https://placehold.co/128x128/0f172a/f8fafc?text=CM1,CAMP_CREATE,2026-05-26 00:38:25.756,,2026-05-26 00:38:25.756
+5,Camp Manager Expert,Build multiple camps and keep the network growing.,https://placehold.co/128x128/0f172a/f8fafc?text=CM2,CAMP_CREATE,2026-05-26 00:38:25.849,,2026-05-26 00:38:25.849
+6,Multi Camp Manager,Coordinate several camps at once with confidence.,https://placehold.co/128x128/0f172a/f8fafc?text=MCM,CAMP_CREATE,2026-05-26 00:38:25.943,,2026-05-26 00:38:25.943
+7,Brave Returner,Bring a scouting team back safely.,https://placehold.co/128x128/0f172a/f8fafc?text=BR,EXPEDITION_RETURN,2026-05-26 00:38:26.038,,2026-05-26 00:38:26.038
+8,Brave Pathfinder,Lead a team through danger and return intact.,https://placehold.co/128x128/0f172a/f8fafc?text=BP,EXPEDITION_RETURN,2026-05-26 00:38:26.132,,2026-05-26 00:38:26.132
+9,Brave Expedition Captain,Guide repeated returns without losing momentum.,https://placehold.co/128x128/0f172a/f8fafc?text=BEC,EXPEDITION_RETURN,2026-05-26 00:38:26.226,,2026-05-26 00:38:26.226
+10,Diplomat Novice,Complete your first successful transfer.,https://placehold.co/128x128/0f172a/f8fafc?text=DN,TRANSFER_COMPLETE,2026-05-26 00:38:26.319,,2026-05-26 00:38:26.319
+11,Diplomat Keeper,Balance movement between camps with steady judgment.,https://placehold.co/128x128/0f172a/f8fafc?text=DK,TRANSFER_COMPLETE,2026-05-26 00:38:26.412,,2026-05-26 00:38:26.412
+12,Diplomat Master,Complete several transfers without disrupting operations.,https://placehold.co/128x128/0f172a/f8fafc?text=DM,TRANSFER_COMPLETE,2026-05-26 00:38:26.507,,2026-05-26 00:38:26.507
+13,Inventory Novice,Perform your first manual inventory adjustment.,https://placehold.co/128x128/0f172a/f8fafc?text=IN,INVENTORY_ADJUST,2026-05-26 00:38:26.601,,2026-05-26 00:38:26.601
+14,Inventory Keeper,Keep the ledger stable through repeated adjustments.,https://placehold.co/128x128/0f172a/f8fafc?text=IK,INVENTORY_ADJUST,2026-05-26 00:38:26.694,,2026-05-26 00:38:26.694
+15,Ledger Guardian,Protect the stock records from drift and confusion.,https://placehold.co/128x128/0f172a/f8fafc?text=LG,INVENTORY_ADJUST,2026-05-26 00:38:26.787,,2026-05-26 00:38:26.787
+16,Resource Scout,Bring back the first useful haul from the field.,https://placehold.co/128x128/0f172a/f8fafc?text=RS,EXPEDITION_FOUND_RESOURCES,2026-05-26 00:38:26.88,,2026-05-26 00:38:26.88
+17,Resource Finder,Collect enough supplies to matter for the camp.,https://placehold.co/128x128/0f172a/f8fafc?text=RF,EXPEDITION_FOUND_RESOURCES,2026-05-26 00:38:26.973,,2026-05-26 00:38:26.973
+18,Resource Hauler,Return with a haul that changes the stock outlook.,https://placehold.co/128x128/0f172a/f8fafc?text=RH,EXPEDITION_FOUND_RESOURCES,2026-05-26 00:38:27.067,,2026-05-26 00:38:27.067
+19,Healthy Routine,Keep the camp running with at least one healthy member.,https://placehold.co/128x128/0f172a/f8fafc?text=HR,HEALTH_DAYS,2026-05-26 00:38:27.16,,2026-05-26 00:38:27.16
+20,Healthy Shift,Maintain a stable health baseline across the camp.,https://placehold.co/128x128/0f172a/f8fafc?text=HS,HEALTH_DAYS,2026-05-26 00:38:27.253,,2026-05-26 00:38:27.253
+21,Healthy Watch,Keep conditions stable long enough to matter.,https://placehold.co/128x128/0f172a/f8fafc?text=HW,HEALTH_DAYS,2026-05-26 00:38:27.347,,2026-05-26 00:38:27.347
+22,Periodic Check Starter,Let the automated checks run successfully.,https://placehold.co/128x128/0f172a/f8fafc?text=PCS,PERIODIC_CHECK,2026-05-26 00:38:27.44,,2026-05-26 00:38:27.44
+23,Periodic Check Keeper,Keep the scheduled evaluations healthy and consistent.,https://placehold.co/128x128/0f172a/f8fafc?text=PCK,PERIODIC_CHECK,2026-05-26 00:38:27.534,,2026-05-26 00:38:27.534
+24,Periodic Check Master,Support long-running automated evaluations without failure.,https://placehold.co/128x128/0f172a/f8fafc?text=PCM,PERIODIC_CHECK,2026-05-26 00:38:27.629,,2026-05-26 00:38:27.629
+25,First Aid Route,Move medical support where it is needed most.,https://placehold.co/128x128/0f172a/f8fafc?text=FAR,TRANSFER_COMPLETE,2026-05-26 00:38:27.723,,2026-05-26 00:38:27.723
+26,Supply Route,Complete a transfer that keeps camps supplied.,https://placehold.co/128x128/0f172a/f8fafc?text=SR,TRANSFER_COMPLETE,2026-05-26 00:38:27.818,,2026-05-26 00:38:27.818
+27,Courier Command,Orchestrate more than one successful handoff.,https://placehold.co/128x128/0f172a/f8fafc?text=CC,TRANSFER_COMPLETE,2026-05-26 00:38:27.913,,2026-05-26 00:38:27.913
+28,Login Specialist,Be available whenever the system needs attention.,https://placehold.co/128x128/0f172a/f8fafc?text=LS,LOGIN,2026-05-26 00:38:28.007,,2026-05-26 00:38:28.007
+29,Command Console,Access the system often enough to keep it under control.,https://placehold.co/128x128/0f172a/f8fafc?text=CCS,LOGIN,2026-05-26 00:38:28.101,,2026-05-26 00:38:28.101
+30,Control Room Presence,Stay connected and ready to act.,https://placehold.co/128x128/0f172a/f8fafc?text=CRP,LOGIN,2026-05-26 00:38:28.195,,2026-05-26 00:38:28.195
+31,Crisis Commander,Create a camp when the network needs another anchor.,https://placehold.co/128x128/0f172a/f8fafc?text=CRC,CAMP_CREATE,2026-05-26 00:38:28.29,,2026-05-26 00:38:28.29
+32,Shelter Architect,Expand the camp network with steady leadership.,https://placehold.co/128x128/0f172a/f8fafc?text=SA,CAMP_CREATE,2026-05-26 00:38:28.384,,2026-05-26 00:38:28.384
+33,Network Builder,Turn one camp into a coordinated set of shelters.,https://placehold.co/128x128/0f172a/f8fafc?text=NB,CAMP_CREATE,2026-05-26 00:38:28.477,,2026-05-26 00:38:28.477
+34,Field Support Brave,Return from the field with confidence and discipline.,https://placehold.co/128x128/0f172a/f8fafc?text=FSB,EXPEDITION_RETURN,2026-05-26 00:38:28.571,,2026-05-26 00:38:28.571
+35,Scout Brave,Lead a scouting route and bring everyone back.,https://placehold.co/128x128/0f172a/f8fafc?text=SB,EXPEDITION_RETURN,2026-05-26 00:38:28.665,,2026-05-26 00:38:28.665
+36,Camp Brave,Repeat successful returns until it becomes routine.,https://placehold.co/128x128/0f172a/f8fafc?text=CB,EXPEDITION_RETURN,2026-05-26 00:38:28.759,,2026-05-26 00:38:28.759
+37,Manual Tally Novice,Record the first manual inventory movement carefully.,https://placehold.co/128x128/0f172a/f8fafc?text=MTN,INVENTORY_ADJUST,2026-05-26 00:38:28.853,,2026-05-26 00:38:28.853
+38,Manual Tally Keeper,Keep manual counts aligned with reality.,https://placehold.co/128x128/0f172a/f8fafc?text=MTK,INVENTORY_ADJUST,2026-05-26 00:38:28.947,,2026-05-26 00:38:28.947
+39,Stock Sentinel,Defend the inventory from silent losses.,https://placehold.co/128x128/0f172a/f8fafc?text=SS,INVENTORY_ADJUST,2026-05-26 00:38:29.04,,2026-05-26 00:38:29.04
+40,Supply Counter,Track enough adjustments to matter for planning.,https://placehold.co/128x128/0f172a/f8fafc?text=SC,INVENTORY_ADJUST,2026-05-26 00:38:29.135,,2026-05-26 00:38:29.135
+41,Field Logistics,Bring back resources that support the frontline.,https://placehold.co/128x128/0f172a/f8fafc?text=FL,EXPEDITION_FOUND_RESOURCES,2026-05-26 00:38:29.229,,2026-05-26 00:38:29.229
+42,Cache Builder,Turn field recovery into a reliable stock buffer.,https://placehold.co/128x128/0f172a/f8fafc?text=CBU,EXPEDITION_FOUND_RESOURCES,2026-05-26 00:38:29.323,,2026-05-26 00:38:29.323
+43,Recovery Haul,Collect enough supplies to stabilize the camp.,https://placehold.co/128x128/0f172a/f8fafc?text=RHA,EXPEDITION_FOUND_RESOURCES,2026-05-26 00:38:29.417,,2026-05-26 00:38:29.417
+44,Medical Watch,Keep the camp healthy enough for long-term planning.,https://placehold.co/128x128/0f172a/f8fafc?text=MW,HEALTH_DAYS,2026-05-26 00:38:29.51,,2026-05-26 00:38:29.51
+45,Stable Ledger,Keep the system healthy through steady oversight.,https://placehold.co/128x128/0f172a/f8fafc?text=SL,PERIODIC_CHECK,2026-05-26 00:38:29.604,,2026-05-26 00:38:29.604
+46,Operational Pulse,Support recurring checks without losing momentum.,https://placehold.co/128x128/0f172a/f8fafc?text=OP,PERIODIC_CHECK,2026-05-26 00:38:29.697,,2026-05-26 00:38:29.697
+47,Rapid Route,Complete a transfer quickly and cleanly.,https://placehold.co/128x128/0f172a/f8fafc?text=RR,TRANSFER_COMPLETE,2026-05-26 00:38:29.791,,2026-05-26 00:38:29.791
+48,Logistics Diplomat,Coordinate movement between camps without friction.,https://placehold.co/128x128/0f172a/f8fafc?text=LD,TRANSFER_COMPLETE,2026-05-26 00:38:29.886,,2026-05-26 00:38:29.886
+49,Movement Master,Handle repeated transfers with confidence.,https://placehold.co/128x128/0f172a/f8fafc?text=MM,TRANSFER_COMPLETE,2026-05-26 00:38:29.979,,2026-05-26 00:38:29.979
+50,Transit Guardian,Protect teams while they are away from camp.,https://placehold.co/128x128/0f172a/f8fafc?text=TG,EXPEDITION_RETURN,2026-05-26 00:38:30.073,,2026-05-26 00:38:30.073
+51,Scout Channel,Route expeditions and keep them moving safely.,https://placehold.co/128x128/0f172a/f8fafc?text=SCN,EXPEDITION_RETURN,2026-05-26 00:38:30.167,,2026-05-26 00:38:30.167
+52,Journey Captain,Lead several teams back without losing pace.,https://placehold.co/128x128/0f172a/f8fafc?text=JC,EXPEDITION_RETURN,2026-05-26 00:38:30.262,,2026-05-26 00:38:30.262
+53,First Acceptance,Successfully reviewed and admitted a new survivor.,https://example.com/achievements/first-acceptance.png,Review an admission request and accept it.,2026-05-26 00:38:48.682,,2026-05-26 00:38:48.682
+54,Expedition Veteran,Served on multiple expedition teams.,https://example.com/achievements/expedition-veteran.png,Participate in at least two expeditions.,2026-05-26 00:38:48.682,,2026-05-26 00:38:48.682
+55,Supply Stabilizer,Helped keep the camp resource stock above minimum thresholds.,https://example.com/achievements/supply-stabilizer.png,Maintain a camp resource above its minimum stock.,2026-05-26 00:38:48.682,,2026-05-26 00:38:48.682
+56,Transfer Coordinator,Processed a transfer from request to completion.,https://example.com/achievements/transfer-coordinator.png,Create and complete a camp transfer.,2026-05-26 00:38:48.682,,2026-05-26 00:38:48.682
