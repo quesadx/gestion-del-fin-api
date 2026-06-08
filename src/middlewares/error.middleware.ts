@@ -44,11 +44,29 @@ export function errorHandler(error: any, req: Request, res: Response, next: Next
   }
 
   if (error instanceof AppError) {
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      logger.warn(`AppError ${error.statusCode}`, {
+        method: req.method,
+        url: req.originalUrl,
+        message: error.message,
+        body: req.body,
+        params: req.params,
+        query: req.query,
+      });
+    }
     sendErrorResponse(res, error.statusCode, error.message);
     return;
   }
 
   if (error instanceof ZodError) {
+    logger.warn('Validation failed', {
+      method: req.method,
+      url: req.originalUrl,
+      issues: error.issues,
+      body: req.body,
+      params: req.params,
+      query: req.query,
+    });
     sendErrorResponse(res, 400, 'Validation failed', error.issues);
     return;
   }

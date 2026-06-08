@@ -95,7 +95,7 @@ const PROFESSIONS_DATA = [
 ];
 
 const RESOURCE_TYPES_DATA = [
-  { name: 'Standard Rations', unit: 'kg', daily_ration: 1.5, minimum_stock: 500, auto_daily: true },
+  { name: 'FOOD_RATION', unit: 'kg', daily_ration: 1.5, minimum_stock: 500, auto_daily: true },
   {
     name: 'Purified Water',
     unit: 'Liters',
@@ -127,53 +127,53 @@ const RESOURCE_TYPES_DATA = [
 
 const PROFESSION_RESOURCE_MAP: Record<string, Array<{ resource: string; amount: number }>> = {
   Engineer: [
-    { resource: 'Standard Rations', amount: 1.25 },
+    { resource: 'FOOD_RATION', amount: 1.25 },
     { resource: 'Purified Water', amount: 2.0 },
     { resource: 'Diesel Fuel', amount: 0.5 },
     { resource: 'Tools', amount: 0.1 },
   ],
   Scout: [
-    { resource: 'Standard Rations', amount: 1.0 },
+    { resource: 'FOOD_RATION', amount: 1.0 },
     { resource: 'Purified Water', amount: 1.75 },
     { resource: 'Diesel Fuel', amount: 0.25 },
   ],
   Medic: [
-    { resource: 'Standard Rations', amount: 1.1 },
+    { resource: 'FOOD_RATION', amount: 1.1 },
     { resource: 'Purified Water', amount: 1.8 },
     { resource: 'Antibiotics', amount: 0.4 },
     { resource: 'Medical Kits', amount: 0.3 },
   ],
   Guard: [
-    { resource: 'Standard Rations', amount: 1.5 },
+    { resource: 'FOOD_RATION', amount: 1.5 },
     { resource: 'Purified Water', amount: 2.0 },
     { resource: 'Ammunition', amount: 0.5 },
   ],
   Farmer: [
-    { resource: 'Standard Rations', amount: 1.2 },
+    { resource: 'FOOD_RATION', amount: 1.2 },
     { resource: 'Purified Water', amount: 2.5 },
     { resource: 'Seed Packets', amount: 0.3 },
   ],
   Cook: [
-    { resource: 'Standard Rations', amount: 0.8 },
+    { resource: 'FOOD_RATION', amount: 0.8 },
     { resource: 'Purified Water', amount: 3.0 },
   ],
   Mechanic: [
-    { resource: 'Standard Rations', amount: 1.3 },
+    { resource: 'FOOD_RATION', amount: 1.3 },
     { resource: 'Purified Water', amount: 1.5 },
     { resource: 'Diesel Fuel', amount: 0.3 },
     { resource: 'Tools', amount: 0.2 },
   ],
   Hunter: [
-    { resource: 'Standard Rations', amount: 1.0 },
+    { resource: 'FOOD_RATION', amount: 1.0 },
     { resource: 'Purified Water', amount: 1.5 },
     { resource: 'Ammunition', amount: 0.3 },
   ],
   Laborer: [
-    { resource: 'Standard Rations', amount: 1.5 },
+    { resource: 'FOOD_RATION', amount: 1.5 },
     { resource: 'Purified Water', amount: 2.0 },
   ],
   Leader: [
-    { resource: 'Standard Rations', amount: 1.0 },
+    { resource: 'FOOD_RATION', amount: 1.0 },
     { resource: 'Purified Water', amount: 1.5 },
   ],
 };
@@ -643,10 +643,7 @@ async function main() {
       'people.status_log.create',
       'people.profession_reassign.create',
       'people.contribution_override.create',
-      'resources.create',
       'resources.read',
-      'resources.update',
-      'resources.delete',
       'professions.create',
       'professions.read',
       'professions.update',
@@ -657,22 +654,11 @@ async function main() {
       'users.delete',
       'inventory.read',
       'inventory.audit.read',
-      'inventory.adjust',
       'admission.create',
       'admission.read',
       'admission.review',
-      'transfers.create',
       'transfers.read',
-      'transfers.schedule',
-      'transfers.approve_source',
-      'transfers.approve_target',
-      'transfers.complete',
-      'transfers.reject',
-      'expeditions.create',
       'expeditions.read',
-      'expeditions.update',
-      'expeditions.update_status',
-      'expeditions.delete',
       'metrics.dashboard',
       'metrics.resources',
       'metrics.people',
@@ -686,50 +672,26 @@ async function main() {
       'permissions.update',
       'permissions.delete',
       'admin.bypass_camp_scoping',
-      'inventory_adjustment_requests.create',
-      'inventory_adjustment_requests.read_own',
-      'inventory_adjustment_requests.read',
-      'inventory_adjustment_requests.review',
     ],
     worker: [
       'camps.read',
       'resources.read',
-      'people.read',
-      'professions.read',
-      'expeditions.read',
       'inventory.read',
       'inventory.adjust',
-      'admission.create',
-      'admission.read',
-      'transfers.create',
-      'transfers.read',
-      'transfers.schedule',
-      'transfers.approve_source',
-      'transfers.approve_target',
-      'transfers.complete',
-      'transfers.reject',
       'metrics.dashboard',
       'inventory_adjustment_requests.create',
       'inventory_adjustment_requests.read_own',
     ],
     resource_manager: [
       'camps.read',
+      'people.read',
       'resources.create',
       'resources.read',
       'resources.update',
       'resources.delete',
-      'people.read',
-      'people.update',
-      'people.status_log.create',
-      'people.profession_reassign.create',
-      'people.contribution_override.create',
-      'professions.read',
-      'expeditions.read',
       'inventory.read',
       'inventory.audit.read',
       'inventory.adjust',
-      'admission.create',
-      'admission.read',
       'transfers.create',
       'transfers.read',
       'transfers.schedule',
@@ -745,17 +707,10 @@ async function main() {
     ],
     travel_coordinator: [
       'camps.read',
-      'resources.read',
       'people.read',
+      'resources.read',
       'professions.read',
-      'expeditions.create',
-      'expeditions.read',
-      'expeditions.update',
-      'expeditions.update_status',
-      'expeditions.delete',
       'inventory.read',
-      'admission.create',
-      'admission.read',
       'transfers.create',
       'transfers.read',
       'transfers.schedule',
@@ -763,6 +718,11 @@ async function main() {
       'transfers.approve_target',
       'transfers.complete',
       'transfers.reject',
+      'expeditions.create',
+      'expeditions.read',
+      'expeditions.update',
+      'expeditions.update_status',
+      'expeditions.delete',
       'metrics.dashboard',
       'metrics.expeditions',
     ],
@@ -1309,8 +1269,7 @@ async function main() {
     is_active: boolean;
   }> = [];
 
-  let userCounter = 0;
-  const roleNameById = new Map(roles.map((r) => [r.id, r.name]));
+  const roleCounters = new Map<string, number>();
 
   for (const campConfig of USERS_PER_CAMP) {
     const campId = allCamps[campConfig.campIdx].id;
@@ -1318,12 +1277,12 @@ async function main() {
       const roleId = roleByName.get(roleName);
       if (!roleId) throw new Error(`Role not found: ${roleName}`);
       for (let i = 0; i < count; i++) {
-        userCounter++;
-        const isActive = campConfig.campIdx < 5; // Foxtrot users might exist but be inactive
+        const counter = (roleCounters.get(roleName) ?? 0) + 1;
+        roleCounters.set(roleName, counter);
         userRows.push({
           camp_id: campId,
           role_id: roleId,
-          username: `${roleName}_${campConfig.campIdx + 1}_${i + 1}`,
+          username: `${roleName}_${counter}`,
           password_hash: passwordHash,
           is_active: campConfig.campIdx < 5,
         });
@@ -1422,6 +1381,7 @@ async function main() {
     final_decision: string;
     reviewed_by: number | null;
     reviewed_at: Date | null;
+    admitted_by: string | null;
     person_id: number | null;
   }> = [];
 
@@ -1439,6 +1399,28 @@ async function main() {
     const createdAt = randomDate(SYSTEM_START, NOW);
 
     const profSuggestion = randomElement(professions);
+    const campUsers = users.filter((u) => u.camp_id === camp.id);
+    const reviewedByUser = campUsers.length > 0 ? randomElement(campUsers) : null;
+
+    let reviewedBy: number | null = null;
+    let reviewedAt: Date | null = null;
+    let admittedBy: string | null = null;
+
+    if (finalDecision !== 'PENDING') {
+      const useAi = Math.random() > 0.5;
+      if (useAi) {
+        admittedBy = 'AI';
+      } else {
+        reviewedBy = reviewedByUser?.id ?? null;
+        reviewedAt =
+          reviewedBy !== null
+            ? randomDate(
+                new Date(createdAt.getTime() + 1 * 24 * 60 * 60 * 1000),
+                new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000),
+              )
+            : null;
+      }
+    }
 
     admissionRows.push({
       camp_id: camp.id,
@@ -1454,8 +1436,9 @@ async function main() {
       ai_suggested_profession: aiDecision !== 'PENDING' ? profSuggestion.name : null,
       ai_profession_id: aiDecision !== 'PENDING' ? profSuggestion.id : null,
       final_decision: finalDecision,
-      reviewed_by: null,
-      reviewed_at: null,
+      reviewed_by: reviewedBy,
+      reviewed_at: reviewedAt,
+      admitted_by: admittedBy,
       person_id: null,
     });
   }
@@ -1470,7 +1453,7 @@ async function main() {
 
   const INITIAL_INVENTORY_AMOUNTS: Record<string, Record<string, number>> = {
     'Alpha Outpost': {
-      'Standard Rations': 2500,
+      FOOD_RATION: 2500,
       'Purified Water': 5000,
       Antibiotics: 200,
       'Diesel Fuel': 300,
@@ -1482,7 +1465,7 @@ async function main() {
       Clothing: 70,
     },
     'Beta Sanctuary': {
-      'Standard Rations': 1800,
+      FOOD_RATION: 1800,
       'Purified Water': 3500,
       Antibiotics: 80,
       'Diesel Fuel': 180,
@@ -1494,7 +1477,7 @@ async function main() {
       Clothing: 45,
     },
     'Gamma Bastion': {
-      'Standard Rations': 2000,
+      FOOD_RATION: 2000,
       'Purified Water': 4200,
       Antibiotics: 120,
       'Diesel Fuel': 250,
@@ -1506,7 +1489,7 @@ async function main() {
       Clothing: 55,
     },
     'Delta Haven': {
-      'Standard Rations': 1200,
+      FOOD_RATION: 1200,
       'Purified Water': 2500,
       Antibiotics: 150,
       'Diesel Fuel': 100,
@@ -1518,7 +1501,7 @@ async function main() {
       Clothing: 30,
     },
     'Echo Forward': {
-      'Standard Rations': 800,
+      FOOD_RATION: 800,
       'Purified Water': 1600,
       Antibiotics: 60,
       'Diesel Fuel': 120,
@@ -1661,7 +1644,7 @@ async function main() {
 
   // Create expedition members
   for (const exp of insertedExpeditions) {
-    const campPeople = people.filter((p) => p.camp_id === exp.camp_id && p.status !== 'DEAD');
+    const campPeople = people.filter((p) => p.camp_id === exp.camp_id && p.status === 'HEALTHY');
     if (campPeople.length === 0) continue;
 
     const memberCount = Math.min(randomInt(2, 6), campPeople.length);
@@ -1678,14 +1661,27 @@ async function main() {
     }
   }
 
-  // Create allocated resources for expeditions
-  const autoDailyResourceTypes = resourceTypes.filter((rt) => rt.auto_daily);
+  // Create allocated resources for expeditions (capped by available inventory)
+  const inventoryByCamp = new Map<number, Map<number, number>>();
+  for (const inv of inventoryRows) {
+    if (!inventoryByCamp.has(inv.camp_id)) {
+      inventoryByCamp.set(inv.camp_id, new Map());
+    }
+    inventoryByCamp.get(inv.camp_id)!.set(inv.resource_type_id, inv.quantity);
+  }
+
   for (const exp of insertedExpeditions) {
     const resCount = randomInt(2, 4);
     const shuffledRT = [...resourceTypes].sort(() => Math.random() - 0.5);
+    const campInv = inventoryByCamp.get(exp.camp_id);
     for (let r = 0; r < resCount && r < shuffledRT.length; r++) {
       const rt = shuffledRT[r];
-      const amount = parseFloat((randomInt(5, 50) + Math.random()).toFixed(1));
+      const maxQty = campInv ? (campInv.get(rt.id) ?? 500) : 500;
+      const cappedMax = Math.min(maxQty, 50);
+      if (cappedMax < 1) continue;
+      const amount = parseFloat(
+        Math.min(randomInt(1, cappedMax) + Math.random(), maxQty * 0.75).toFixed(1),
+      );
       expeditionAllocRows.push({ expedition_id: exp.id, resource_type_id: rt.id, amount });
     }
   }
@@ -1790,10 +1786,14 @@ async function main() {
     const fromCampUsers = users.filter((u) => u.camp_id === fromCamp.id);
     const requester = fromCampUsers.length > 0 ? randomElement(fromCampUsers) : users[0];
 
-    const createdAt = randomDate(new Date(SYSTEM_START.getTime() + 45 * 24 * 60 * 60 * 1000), NOW);
-    const scheduledDelivery = new Date(
-      createdAt.getTime() + randomInt(3, 14) * 24 * 60 * 60 * 1000,
-    );
+    const needsFutureDate = status === 'PENDING' || status === 'APPROVED_SOURCE';
+    const createdAt = needsFutureDate
+      ? new Date(NOW.getTime() - randomInt(1, 5) * 24 * 60 * 60 * 1000)
+      : randomDate(new Date(SYSTEM_START.getTime() + 45 * 24 * 60 * 60 * 1000), NOW);
+
+    const scheduledDelivery = needsFutureDate
+      ? new Date(NOW.getTime() + randomInt(3, 14) * 24 * 60 * 60 * 1000)
+      : new Date(createdAt.getTime() + randomInt(3, 14) * 24 * 60 * 60 * 1000);
 
     const approveSourceAt =
       status !== 'PENDING'
@@ -1827,8 +1827,21 @@ async function main() {
   await prisma.camp_transfers.createMany({ data: transferRows as any });
   const transfers = await prisma.camp_transfers.findMany({ orderBy: { id: 'asc' } });
 
+  const transferInventoryByCamp = new Map<number, Map<number, number>>();
+  const allInventories = await prisma.inventories.findMany();
+  for (const inv of allInventories) {
+    if (!transferInventoryByCamp.has(inv.camp_id)) {
+      transferInventoryByCamp.set(inv.camp_id, new Map());
+    }
+    transferInventoryByCamp.get(inv.camp_id)!.set(inv.resource_type_id, Number(inv.quantity));
+  }
+
+  const personTransferPersonCount = new Map<number, number>();
   for (const transfer of transfers) {
     const itemCount = randomInt(1, 4);
+    let personCount = 0;
+    const campInv = transferInventoryByCamp.get(transfer.requesting_camp);
+    const usedPerRt = new Map<number, number>();
     for (let item = 0; item < itemCount; item++) {
       const isPerson =
         transfer.type === 'PERSON' ||
@@ -1847,16 +1860,53 @@ async function main() {
             person_id: chosen.id,
             quantity: 1,
           });
+          personCount++;
         }
       } else {
         const rt = randomElement(resourceTypes);
-        const qty = parseFloat((randomInt(5, 100) + Math.random()).toFixed(1));
+        const available = campInv ? (campInv.get(rt.id) ?? 500) : 500;
+        const alreadyUsed = usedPerRt.get(rt.id) ?? 0;
+        const remaining = Math.max(0, available - alreadyUsed);
+        const cappedMax = Math.min(remaining, 50);
+        if (cappedMax < 1) continue;
+        const qty = parseFloat((randomInt(1, cappedMax) + Math.random()).toFixed(1));
+        usedPerRt.set(rt.id, alreadyUsed + qty);
         transferItemRows.push({
           camp_transfer_id: transfer.id,
           item_type: 'RESOURCE',
           resource_type_id: rt.id,
           person_id: null,
           quantity: qty,
+        });
+      }
+    }
+    if (personCount > 0) {
+      personTransferPersonCount.set(transfer.id, personCount);
+    }
+  }
+
+  const foodRationId = rtByName.get('FOOD_RATION');
+  if (foodRationId) {
+    for (const [transferId, personCount] of personTransferPersonCount) {
+      const existingRation = transferItemRows.find(
+        (ti) =>
+          ti.camp_transfer_id === transferId &&
+          ti.item_type === 'RESOURCE' &&
+          ti.resource_type_id === foodRationId,
+      );
+      if (existingRation) continue;
+      const transfer = transfers.find((t) => t.id === transferId);
+      if (!transfer) continue;
+      const campInv = transferInventoryByCamp.get(transfer.requesting_camp);
+      const availableFood = campInv ? (campInv.get(foodRationId) ?? 0) : 0;
+      const minRations = personCount * 2 * 3;
+      if (availableFood >= minRations) {
+        transferItemRows.push({
+          camp_transfer_id: transferId,
+          item_type: 'RESOURCE',
+          resource_type_id: foodRationId,
+          person_id: null,
+          quantity: minRations,
         });
       }
     }
