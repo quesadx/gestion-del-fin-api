@@ -37,7 +37,6 @@ const CAMP_DEFINITIONS = [
     name: 'Alpha Outpost',
     location: 'Grid Sector 7',
     status: 'ACTIVE' as const,
-    populationWeight: 28,
     aiPrompt:
       'Prioritize technical survival value, practical skills, and reliable health stability for long-term infrastructure resilience.',
   },
@@ -45,7 +44,6 @@ const CAMP_DEFINITIONS = [
     name: 'Beta Sanctuary',
     location: 'Grid Sector 9',
     status: 'ACTIVE' as const,
-    populationWeight: 23,
     aiPrompt:
       'Prioritize adaptability, team compatibility, and field mobility for scouting and rapid-response missions.',
   },
@@ -53,7 +51,6 @@ const CAMP_DEFINITIONS = [
     name: 'Gamma Bastion',
     location: 'Grid Sector 12',
     status: 'ACTIVE' as const,
-    populationWeight: 26,
     aiPrompt:
       'Prioritize logistics, supply continuity, and stable staffing for long-duration settlement support.',
   },
@@ -61,23 +58,8 @@ const CAMP_DEFINITIONS = [
     name: 'Delta Haven',
     location: 'Grid Sector 4',
     status: 'ACTIVE' as const,
-    populationWeight: 14,
     aiPrompt:
       'Prioritize medical readiness, low-risk integration, and skilled support for recovery operations.',
-  },
-  {
-    name: 'Echo Forward',
-    location: 'Grid Sector 2',
-    status: 'ACTIVE' as const,
-    populationWeight: 9,
-    aiPrompt: 'Prioritize mechanical aptitude, structural repair, and resource efficiency.',
-  },
-  {
-    name: 'Foxtrot Fallback',
-    location: 'Grid Sector 15',
-    status: 'ABANDONED' as const,
-    populationWeight: 0,
-    aiPrompt: null,
   },
 ];
 
@@ -481,7 +463,7 @@ function generateAiReasoning(decision: string): string {
 
 async function main() {
   logger.info('=== GESTIÓN DEL FIN — LOAD TEST SEED ===');
-  logger.info(`Target: ~11,500 records across all tables`);
+  logger.info(`Target: ~30,000 records across all tables`);
   logger.info(`Time range: ${SYSTEM_START.toISOString()} to ${NOW.toISOString()}`);
 
   const startTime = Date.now();
@@ -1186,19 +1168,12 @@ async function main() {
       ai_context_prompt: c.aiPrompt,
     })),
   });
-  await prisma.camps.create({
-    data: {
-      name: 'Foxtrot Fallback',
-      location: 'Grid Sector 15',
-      status: 'ABANDONED',
-    },
-  });
   const camps = await prisma.camps.findMany({
     where: { status: 'ACTIVE' },
     orderBy: { id: 'asc' },
   });
   const allCamps = await prisma.camps.findMany({ orderBy: { id: 'asc' } });
-  logger.info(`Created ${camps.length} active camps + 1 abandoned`);
+  logger.info(`Created ${camps.length} active camps`);
 
   // ──────────────────────────────────────────────
   // 4. PROFESSIONS & RESOURCE TYPES
@@ -1251,14 +1226,6 @@ async function main() {
       campIdx: 3,
       roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 2 },
     },
-    {
-      campIdx: 4,
-      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
-    },
-    {
-      campIdx: 5,
-      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
-    },
   ];
 
   const userRows: Array<{
@@ -1284,7 +1251,7 @@ async function main() {
           role_id: roleId,
           username: `${roleName}_${counter}`,
           password_hash: passwordHash,
-          is_active: campConfig.campIdx < 5,
+          is_active: true,
         });
       }
     }
@@ -1297,20 +1264,11 @@ async function main() {
   // 6. PEOPLE
   // ──────────────────────────────────────────────
   logger.info('Seeding people...');
-  const totalPopulation = 350;
+  const totalPopulation = 1000;
   const activeCamps = camps;
-  const campPopulations: number[] = [];
-  const totalWeight = CAMP_DEFINITIONS.filter((c, i) => i < 5).reduce(
-    (s, c) => s + c.populationWeight,
-    0,
+  const campPopulations = activeCamps.map(() =>
+    Math.floor(totalPopulation / activeCamps.length),
   );
-
-  for (let i = 0; i < activeCamps.length; i++) {
-    const weight = CAMP_DEFINITIONS[i].populationWeight;
-    const count = Math.round((weight / totalWeight) * totalPopulation);
-    campPopulations.push(count);
-  }
-  // Adjust to hit exactly 350
   const currentTotal = campPopulations.reduce((a, b) => a + b, 0);
   campPopulations[0] += totalPopulation - currentTotal;
 
@@ -1385,7 +1343,7 @@ async function main() {
     person_id: number | null;
   }> = [];
 
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 1000; i++) {
     const camp = randomElement(activeCamps);
     const aiDecision = randomElement([
       'ACCEPTED',
@@ -1500,18 +1458,6 @@ async function main() {
       Tools: 15,
       Clothing: 30,
     },
-    'Echo Forward': {
-      FOOD_RATION: 800,
-      'Purified Water': 1600,
-      Antibiotics: 60,
-      'Diesel Fuel': 120,
-      'Medical Kits': 40,
-      Ammunition: 400,
-      'Building Materials': 50,
-      'Seed Packets': 10,
-      Tools: 40,
-      Clothing: 20,
-    },
   };
 
   const inventoryRows: Array<{ camp_id: number; resource_type_id: number; quantity: number }> = [];
@@ -1598,7 +1544,7 @@ async function main() {
   }
   const createdExpeditions: ExpeditionWithId[] = [];
 
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 1000; i++) {
     const camp = randomElement(activeCamps);
     const status = randomElement([
       'PLANNED',
@@ -1763,7 +1709,7 @@ async function main() {
     quantity: number;
   }> = [];
 
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 1000; i++) {
     const fromCamp = randomElement(activeCamps);
     let toCamp = randomElement(activeCamps.filter((c) => c.id !== fromCamp.id));
     if (!toCamp) toCamp = activeCamps[0];

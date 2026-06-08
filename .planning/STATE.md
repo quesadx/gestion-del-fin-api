@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-17)
 Phase: 05 (complete)
 Plan: 03 completed (3/3 plans done)
 Status: Completed
-Last activity: 2026-05-25 - Completed quick task 250525-001: Update e2e tests for CI compatibility + add performance tests
+Last activity: 2026-06-08 - Completed quick task 20260608: Scale up seed-load-test.ts to 4 camps, 1000 persons, 1000 admissions, 1000 expeditions, 1000 transfers
 
 Progress: [████████████████████] 100%
 
@@ -89,6 +89,7 @@ None yet.
 | 20260517 | Fix Prisma schema: cyclic refs, FK actions, snake_case relations, person_status_log enum | 2026-05-17 | `028cd7f` | [fix-prisma-schema](./quick/20260517-fix-prisma-schema/) |
 | 20260517-deferred | Fix deferred schema review: datasource, persons→people rename, led_transfers, admission→person link, SetNull fixes, VarChar consistency | 2026-05-17 | `9302b9c` | [fix-deferred-schema](./quick/20260517-fix-deferred-schema/) |
 | 250525-001 | Update e2e tests for CI compatibility + add performance tests | 2026-05-25 | `21ec25b` | [update-e2e-tests-ci](./quick/20260525-update-e2e-tests-ci/) |
+| 20260608 | Scale up seed-load-test.ts to 4 camps, 1000 persons, 1000 admissions, 1000 expeditions, 1000 transfers | 2026-06-08 | `8d180f3` | [scale-up-seed-load-test](./quick/20260608-scale-up-seed-load-test/) |
 
 ## Deferred Items
 
