@@ -524,10 +524,7 @@ export async function updateExpeditionStatus(id: number, data: UpdateExploration
             } else if (defaultStatus) {
               membersToUpdate.push({ person_id: memberId, status: defaultStatus });
             } else if (data.status === 'RETURNED') {
-              throw new AppError(
-                `Member ${memberId} has no defined outcome. Provide default_member_status or include person_id in member_outcomes`,
-                400,
-              );
+              membersToUpdate.push({ person_id: memberId, status: 'HEALTHY' });
             }
           }
 
