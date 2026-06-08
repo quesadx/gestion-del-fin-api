@@ -1326,9 +1326,7 @@ async function main() {
   logger.info('Seeding people...');
   const totalPopulation = 2000;
   const activeCamps = camps;
-  const campPopulations = activeCamps.map(() =>
-    Math.floor(totalPopulation / activeCamps.length),
-  );
+  const campPopulations = activeCamps.map(() => Math.floor(totalPopulation / activeCamps.length));
   const currentTotal = campPopulations.reduce((a, b) => a + b, 0);
   campPopulations[0] += totalPopulation - currentTotal;
 
