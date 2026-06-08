@@ -17,7 +17,12 @@
     "spell": "cspell \"src/**/*.ts\"",
     "test": "jest --passWithNoTests",
     "test:e2e": "playwright test",
-    "test:perf": "playwright test --config=tests/perf/playwright.perf.config.ts"
+    "test:perf": "playwright test --config=tests/perf/playwright.perf.config.ts",
+    "seed": "tsx prisma/seed-load-test.ts",
+    "seed:load-test": "tsx prisma/seed-load-test.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "keywords": [
     "api",
