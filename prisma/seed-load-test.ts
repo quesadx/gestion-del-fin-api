@@ -61,6 +61,42 @@ const CAMP_DEFINITIONS = [
     aiPrompt:
       'Prioritize medical readiness, low-risk integration, and skilled support for recovery operations.',
   },
+  {
+    name: 'Echo Forward',
+    location: 'Grid Sector 2',
+    status: 'ACTIVE' as const,
+    aiPrompt: 'Prioritize mechanical aptitude, structural repair, and resource efficiency.',
+  },
+  {
+    name: 'Foxtrot Base',
+    location: 'Grid Sector 15',
+    status: 'ACTIVE' as const,
+    aiPrompt: 'Prioritize reconnaissance, early warning, and perimeter intelligence gathering.',
+  },
+  {
+    name: 'Golf Post',
+    location: 'Grid Sector 8',
+    status: 'ACTIVE' as const,
+    aiPrompt: 'Prioritize construction capacity, tool maintenance, and infrastructure expansion.',
+  },
+  {
+    name: 'Hotel Point',
+    location: 'Grid Sector 11',
+    status: 'ACTIVE' as const,
+    aiPrompt: 'Prioritize food preservation, distribution networks, and supply chain coordination.',
+  },
+  {
+    name: 'India Station',
+    location: 'Grid Sector 1',
+    status: 'ACTIVE' as const,
+    aiPrompt: 'Prioritize communications, data management, and inter-camp coordination.',
+  },
+  {
+    name: 'Juliet Haven',
+    location: 'Grid Sector 14',
+    status: 'ACTIVE' as const,
+    aiPrompt: 'Prioritize water purification, sanitation infrastructure, and disease prevention.',
+  },
 ];
 
 const PROFESSIONS_DATA = [
@@ -463,7 +499,7 @@ function generateAiReasoning(decision: string): string {
 
 async function main() {
   logger.info('=== GESTIÓN DEL FIN — LOAD TEST SEED ===');
-  logger.info(`Target: ~30,000 records across all tables`);
+  logger.info(`Target: ~40,000 records across all tables`);
   logger.info(`Time range: ${SYSTEM_START.toISOString()} to ${NOW.toISOString()}`);
 
   const startTime = Date.now();
@@ -1226,6 +1262,30 @@ async function main() {
       campIdx: 3,
       roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 2 },
     },
+    {
+      campIdx: 4,
+      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
+    },
+    {
+      campIdx: 5,
+      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
+    },
+    {
+      campIdx: 6,
+      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
+    },
+    {
+      campIdx: 7,
+      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
+    },
+    {
+      campIdx: 8,
+      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
+    },
+    {
+      campIdx: 9,
+      roleCounts: { system_admin: 1, resource_manager: 1, travel_coordinator: 1, worker: 1 },
+    },
   ];
 
   const userRows: Array<{
@@ -1264,7 +1324,7 @@ async function main() {
   // 6. PEOPLE
   // ──────────────────────────────────────────────
   logger.info('Seeding people...');
-  const totalPopulation = 1000;
+  const totalPopulation = 2000;
   const activeCamps = camps;
   const campPopulations = activeCamps.map(() =>
     Math.floor(totalPopulation / activeCamps.length),
@@ -1457,6 +1517,78 @@ async function main() {
       'Seed Packets': 15,
       Tools: 15,
       Clothing: 30,
+    },
+    'Echo Forward': {
+      FOOD_RATION: 800,
+      'Purified Water': 1600,
+      Antibiotics: 60,
+      'Diesel Fuel': 120,
+      'Medical Kits': 40,
+      Ammunition: 400,
+      'Building Materials': 50,
+      'Seed Packets': 10,
+      Tools: 40,
+      Clothing: 20,
+    },
+    'Foxtrot Base': {
+      FOOD_RATION: 900,
+      'Purified Water': 1800,
+      Antibiotics: 50,
+      'Diesel Fuel': 100,
+      'Medical Kits': 50,
+      Ammunition: 600,
+      'Building Materials': 30,
+      'Seed Packets': 12,
+      Tools: 20,
+      Clothing: 25,
+    },
+    'Golf Post': {
+      FOOD_RATION: 1000,
+      'Purified Water': 2000,
+      Antibiotics: 70,
+      'Diesel Fuel': 150,
+      'Medical Kits': 60,
+      Ammunition: 500,
+      'Building Materials': 70,
+      'Seed Packets': 20,
+      Tools: 50,
+      Clothing: 30,
+    },
+    'Hotel Point': {
+      FOOD_RATION: 1100,
+      'Purified Water': 2200,
+      Antibiotics: 90,
+      'Diesel Fuel': 130,
+      'Medical Kits': 70,
+      Ammunition: 450,
+      'Building Materials': 35,
+      'Seed Packets': 40,
+      Tools: 25,
+      Clothing: 35,
+    },
+    'India Station': {
+      FOOD_RATION: 700,
+      'Purified Water': 1400,
+      Antibiotics: 40,
+      'Diesel Fuel': 80,
+      'Medical Kits': 30,
+      Ammunition: 300,
+      'Building Materials': 20,
+      'Seed Packets': 8,
+      Tools: 15,
+      Clothing: 15,
+    },
+    'Juliet Haven': {
+      FOOD_RATION: 950,
+      'Purified Water': 1900,
+      Antibiotics: 100,
+      'Diesel Fuel': 110,
+      'Medical Kits': 80,
+      Ammunition: 350,
+      'Building Materials': 40,
+      'Seed Packets': 18,
+      Tools: 30,
+      Clothing: 28,
     },
   };
 
