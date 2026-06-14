@@ -4,15 +4,22 @@ import dailyRationsJob from './daily-rations.job.js';
 import dailyProductionJob from './daily-production.job.js';
 import resourceAlertsJob from './resource-alerts.job.js';
 import achievementNotificationsJob from './achievement-notifications.job.js';
-import { enqueueDailyProduction, enqueueDailyRations, enqueueResourceAlerts } from './job-queue.js';
+import {
+  enqueueDailyProduction,
+  enqueueDailyRations,
+  enqueueResourceAlerts,
+  enqueueCleanupExpiredTokens,
+} from './job-queue.js';
 
 const DAILY_RATIONS_CRON = process.env.DAILY_RATIONS_CRON ?? '* * * * *';
 const DAILY_PRODUCTION_CRON = process.env.DAILY_PRODUCTION_CRON ?? '0 5 * * *';
 const RESOURCE_ALERTS_CRON = process.env.RESOURCE_ALERTS_CRON ?? '0 * * * *';
+const CLEANUP_TOKENS_CRON = process.env.CLEANUP_TOKENS_CRON ?? '0 3 * * *';
 const ACHIEVEMENT_NOTIFICATIONS_CRON = process.env.ACHIEVEMENT_NOTIFICATIONS_CRON ?? '*/30 * * * *';
 let dailyRationsTask: ScheduledTask | null = null;
 let dailyProductionTask: ScheduledTask | null = null;
 let resourceAlertsTask: ScheduledTask | null = null;
+let cleanupTokensTask: ScheduledTask | null = null;
 let achievementNotificationsTask: ScheduledTask | null = null;
 
 export function startJobScheduler() {
@@ -20,6 +27,7 @@ export function startJobScheduler() {
     dailyRationsTask ||
     dailyProductionTask ||
     resourceAlertsTask ||
+    cleanupTokensTask ||
     achievementNotificationsTask
   ) {
     return;
@@ -94,6 +102,26 @@ export function startJobScheduler() {
 
   logger.info(`[JOB] Resource alerts scheduler registered with cron: ${RESOURCE_ALERTS_CRON}`);
 
+  cleanupTokensTask = cron.schedule(CLEANUP_TOKENS_CRON, async () => {
+    logger.info('[JOB] Starting cleanup expired tokens job');
+
+    try {
+      const valkeyUrl = process.env.VALKEY_JOBS_URL;
+      if (valkeyUrl) {
+        await enqueueCleanupExpiredTokens(valkeyUrl);
+        logger.info('[JOB] Cleanup expired tokens job enqueued');
+      } else {
+        logger.info('[JOB] No Valkey URL configured, skipping cleanup tokens enqueue');
+      }
+    } catch (error) {
+      logger.error('[JOB] Cleanup expired tokens job failed', error);
+    }
+  });
+
+  logger.info(
+    `[JOB] Cleanup expired tokens scheduler registered with cron: ${CLEANUP_TOKENS_CRON}`,
+  );
+
   achievementNotificationsTask = cron.schedule(ACHIEVEMENT_NOTIFICATIONS_CRON, async () => {
     logger.info('[JOB] Starting achievement notifications job');
 
@@ -122,19 +150,17 @@ export function stopJobScheduler() {
     logger.info('[JOB] Daily production scheduler stopped');
   }
 
-  if (!resourceAlertsTask) {
-    if (achievementNotificationsTask) {
-      achievementNotificationsTask.stop();
-      achievementNotificationsTask = null;
-      logger.info('[JOB] Achievement notifications scheduler stopped');
-    }
-
-    return;
+  if (resourceAlertsTask) {
+    resourceAlertsTask.stop();
+    resourceAlertsTask = null;
+    logger.info('[JOB] Resource alerts scheduler stopped');
   }
 
-  resourceAlertsTask.stop();
-  resourceAlertsTask = null;
-  logger.info('[JOB] Resource alerts scheduler stopped');
+  if (cleanupTokensTask) {
+    cleanupTokensTask.stop();
+    cleanupTokensTask = null;
+    logger.info('[JOB] Cleanup expired tokens scheduler stopped');
+  }
 
   if (achievementNotificationsTask) {
     achievementNotificationsTask.stop();
@@ -148,4 +174,9 @@ export default {
   stopJobScheduler,
 };
 
-export { enqueueDailyRations, enqueueDailyProduction, enqueueResourceAlerts } from './job-queue.js';
+export {
+  enqueueDailyRations,
+  enqueueDailyProduction,
+  enqueueResourceAlerts,
+  enqueueCleanupExpiredTokens,
+} from './job-queue.js';
