@@ -522,6 +522,21 @@ model user_achievements {
   @@index([achievement_id], map: "user_achievements_achievement_id_idx")
 }
 
+model refresh_tokens {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique @db.VarChar(64)
+  expires_at DateTime
+  created_at DateTime  @default(now())
+  revoked_at DateTime?
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], map: "refresh_tokens_user_id_idx")
+  @@index([token_hash], map: "refresh_tokens_token_hash_idx")
+  @@map("refresh_tokens")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model users {
   id                           Int                      @id @default(autoincrement())
@@ -547,6 +562,7 @@ model users {
   person_transfer_logs         person_transfer_logs[]
   user_achievements            user_achievements[]
   achievement_notifications   achievement_notifications[]
+  refresh_tokens               refresh_tokens[]
   camps                        camps                    @relation(fields: [camp_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   roles                        roles                    @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 

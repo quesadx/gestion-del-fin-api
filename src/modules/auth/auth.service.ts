@@ -3,6 +3,11 @@ import { AppError } from '../../shared/utils/appError.js';
 import { compare } from '@node-rs/bcrypt';
 import { LoginInput } from './auth.schema.js';
 import { signAccessToken } from '../../shared/utils/jwt.js';
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+  getRefreshTokenExpiresAt,
+} from '../../shared/utils/refreshToken.js';
 import { PERMISSIONS } from '../../shared/constants/permissions.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
 import * as achievementService from '../achievements/achievements.service.js';
@@ -45,16 +50,11 @@ export const login = async (data: LoginInput) => {
     throw new AppError('Invalid credentials', 401);
   }
 
-  // NOTE: isAdmin is static for the token lifetime (up to 24h).
-  // If the role's permissions change after login, the flag is not auto-revoked.
-  // campMiddleware uses it to bypass camp-scoping, but permissionMiddleware
-  // re-checks permissions from the DB on every request, so no actual data access is leaked.
-  // Re-login refreshes the flag with current permissions.
   const isAdmin = user.roles.role_permissions.some(
     (rp) => rp.permissions.name === PERMISSIONS.ADMIN_BYPASS_CAMP_SCOPING,
   );
 
-  const token = signAccessToken(
+  const accessToken = signAccessToken(
     user.id,
     user.camp_id,
     user.roles.name,
@@ -62,7 +62,17 @@ export const login = async (data: LoginInput) => {
     isAdmin,
   );
 
-  // Detect whether this is the user's first recorded activity
+  const refreshTokenRaw = generateRefreshToken();
+  const refreshTokenHash = hashRefreshToken(refreshTokenRaw);
+
+  await prisma.refresh_tokens.create({
+    data: {
+      user_id: user.id,
+      token_hash: refreshTokenHash,
+      expires_at: getRefreshTokenExpiresAt(),
+    },
+  });
+
   const isFirstLogin = user.last_activity == null;
 
   await prisma.users.update({
@@ -78,40 +88,146 @@ export const login = async (data: LoginInput) => {
     targetId: user.id,
   });
 
-  // Try to unlock login-related achievements (non-blocking)
   achievementService
     .tryUnlock(user.id, user.camp_id, 'LOGIN', { firstLogin: isFirstLogin })
     .catch((err) => logger.warn(`Achievement check failed (LOGIN): ${err?.message ?? err}`));
 
   return {
+    accessToken,
+    refreshToken: refreshTokenRaw,
     user: {
       username: user.username,
       role: user.roles.name,
       permissions: user.roles.role_permissions.map((rp) => rp.permissions.name),
     },
-    token,
   };
 };
 
-export const logout = async (userId: number) => {
+export const refresh = async (refreshTokenCookie: string | undefined) => {
+  if (!refreshTokenCookie) {
+    throw new AppError('Refresh token is required', 401);
+  }
+
+  const tokenHash = hashRefreshToken(refreshTokenCookie);
+
+  const storedToken = await prisma.refresh_tokens.findUnique({
+    where: { token_hash: tokenHash },
+    select: { id: true, user_id: true, expires_at: true, revoked_at: true },
+  });
+
+  if (!storedToken) {
+    throw new AppError('Invalid refresh token', 401);
+  }
+
+  if (storedToken.revoked_at) {
+    throw new AppError('Refresh token has been revoked', 401);
+  }
+
+  if (storedToken.expires_at < new Date()) {
+    throw new AppError('Refresh token has expired', 401);
+  }
+
   const user = await prisma.users.findUnique({
-    where: { id: userId },
-    select: { id: true, camp_id: true },
+    where: { id: storedToken.user_id },
+    select: {
+      id: true,
+      camp_id: true,
+      session_version: true,
+      is_active: true,
+      roles: {
+        select: {
+          name: true,
+          role_permissions: { select: { permissions: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 401);
+  }
+
+  if (!user.is_active) {
+    throw new AppError('Account is inactive', 401);
+  }
+
+  const isAdmin = user.roles.role_permissions.some(
+    (rp) => rp.permissions.name === PERMISSIONS.ADMIN_BYPASS_CAMP_SCOPING,
+  );
+
+  const newAccessToken = signAccessToken(
+    user.id,
+    user.camp_id,
+    user.roles.name,
+    user.session_version,
+    isAdmin,
+  );
+
+  // Rotate: revoke old refresh token, create new one
+  await prisma.refresh_tokens.update({
+    where: { id: storedToken.id },
+    data: { revoked_at: new Date() },
+  });
+
+  const newRefreshTokenRaw = generateRefreshToken();
+  const newRefreshTokenHash = hashRefreshToken(newRefreshTokenRaw);
+
+  await prisma.refresh_tokens.create({
+    data: {
+      user_id: user.id,
+      token_hash: newRefreshTokenHash,
+      expires_at: getRefreshTokenExpiresAt(),
+    },
   });
 
   await prisma.users.update({
-    where: { id: userId },
-    data: { last_activity: null, session_version: { increment: 1 } },
+    where: { id: user.id },
+    data: { last_activity: new Date() },
   });
 
-  if (user) {
-    auditLog({
-      userId,
-      campId: user.camp_id,
-      action: 'LOGOUT',
-      targetType: 'users',
-      targetId: userId,
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshTokenRaw,
+  };
+};
+
+export const logout = async (refreshTokenCookie: string | undefined) => {
+  if (!refreshTokenCookie) {
+    return { message: 'Logged out successfully' };
+  }
+
+  const tokenHash = hashRefreshToken(refreshTokenCookie);
+
+  const storedToken = await prisma.refresh_tokens.findUnique({
+    where: { token_hash: tokenHash },
+    select: { id: true, user_id: true },
+  });
+
+  if (storedToken) {
+    await prisma.refresh_tokens.update({
+      where: { id: storedToken.id },
+      data: { revoked_at: new Date() },
     });
+
+    const user = await prisma.users.findUnique({
+      where: { id: storedToken.user_id },
+      select: { id: true, camp_id: true },
+    });
+
+    await prisma.users.update({
+      where: { id: storedToken.user_id },
+      data: { last_activity: null, session_version: { increment: 1 } },
+    });
+
+    if (user) {
+      auditLog({
+        userId: user.id,
+        campId: user.camp_id,
+        action: 'LOGOUT',
+        targetType: 'users',
+        targetId: user.id,
+      });
+    }
   }
 
   return { message: 'Logged out successfully' };

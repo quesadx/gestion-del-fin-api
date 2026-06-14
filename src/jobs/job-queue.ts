@@ -4,6 +4,7 @@ import { logger } from '../logger/logger.js';
 const DAILY_RATIONS_QUEUE = 'jobs:daily_rations';
 const DAILY_PRODUCTION_QUEUE = 'jobs:daily_production';
 const RESOURCE_ALERTS_QUEUE = 'jobs:resource_alerts';
+const CLEANUP_EXPIRED_TOKENS_QUEUE = 'jobs:cleanup_expired_tokens';
 
 let redisClient: RedisClientType | null = null;
 
@@ -37,6 +38,10 @@ export async function enqueueDailyProduction(redisUrl: string, campId?: number) 
 
 export async function enqueueResourceAlerts(redisUrl: string, campId?: number) {
   await enqueueJob(redisUrl, RESOURCE_ALERTS_QUEUE, 'resource_alerts', campId);
+}
+
+export async function enqueueCleanupExpiredTokens(redisUrl: string) {
+  await enqueueJob(redisUrl, CLEANUP_EXPIRED_TOKENS_QUEUE, 'cleanup_expired_tokens');
 }
 
 export async function closeJobQueueRedisClient() {
