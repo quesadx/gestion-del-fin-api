@@ -3,7 +3,7 @@ import * as authService from './auth.service.js';
 import { getRefreshTokenExpiryMs } from '../../shared/utils/refreshToken.js';
 
 const COOKIE_NAME = 'refreshToken';
-const COOKIE_PATH = '/auth';
+const COOKIE_PATH = '/api/auth';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 function setRefreshCookie(res: Response, token: string): void {

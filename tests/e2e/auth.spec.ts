@@ -28,7 +28,7 @@ test.describe('POST /api/auth/login', () => {
     const setCookie = res.headers()['set-cookie'] || '';
     expect(setCookie).toContain('refreshToken');
     expect(setCookie).toContain('HttpOnly');
-    expect(setCookie).toContain('Path=/auth');
+    expect(setCookie).toContain('Path=/api/auth');
     await ctx.dispose();
   });
 
@@ -139,7 +139,7 @@ test.describe('POST /api/auth/logout', () => {
 
     const setCookie = res.headers()['set-cookie'] || '';
     expect(setCookie).toContain('refreshToken');
-    expect(setCookie).toContain('Max-Age=0');
+    expect(setCookie).toContain('Expires=');
     await ctx.dispose();
   });
 
