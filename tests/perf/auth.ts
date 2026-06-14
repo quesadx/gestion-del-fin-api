@@ -1,12 +1,12 @@
 import { request } from '@playwright/test';
 
 interface LoginResponse {
-  token: string;
-  user: { id: number; username: string; role: string; camp_id: number; is_admin: boolean };
+  accessToken: string;
+  user: { username: string; role: string; permissions: string[] };
 }
 
 /**
- * Login against the target API and return token + user info.
+ * Login against the target API and return accessToken + user info.
  * Credentials from env E2E_USER/E2E_PASS or fallback to seed defaults.
  */
 export async function login(
@@ -27,9 +27,9 @@ export async function login(
   await ctx.dispose();
 
   return {
-    token: body.token,
-    userId: body.user.id,
-    campId: body.user.camp_id,
+    token: body.accessToken,
+    userId: 0,
+    campId: 0,
     role: body.user.role,
   };
 }

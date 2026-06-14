@@ -12,6 +12,7 @@ import { closeCache, initCache } from './lib/cache.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import systemRoutes from './modules/system/system.routes.js';
 import campsRoutes from './modules/camps/camps.routes.js';
@@ -54,6 +55,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.set('trust proxy', 1);
 app.use(globalRateLimit);
